@@ -1,4 +1,4 @@
-# EOSIO Contract API
+# NEFTYBLOCKS Contract API
 The aim of this project is to provide an framework to fill and query state and history for specific
 contracts on eosio based blockchains. 
 
