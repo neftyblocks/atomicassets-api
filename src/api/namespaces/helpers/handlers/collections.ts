@@ -18,7 +18,7 @@ export async function getCollectionsAction(params: RequestValues, ctx: NeftyMark
         cache.rows === null || 
         (Date.now() > (cache.lastUpdate.getTime() + updateRate))
     ) {
-        cache.lastUpdate = new Date(Date.now());
+        cache.lastUpdate = new Date();
         cache.rows = await getCollectionsLists(ctx);
     }
 
