@@ -158,7 +158,7 @@ export default class NeftyQuestHandler extends ContractHandler {
         destructors.push(configProcessor(this, processor));
         destructors.push(questsProcessor(this, processor));
 
-        this.filler.jobs.add('Refresh NeftyQuest leaderboards', 60000, JobQueuePriority.MEDIUM, (async () => {
+        this.filler.jobs.add('Refresh NeftyQuest leaderboards', 60000, JobQueuePriority.HIGH, (async () => {
             const now = new Date().getTime();
             const questsResult = await this.connection.database.query(
                 'SELECT * FROM neftyquest_quests WHERE start_time < $1 AND end_time > $2',
@@ -191,8 +191,10 @@ export default class NeftyQuestHandler extends ContractHandler {
                     materializedViewQuery = materializedViewQuery.replace(expression, function(matched: string){
                         return tokens[matched];
                     });
+                    logger.info(`Creating leaderboard view ${viewName}`);
                     await this.connection.database.query(materializedViewQuery);
                 } else {
+                    logger.info(`Refreshing leaderboard view ${viewName}`);
                     await this.connection.database.query(`REFRESH MATERIALIZED VIEW CONCURRENTLY nefy_quest_leaderboard_${quest.quest_id};`);
                 }
             }
