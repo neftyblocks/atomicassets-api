@@ -226,7 +226,7 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         const stateConditions: string[] = [];
 
         if (args.state.split(',').indexOf(String(AuctionApiState.WAITING.valueOf())) >= 0) {
-            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()}) AND listing.start_time < ${Date.now()}::BIGINT)`);
+            stateConditions.push(`(listing.state = ${AuctionState.LISTED.valueOf()} AND listing.start_time < ${Date.now()}::BIGINT)`);
         }
 
         if (args.state.split(',').indexOf(String(AuctionApiState.LISTED.valueOf())) >= 0) {
