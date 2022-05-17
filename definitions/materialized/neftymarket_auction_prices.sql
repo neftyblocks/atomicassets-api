@@ -1,16 +1,15 @@
-CREATE MATERIALIZED VIEW IF NOT EXISTS neftymarket_dutch_auction_prices AS
+CREATE MATERIALIZED VIEW IF NOT EXISTS neftymarket_auction_prices AS
 SELECT market_contract,
        auction_id,
        CASE
-           WHEN auction_type = 1
+           WHEN auction_type = 1 AND buyer IS NULL
                THEN LEAST(
                    (
                        ROUND(
                                    buy_now_price *
                                    POWER(
-                                               1 - discount_rate,
-                                               FLOOR(LEAST(extract(epoch from now()), end_time) -
-                                                     start_time / discount_interval)
+                                               1.0 - discount_rate,
+                                               FLOOR((LEAST(FLOOR(extract(epoch from now())* 1000), end_time) - start_time) / discount_interval)
                                        )
                            )
                        ),
@@ -21,6 +20,3 @@ SELECT market_contract,
            as buy_now_price_dynamic
 FROM neftymarket_auctions auction
 WHERE buy_now_price > 0;
-
-CREATE UNIQUE INDEX neftymarket_dutch_auction_prices_pkey ON neftymarket_dutch_auction_prices (market_contract, auction_id);
-CREATE INDEX neftymarket_dutch_auction_prices_price ON neftymarket_dutch_auction_prices USING btree (buy_now_price_dynamic);
