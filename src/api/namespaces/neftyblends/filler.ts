@@ -147,7 +147,7 @@ export class CollectionFiller {
 
             try {
                 const query = await this.db.query(
-                    'SELECT * FROM ' + this.view + ' WHERE contract = $1 AND collection_name = ANY ($2)' +
+                    'SELECT * FROM ' + this.view + ' WHERE contract = $1 AND collection_name = ANY ($2)',
                     [this.contract, this.collectionNames]
                 );
 
