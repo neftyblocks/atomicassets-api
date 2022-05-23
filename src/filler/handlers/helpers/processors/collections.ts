@@ -94,10 +94,11 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                         [core.args.atomicassets_account, neftyContract, listName]
                     );
 
-                    const collections = collectionsQuery.rows;
+                    const collections = collectionsQuery.rows.map(({ collection_name }) => collection_name);
                     const addedCollections = differenceA(delta.value.collections, collections);
                     const deletedCollections = differenceA(collections, delta.value.collections);
 
+                    console.log('Collections', collections);
                     console.log('Added collections', addedCollections);
                     console.log('Deleted collections', deletedCollections);
 
@@ -141,10 +142,11 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                         [core.args.atomicassets_account, atomicContract, listName]
                     );
 
-                    const collections = collectionsQuery.rows;
+                    const collections = collectionsQuery.rows.map(({ collection_name }) => collection_name);
                     const addedCollections = differenceA(delta.value.list, collections);
                     const deletedCollections = differenceA(collections, delta.value.list);
 
+                    console.log('Collections', collections);
                     console.log('Added collections', addedCollections);
                     console.log('Deleted collections', deletedCollections);
 
