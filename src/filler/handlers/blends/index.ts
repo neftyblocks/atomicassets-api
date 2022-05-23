@@ -158,7 +158,7 @@ export default class BlendsHandler extends ContractHandler {
                     });
 
                     if (configTable.rows.length === 0) {
-                        throw new Error('NeftyBlends: Unable to fetch neftydrops config');
+                        logger.warn('NeftyBlends: Unable to fetch blends config');
                     }
 
                     const config: ConfigTableRow = configTable.rows[0];
