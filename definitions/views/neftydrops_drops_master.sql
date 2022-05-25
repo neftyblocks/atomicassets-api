@@ -43,11 +43,14 @@ ON (drops_contract, drop_id)
     ndrop.listing_price,
     ndrop.listing_symbol,
 
-    ARRAY(
-    SELECT asset.template_id
+    jsonb_agg(ARRAY(
+    SELECT jsonb_build_object(
+        "template_id", asset.template_id,
+        "tokens_to_back", asset.tokens_to_back
+    )
     FROM neftydrops_drop_assets asset
     WHERE ndrop.assets_contract = asset.assets_contract AND asset.drop_id = ndrop.drop_id
-    ) templates,
+    )) templates,
 
     ndrop.collection_name,
     json_build_object(

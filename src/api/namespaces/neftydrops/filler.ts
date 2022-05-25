@@ -16,12 +16,10 @@ export class TemplateFiller {
         this.templates = null;
     }
 
-    async fill(templateIds: string[]): Promise<any[]> {
+    async fill(templateId: string): Promise<any[]> {
         this.query();
-
         const data = await this.templates;
-
-        return templateIds.map((templateId) => data[String(templateId)] || String(templateId));
+        return data[String(templateId)] || {template_id: String(templateId) };
     }
 
     query(): void {
@@ -59,13 +57,16 @@ export async function fillDrops(db: DB, assetContract: string, drops: any[]): Pr
     const templateIds: string[] = [];
 
     for (const drop of drops) {
-        templateIds.push(...drop.templates);
+        templateIds.push(...drop.templates.map(({ template_id }: {template_id: string}) => template_id));
     }
 
     const filler = new TemplateFiller(db, assetContract, templateIds, formatTemplate, 'atomicassets_templates_master');
 
     return await Promise.all(drops.map(async (drop) => {
-        drop.templates = await filler.fill(drop.templates);
+        drop.templates = await (Promise.all(drop.templates.map(async (template: any) => ({
+            ...template,
+            ...(await filler.fill(template.template_id))
+        }))));
         return drop;
     }));
 }
