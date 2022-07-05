@@ -58,7 +58,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
             queryString += 'AND collection_name = ANY (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\')' +
+                'WHERE (list = \'whitelist\' OR list = \'verified\') AND list != \'blacklist\' AND list != \'scam\'' +
                 ')  ';
         }
     }
