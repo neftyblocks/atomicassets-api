@@ -4,7 +4,7 @@ CREATE TABLE neftydrops_account_stats
     drop_id                bigint                NOT NULL,
     use_counter            bigint                NOT NULL,
     last_claim_time        bigint                NOT NULL,
-    used_nonces            text                  NOT NULL,
+    used_nonces            bigint[]              NOT NULL,
 
     CONSTRAINT neftydrops_account_stats_pkey PRIMARY KEY (claimer, drop_id)
 );
@@ -13,7 +13,7 @@ CREATE TABLE neftydrops_accounts_whitelist
 (
     drop_id                bigint                NOT NULL,
     account                character varying(12) NOT NULL,
-    account_limit          smallint              NOT NULL,
+    account_limit          bigint                NOT NULL,
 
     CONSTRAINT neftydrops_accounts_whitelist_pkey PRIMARY KEY (drop_id, account)
 );
@@ -21,7 +21,7 @@ CREATE TABLE neftydrops_accounts_whitelist
 CREATE TABLE neftydrops_authkeys
 (
     drop_id                bigint                 NOT NULL,
-    public_key             character varying(200) NOT NULL,
+    public_key             character varying(51) NOT NULL,
     key_limit              bigint                NOT NULL,
     key_limit_cooldown     bigint                NOT NULL,
     use_counter            bigint                NOT NULL,
