@@ -43,3 +43,41 @@ export type BalancesTableRow = {
     owner: string,
     quantities: string[]
 };
+
+export type AccountStats = {
+    drop_id: string,
+    counter: number,
+    last_claim_time: string,
+    used_nonces: string[],
+}
+export type AccountStatsRow = {
+    claimer: string,
+    drop_id: string,
+    use_counter: number,
+    last_claim_time: string,
+    used_nonces: string[],
+}
+export type AccountsWhitelist = {
+    account: string,
+    account_limit: number,
+}
+export type AccountsWhitelistRow = {
+    drop_id: string,
+    account: string,
+    account_limit: number,
+}
+export type AuthKeys = {
+    key: string,
+    key_limit: number,
+    key_limit_cooldown: number,
+    counter: number,
+    last_claim_time: number,
+}
+export type AuthKeysRow = {
+    drop_id: string,
+    public_key: string,
+    key_limit: number,
+    key_limit_cooldown: number,
+    use_counter: number,
+    last_claim_time: number,
+}

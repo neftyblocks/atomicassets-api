@@ -11,6 +11,7 @@ import DataProcessor from '../../processor';
 import {balanceProcessor} from './processors/balances';
 import {configProcessor} from './processors/config';
 import {dropsProcessor} from './processors/drops';
+import {initSecurityMechanisms} from './processors/security';
 import {JobQueuePriority} from '../../jobqueue';
 
 export const NEFTYDROPS_BASE_PRIORITY = Math.max(ATOMICASSETS_BASE_PRIORITY, DELPHIORACLE_BASE_PRIORITY) + 1000;
@@ -99,77 +100,85 @@ export default class NeftyDropsHandler extends ContractHandler {
     }
 
     async init(client: PoolClient): Promise<void> {
-        const configQuery = await client.query(
-            'SELECT * FROM neftydrops_config WHERE drops_contract = $1',
-            [this.args.neftydrops_account]
-        );
+        try {
+            await this.connection.database.begin();
+            await initSecurityMechanisms(this.args, this.connection);
+            const configQuery = await client.query(
+                'SELECT * FROM neftydrops_config WHERE drops_contract = $1',
+                [this.args.neftydrops_account]
+            );
 
-        if (configQuery.rows.length === 0) {
-            const configTable = await this.connection.chain.rpc.get_table_rows({
-                json: true, code: this.args.neftydrops_account,
-                scope: this.args.neftydrops_account, table: 'config'
-            });
+            if (configQuery.rows.length === 0) {
+                const configTable = await this.connection.chain.rpc.get_table_rows({
+                    json: true, code: this.args.neftydrops_account,
+                    scope: this.args.neftydrops_account, table: 'config'
+                });
 
-            if (configTable.rows.length === 0) {
-                throw new Error('NeftyDrops: Unable to fetch neftydrops version');
+                if (configTable.rows.length === 0) {
+                    throw new Error('NeftyDrops: Unable to fetch neftydrops version');
+                }
+
+                const config: ConfigTableRow = configTable.rows[0];
+
+                this.args.delphioracle_account = config.delphioracle_account;
+                this.args.atomicassets_account = config.atomicassets_account;
+
+                await client.query(
+                    'INSERT INTO neftydrops_config ' +
+                    '(' +
+                        'drops_contract, assets_contract, delphi_contract, ' +
+                        'version, drop_fee, drop_fee_recipient ' +
+                    ') ' +
+                    'VALUES ($1, $2, $3, $4, $5, $6)',
+                    [
+                        this.args.neftydrops_account,
+                        this.args.atomicassets_account,
+                        config.delphioracle_account,
+                        config.version,
+                        config.drop_fee,
+                        config.drop_fee_recipient
+                    ]
+                );
+
+                this.config = {
+                    ...config,
+                    supported_symbol_pairs: [],
+                    supported_tokens: []
+                };
+            } else {
+                this.args.delphioracle_account = configQuery.rows[0].delphi_contract;
+                this.args.atomicassets_account = configQuery.rows[0].assets_contract;
+
+                const tokensQuery = await this.connection.database.query(
+                    'SELECT * FROM neftydrops_tokens WHERE drops_contract = $1',
+                    [this.args.neftydrops_account]
+                );
+
+                const pairsQuery = await this.connection.database.query(
+                    'SELECT * FROM neftydrops_symbol_pairs WHERE drops_contract = $1',
+                    [this.args.neftydrops_account]
+                );
+
+                this.config = {
+                    ...configQuery.rows[0],
+                    supported_symbol_pairs: pairsQuery.rows.map(row => ({
+                        listing_symbol: 'X,' + row.listing_symbol,
+                        settlement_symbol: 'X,' + row.settlement_symbol,
+                        invert_delphi_pair: row.invert_delphi_pair,
+                        delphi_pair_name: row.delphi_pair_name
+                    })),
+                    supported_tokens: tokensQuery.rows.map(row => ({
+                        token_contract: row.token_contract,
+                        token_symbol: row.token_precision + ',' + row.token_symbol
+                    })),
+                    delphioracle_account: this.args.delphioracle_account,
+                    atomicassets_account: this.args.atomicassets_account
+                };
             }
-
-            const config: ConfigTableRow = configTable.rows[0];
-
-            this.args.delphioracle_account = config.delphioracle_account;
-            this.args.atomicassets_account = config.atomicassets_account;
-
-            await client.query(
-                'INSERT INTO neftydrops_config ' +
-                '(' +
-                    'drops_contract, assets_contract, delphi_contract, ' +
-                    'version, drop_fee, drop_fee_recipient ' +
-                ') ' +
-                'VALUES ($1, $2, $3, $4, $5, $6)',
-                [
-                    this.args.neftydrops_account,
-                    this.args.atomicassets_account,
-                    config.delphioracle_account,
-                    config.version,
-                    config.drop_fee,
-                    config.drop_fee_recipient
-                ]
-            );
-
-            this.config = {
-                ...config,
-                supported_symbol_pairs: [],
-                supported_tokens: []
-            };
-        } else {
-            this.args.delphioracle_account = configQuery.rows[0].delphi_contract;
-            this.args.atomicassets_account = configQuery.rows[0].assets_contract;
-
-            const tokensQuery = await this.connection.database.query(
-                'SELECT * FROM neftydrops_tokens WHERE drops_contract = $1',
-                [this.args.neftydrops_account]
-            );
-
-            const pairsQuery = await this.connection.database.query(
-                'SELECT * FROM neftydrops_symbol_pairs WHERE drops_contract = $1',
-                [this.args.neftydrops_account]
-            );
-
-            this.config = {
-                ...configQuery.rows[0],
-                supported_symbol_pairs: pairsQuery.rows.map(row => ({
-                    listing_symbol: 'X,' + row.listing_symbol,
-                    settlement_symbol: 'X,' + row.settlement_symbol,
-                    invert_delphi_pair: row.invert_delphi_pair,
-                    delphi_pair_name: row.delphi_pair_name
-                })),
-                supported_tokens: tokensQuery.rows.map(row => ({
-                    token_contract: row.token_contract,
-                    token_symbol: row.token_precision + ',' + row.token_symbol
-                })),
-                delphioracle_account: this.args.delphioracle_account,
-                atomicassets_account: this.args.atomicassets_account
-            };
+            await this.connection.database.query('COMMIT');
+        } catch (error) {
+            await this.connection.database.query('ROLLBACK');
+            throw error;
         }
     }
 
