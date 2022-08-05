@@ -21,7 +21,7 @@ CREATE TABLE neftydrops_accounts_whitelist
 CREATE TABLE neftydrops_authkeys
 (
     drop_id                bigint                 NOT NULL,
-    public_key             character varying(51) NOT NULL,
+    public_key             character varying(53) NOT NULL,
     key_limit              bigint                NOT NULL,
     key_limit_cooldown     bigint                NOT NULL,
     use_counter            bigint                NOT NULL,
