@@ -366,7 +366,7 @@ export class ContractDBTransaction {
             this.stats.operations += query.rowCount;
 
             if (query.rowCount === 0) {
-                throw new Error('Table ' + table + ' updated but no rows affacted ' + JSON.stringify(values) + ' ' + JSON.stringify(condition));
+                throw new Error('Table ' + table + ' updated but no rows affected ' + JSON.stringify(values) + ' ' + JSON.stringify(condition));
             }
 
             if (selectQuery && selectQuery.rows.length > 0) {
