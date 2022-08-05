@@ -12,6 +12,19 @@ export function encodeDatabaseArray(array: any[]): string {
     return `{${array.join(',')}}`;
 }
 
+export async function getAllScopesFromTable(rpc: JsonRpc, options: any, batchSize: number): Promise<any[]> {
+    let result = await rpc.get_table_by_scope({...options, limit: batchSize});
+    
+    let { rows } = result;
+    while (result.more) {
+        const lower_bound = result.more;
+        // eslint-disable-next-line no-await-in-loop
+        result = await rpc.get_table_by_scope({...options, lower_bound, limit: batchSize});
+        rows = rows.concat(result.rows);
+    }
+    return rows;
+}
+
 export async function getAllRowsFromTable(rpc: JsonRpc, options: any, batchSize: number): Promise<any[]> {
     let result = await rpc.get_table_rows({...options, limit: batchSize});
     let { rows } = result;
