@@ -11,7 +11,7 @@ import DataProcessor from '../../processor';
 import {balanceProcessor} from './processors/balances';
 import {configProcessor} from './processors/config';
 import {dropsProcessor} from './processors/drops';
-import {initSecurityMechanisms} from './processors/security';
+import {initSecurityMechanisms, securityProcessor} from './processors/security';
 import {JobQueuePriority} from '../../jobqueue';
 
 export const NEFTYDROPS_BASE_PRIORITY = Math.max(ATOMICASSETS_BASE_PRIORITY, DELPHIORACLE_BASE_PRIORITY) + 1000;
@@ -25,6 +25,10 @@ export type NeftyDropsArgs = {
 export enum NeftyDropsUpdatePriority {
     TABLE_BALANCES = NEFTYDROPS_BASE_PRIORITY + 10,
     TABLE_CONFIG = NEFTYDROPS_BASE_PRIORITY + 10,
+    TABLE_ACCOUNT_STATS = NEFTYDROPS_BASE_PRIORITY + 10,
+    TABLE_WHITELISTS = NEFTYDROPS_BASE_PRIORITY + 10,
+    TABLE_AUTH_KEYS = NEFTYDROPS_BASE_PRIORITY + 10,
+    TABLE_PROOF_OWNERSHIP = NEFTYDROPS_BASE_PRIORITY + 10,
     ACTION_CREATE_DROP = NEFTYDROPS_BASE_PRIORITY + 20,
     ACTION_UPDATE_DROP = NEFTYDROPS_BASE_PRIORITY + 20,
     ACTION_CLAIM_DROP = NEFTYDROPS_BASE_PRIORITY + 40,
@@ -206,6 +210,7 @@ export default class NeftyDropsHandler extends ContractHandler {
         destructors.push(configProcessor(this, processor));
         destructors.push(balanceProcessor(this, processor));
         destructors.push(dropsProcessor(this, processor));
+        destructors.push(securityProcessor(this, processor));
 
         for (const view of materializedViews) {
             this.filler.jobs.add(`Refresh NeftyDrops View ${view}`, 60000, JobQueuePriority.MEDIUM, (async () => {

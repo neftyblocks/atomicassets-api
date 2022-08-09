@@ -7,6 +7,34 @@ import { ShipTableDelta, ShipTransactionTrace } from '../types/ship';
 import { EosioActionTrace, EosioContractRow, EosioTransaction } from '../types/eosio';
 import { Abi } from 'eosjs/dist/eosjs-rpc-interfaces';
 
+function charToSymbol(c: any): any {
+    if (typeof c == 'string') c = c.charCodeAt(0);
+
+    if (c >= 'a'.charCodeAt(0) && c <= 'z'.charCodeAt(0)) {
+        return c - 'a'.charCodeAt(0) + 6;
+    }
+
+    if (c >= '1'.charCodeAt(0) && c <= '5'.charCodeAt(0)) {
+        return c - '1'.charCodeAt(0) + 1;
+    }
+
+    return 0;
+}
+
+export function eosioNameToUint64(name: string): string {
+    let n = 0n;
+    let i = 0;
+    for (; i < 12 && name[i]; i++) {
+        n |= BigInt(charToSymbol(name.charCodeAt(i)) & 0x1f) << BigInt(64 - 5 * (i + 1));
+    }
+
+    if (i == 12) {
+        n |= BigInt(charToSymbol(name.charCodeAt(i)) & 0x0f);
+    }
+
+    return n.toString();
+}
+
 export function serializeEosioName(name: string): string {
     const buffer = new SerialBuffer({textEncoder: new TextEncoder(), textDecoder: new TextDecoder()});
 
