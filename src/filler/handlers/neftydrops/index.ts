@@ -44,6 +44,10 @@ const views = [
 ];
 const materializedViews = ['neftydrops_stats', 'neftydrops_drop_prices', 'neftydrops_attribute_filters'];
 
+const functions = [
+    'neftyblends_blend_details_func'
+];
+
 export default class NeftyDropsHandler extends ContractHandler {
     static handlerName = 'neftydrops';
 
@@ -70,6 +74,10 @@ export default class NeftyDropsHandler extends ContractHandler {
 
             for (const view of materializedViews) {
                 await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
+            }
+
+            for (const fn of functions) {
+                await client.query(fs.readFileSync('./definitions/functions/' + fn + '.sql', {encoding: 'utf8'}));
             }
 
             logger.info('NeftyDrops tables successfully created');

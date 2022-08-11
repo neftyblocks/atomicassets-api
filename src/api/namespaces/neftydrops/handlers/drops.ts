@@ -175,11 +175,76 @@ export async function getDropClaimsCountAction(params: RequestValues, ctx: Nefty
 
 export async function getDropsClaimableAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
     const args = filterQueryArgs(params, {
-        drops: {type: 'string'},
-        account: {type: 'string'},
-        keys: {type: 'string'}
+        drops: {type: 'string', default: ''},
+        account: {type: 'string', default: ''},
+        keys: {type: 'string', default: ''}
     });
-    const drop_ids = args.drops.split(",");
-    const keys = args.keys.split(",");
-    return null;
+
+    const drop_ids = args.drops.split(',');
+    const keys = args.keys.split(',');
+    if (args.account === '') {
+        throw new ApiError('Param: \'account\' is required', 400);
+    }
+    if (drop_ids.length < 1) {
+        throw new ApiError('Param: \'drops\' is required', 400);
+    }
+
+
+    let queryVarCounter:number = 0;
+    const queryValues:any[] = [];
+    let queryString:string;
+
+    queryString = `
+select 
+    drop_id
+from 
+    neftydrops_drops d`
+    ;
+
+    // Only get the drop ids that the user sent
+    {
+        queryValues.push(drop_ids)
+        queryString += `
+where
+    EXISTS (SELECT FROM UNNEST($${++queryVarCounter}::BIGINT[]) u(c) WHERE u.c = drop_id)`
+    }
+
+    // Only get the drops that have a valid date and have not reached their max_claims
+    {
+        queryString += `
+    AND (
+        (d.start_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) >= d.start_time) AND
+        (d.end_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) <= d.end_time) AND
+        (d.max_claimable = 0 OR d.max_claimable > d.current_claimed)
+    )`;
+    }
+
+    // Check if the account passes they account_limit requirements
+    {
+        queryValues.push(args.account);
+        queryString += `
+    AND neftydrops_is_account_within_use_limits($${queryVarCounter++}, d.drop_id, d.account_limit, d.account_limit_cooldown)
+    AND (
+        NOT d.auth_required
+        OR 
+    )
+    `;
+    }
+
+    // @TODO: // Check if drop has no security or the account passes any of the 
+    // secure.nefty requirements
+    if (false) {
+        queryValues.push(args.account);
+        queryString += `
+    AND (
+        NOT d.auth_required
+        OR neftydrops_is_account_in_whitelist($${queryVarCounter++}, d.drop_id)
+    )
+    `;
+    }
+
+    // @TODO: make it look like ClaimableDrop
+    const result = await ctx.db.query(queryString, queryValues);
+
+    return result.rows;
 }
