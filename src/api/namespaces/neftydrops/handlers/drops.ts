@@ -69,7 +69,7 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         price: {column: 'price.price', nullable: true}
     };
 
-    query.append('ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : ''));
+    query.append('ORDER BY is_available DESC NULLS LAST, ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : ''));
     query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
     const dropQuery = await ctx.db.query(query.buildString(), query.buildValues());
