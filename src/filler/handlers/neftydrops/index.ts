@@ -45,7 +45,9 @@ const views = [
 const materializedViews = ['neftydrops_stats', 'neftydrops_drop_prices', 'neftydrops_attribute_filters'];
 
 const functions = [
-    'neftyblends_blend_details_func'
+    'neftydrops_is_account_within_use_limits',
+    'neftydrops_is_account_in_whitelist',
+    'neftydrops_is_key_authorized'
 ];
 
 export default class NeftyDropsHandler extends ContractHandler {

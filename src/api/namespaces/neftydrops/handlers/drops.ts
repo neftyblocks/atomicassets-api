@@ -180,42 +180,46 @@ export async function getDropsClaimableAction(params: RequestValues, ctx: NeftyD
         keys: {type: 'string', default: ''}
     });
 
-    const drop_ids = args.drops.split(',');
-    const keys = args.keys.split(',');
     if (args.account === '') {
         throw new ApiError('Param: \'account\' is required', 400);
     }
-    if (drop_ids.length < 1) {
+    if (args.drops === '') {
         throw new ApiError('Param: \'drops\' is required', 400);
     }
 
+    const drop_ids = args.drops.split(',');
+    let keys = (args.keys === '' ? [] : args.keys.split(','));
 
     let queryVarCounter:number = 0;
     const queryValues:any[] = [];
     let queryString:string;
 
+    queryValues.push(args.account);
     queryString = `
-select 
-    drop_id
-from 
-    neftydrops_drops d`
+SELECT 
+    "drop".drop_id,
+    acc_stats.use_counter
+FROM neftydrops_drops "drop"
+LEFT JOIN neftydrops_account_stats acc_stats ON
+    acc_stats.drop_id = "drop".drop_id AND
+    acc_stats.claimer = $${++queryVarCounter}`
     ;
 
     // Only get the drop ids that the user sent
     {
         queryValues.push(drop_ids)
         queryString += `
-where
-    EXISTS (SELECT FROM UNNEST($${++queryVarCounter}::BIGINT[]) u(c) WHERE u.c = drop_id)`
+WHERE
+    EXISTS (SELECT FROM UNNEST($${++queryVarCounter}::BIGINT[]) u(c) WHERE u.c = "drop".drop_id)`
     }
 
     // Only get the drops that have a valid date and have not reached their max_claims
     {
         queryString += `
     AND (
-        (d.start_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) >= d.start_time) AND
-        (d.end_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) <= d.end_time) AND
-        (d.max_claimable = 0 OR d.max_claimable > d.current_claimed)
+        ("drop".start_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) >= "drop".start_time) AND
+        ("drop".end_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) <= "drop".end_time) AND
+        ("drop".max_claimable = 0 OR "drop".max_claimable > "drop".current_claimed)
     )`;
     }
 
@@ -223,22 +227,29 @@ where
     {
         queryValues.push(args.account);
         queryString += `
-    AND neftydrops_is_account_within_use_limits($${queryVarCounter++}, d.drop_id, d.account_limit, d.account_limit_cooldown)
-    AND (
-        NOT d.auth_required
-        OR 
-    )
-    `;
+    AND neftydrops_is_account_within_use_limits(
+        $${++queryVarCounter},
+        acc_stats.use_counter,
+        acc_stats.last_claim_time,
+        "drop".drop_id,
+        "drop".account_limit,
+        "drop".account_limit_cooldown
+    )`;
     }
 
-    // @TODO: // Check if drop has no security or the account passes any of the 
-    // secure.nefty requirements
-    if (false) {
+    // check all secure.nefty requirements
+    {
         queryValues.push(args.account);
+        queryValues.push(keys);
         queryString += `
     AND (
-        NOT d.auth_required
-        OR neftydrops_is_account_in_whitelist($${queryVarCounter++}, d.drop_id)
+        NOT "drop".auth_required
+        OR neftydrops_is_account_in_whitelist(
+            $${++queryVarCounter},
+            acc_stats.use_counter,
+            "drop".drop_id
+        )
+        OR neftydrops_is_key_authorized($${++queryVarCounter}, "drop".drop_id)
     )
     `;
     }
