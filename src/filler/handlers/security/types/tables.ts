@@ -14,23 +14,27 @@ export type ProofOfOwnershipRow = {
     // >,
 }
 export type CollectionFilter = {
+    filter_kind: string,
     collection_name: string,
     comparison_operator: number,
     amount: number,
 }
 export type TemplateFilter = {
+    filter_kind: string,
     collection_name: string,
     template_id: string,
     comparison_operator: number,
     amount: number,
 }
 export type SchemaFilter = {
+    filter_kind: string,
     collection_name: string,
     schema_name: string,
     comparison_operator: number,
     amount: number,
 }
 export type TokenFilter = {
+    filter_kind: string,
     token_contract: string,
     token_symbol: string,
     comparison_operator: number,

@@ -22,25 +22,48 @@ export function parseEosioToDBRow(proofOfOwnership: ProofOfOwnership): ProofOfOw
       case 'COLLECTION_HOLDINGS':
       {
         const {collection_name, comparison_operator, amount} = details;
-        typedFilter = {collection_name, comparison_operator, amount} as CollectionFilter;
+        typedFilter = {
+          filter_kind: 'COLLECTION_HOLDINGS',
+          collection_name,
+          comparison_operator,
+          amount
+        } as CollectionFilter;
         break;
       }
       case 'TEMPLATE_HOLDINGS':
       { 
         const {collection_name, template_id, comparison_operator, amount} = details;
-        typedFilter = {collection_name, template_id, comparison_operator, amount} as TemplateFilter;
+        typedFilter = {
+          filter_kind: 'TEMPLATE_HOLDINGS',
+          collection_name,
+          template_id,
+          comparison_operator,
+          amount
+        } as TemplateFilter;
         break;
       }
       case 'SCHEMA_HOLDINGS':
       {
         const {collection_name, schema_name, comparison_operator, amount} = details;
-        typedFilter = {collection_name, schema_name, comparison_operator, amount} as SchemaFilter;
+        typedFilter = {
+          filter_kind: 'SCHEMA_HOLDINGS',
+          collection_name,
+          schema_name,
+          comparison_operator,
+          amount
+        } as SchemaFilter;
         break;
       }
       case 'TOKEN_HOLDING':
         const {token_contract, token_symbol, comparison_operator, amount} = details;
         const [quantity, symbol] = amount.split(' ');
-        typedFilter = {token_contract, token_symbol, comparison_operator, amount: {quantity, symbol}} as TokenFilter;
+        typedFilter = {
+          filter_kind: 'TOKEN_HOLDING',
+          token_contract,
+          token_symbol,
+          comparison_operator,
+          amount: {quantity, symbol}
+        } as TokenFilter;
         break;
       default:
         throw Error(`Unsupported filter type ${type}, add support for this variant`);
