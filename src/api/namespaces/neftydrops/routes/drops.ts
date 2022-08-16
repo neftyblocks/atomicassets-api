@@ -57,6 +57,13 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             required: false,
                             schema: {type: 'boolean'}
                         },
+                        {
+                            name: 'sort_available_first',
+                            in: 'query',
+                            description: 'Displays available drops first (Not sold out)',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
                         ...primaryBoundaryParameters,
                         ...dropsFilterParameters,
                         ...dateBoundaryParameters,
