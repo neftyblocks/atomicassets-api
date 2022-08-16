@@ -1,6 +1,6 @@
 import {
   ProofOfOwnership,
-  ProofOfOwnershipRow,
+  ProofOfOwnershipFiltersRow,
   CollectionFilter,
   TemplateFilter,
   SchemaFilter,
@@ -10,65 +10,51 @@ import {
   encodeDatabaseJson,
 } from '../../../filler/utils';
 
-export function parseEosioToDBRow(proofOfOwnership: ProofOfOwnership): ProofOfOwnershipRow {
+export function getProofOfOwnershipFiltersRows(proofOfOwnership: ProofOfOwnership): ProofOfOwnershipFiltersRow[] {
+  let rows:ProofOfOwnershipFiltersRow[] = [];
+  
   const {drop_id, group: {logical_operator, filters}} = proofOfOwnership;
-  const parsedFilters: Array<
-    CollectionFilter|TemplateFilter|SchemaFilter|TokenFilter
-  > = [];
-  filters.map(filter => {
-    const [type, details] = filter;
-    let typedFilter:CollectionFilter|TemplateFilter|SchemaFilter|TokenFilter;
+
+  for (let i = 0; i < filters.length; i++) {
+    const [type, details] = filters[i];
+
+    let newRow: ProofOfOwnershipFiltersRow = {
+      drop_id,
+      logical_operator,
+      filter_kind: type,
+      collection_holdings: null,
+      template_holdings: null,
+      schema_holdings: null,
+      token_holding: null,
+    }
+
     switch(type) {
       case 'COLLECTION_HOLDINGS':
       {
-        const {collection_name, comparison_operator, amount} = details;
-        typedFilter = {
-          filter_kind: 'COLLECTION_HOLDINGS',
-          collection_name,
-          comparison_operator,
-          amount
-        } as CollectionFilter;
+        newRow.collection_holdings = encodeDatabaseJson(details);
         break;
       }
       case 'TEMPLATE_HOLDINGS':
       { 
-        const {collection_name, template_id, comparison_operator, amount} = details;
-        typedFilter = {
-          filter_kind: 'TEMPLATE_HOLDINGS',
-          collection_name,
-          template_id,
-          comparison_operator,
-          amount
-        } as TemplateFilter;
+        newRow.template_holdings = encodeDatabaseJson(details);
         break;
       }
       case 'SCHEMA_HOLDINGS':
       {
-        const {collection_name, schema_name, comparison_operator, amount} = details;
-        typedFilter = {
-          filter_kind: 'SCHEMA_HOLDINGS',
-          collection_name,
-          schema_name,
-          comparison_operator,
-          amount
-        } as SchemaFilter;
+        newRow.schema_holdings = encodeDatabaseJson(details);
         break;
       }
       case 'TOKEN_HOLDING':
-        const {token_contract, token_symbol, comparison_operator, amount} = details;
-        const [quantity, symbol] = amount.split(' ');
-        typedFilter = {
-          filter_kind: 'TOKEN_HOLDING',
-          token_contract,
-          token_symbol,
-          comparison_operator,
-          amount: {quantity, symbol}
-        } as TokenFilter;
+      {
+        newRow.token_holding = encodeDatabaseJson(details);
         break;
+      }
       default:
         throw Error(`Unsupported filter type ${type}, add support for this variant`);
     }
-    parsedFilters.push(typedFilter);
-  });
-  return {drop_id, logical_operator, filters: encodeDatabaseJson(parsedFilters)};
+
+    rows.push(newRow);
+  }
+
+  return rows;
 }

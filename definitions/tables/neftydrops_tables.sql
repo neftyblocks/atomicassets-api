@@ -140,13 +140,31 @@ CREATE TABLE neftydrops_authkeys
     CONSTRAINT neftydrops_authkeys_pkey PRIMARY KEY (drop_id, public_key)
 );
 
-CREATE TABLE neftydrops_proof_of_ownership
+CREATE TABLE neftydrops_proof_of_ownership_filters
 (
     drop_id                bigint                NOT NULL,
-    logical_operator       smallint              NOT NULL,
-    filters                jsonb,
+    filter_index           bigint                NOT NULL,
 
-    CONSTRAINT neftydrops_proof_of_ownership_pkey PRIMARY KEY (drop_id)
+    -- All rows with the same drop_id must have the same logical_operator
+    logical_operator       smallint              NOT NULL,
+
+    -- Either of four values 'COLLECTION_HOLDINGS', 'TEMPLATE_HOLDINGS',
+    -- 'SCHEMA_HOLDINGS', or 'TOKEN_HOLDING'
+    filter_kind             character varying(50) NOT NULL,
+
+    -- NULL if type != 'COLLECTION_HOLDINGS'
+    collection_holdings    jsonb,
+
+    -- NULL if type != 'TEMPLATE_HOLDINGS'
+    template_holdings      jsonb,
+
+    -- NULL if type != 'SCHEMA_HOLDINGS'
+    schema_holdings        jsonb, 
+
+    -- NULL if type != 'TOKEN_HOLDING'
+    token_holding          jsonb,
+
+    CONSTRAINT neftydrops_proof_of_ownership_pkey PRIMARY KEY (drop_id, filter_index)
 );
 
 ALTER TABLE ONLY neftydrops_balances
@@ -240,4 +258,4 @@ CREATE
 CREATE
     INDEX IF NOT EXISTS neftydrops_authkeys_public_key ON neftydrops_authkeys USING btree (public_key);
 CREATE
-    INDEX IF NOT EXISTS neftydrops_proof_of_ownership_drop_id ON neftydrops_proof_of_ownership USING btree (drop_id);
+    INDEX IF NOT EXISTS neftydrops_proof_of_ownership_filters_drop_id ON neftydrops_proof_of_ownership_filters USING btree (drop_id);

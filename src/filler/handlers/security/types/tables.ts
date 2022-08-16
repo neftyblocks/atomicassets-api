@@ -5,36 +5,36 @@ export type ProofOfOwnership = {
         filters: Array<Array<any>>,
     },
 }
-export type ProofOfOwnershipRow = {
+export type ProofOfOwnershipFiltersRow = {
     drop_id: string,
+
     logical_operator: number,
-    filters: string,
-    // filters: Array<
-    //     CollectionFilter|TemplateFilter|SchemaFilter|TokenFilter
-    // >,
+    filter_kind: string,
+
+    // only one of these properties won't be null
+    collection_holdings: string,
+    template_holdings: string,
+    schema_holdings: string,
+    token_holding: string
 }
 export type CollectionFilter = {
-    filter_kind: string,
     collection_name: string,
     comparison_operator: number,
     amount: number,
 }
 export type TemplateFilter = {
-    filter_kind: string,
     collection_name: string,
     template_id: string,
     comparison_operator: number,
     amount: number,
 }
 export type SchemaFilter = {
-    filter_kind: string,
     collection_name: string,
     schema_name: string,
     comparison_operator: number,
     amount: number,
 }
 export type TokenFilter = {
-    filter_kind: string,
     token_contract: string,
     token_symbol: string,
     comparison_operator: number,

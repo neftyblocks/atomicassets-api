@@ -8,7 +8,7 @@ import {
     getAllRowsFromTable,
 } from '../../../utils';
 import {
-  parseEosioToDBRow,
+  getProofOfOwnershipFiltersRows,
 } from '../../../../api/namespaces/security/utils';
 import {
   AccountStats,
@@ -21,7 +21,7 @@ import {
 } from '../types/tables';
 import {
   ProofOfOwnership,
-  ProofOfOwnershipRow,
+  ProofOfOwnershipFiltersRow,
 } from '../../security/types/tables';
 import logger from '../../../../utils/winston';
 import {ContractDBTransaction} from '../../../database';
@@ -142,23 +142,26 @@ const fillAuthKeys = async (args: NeftyDropsArgs, connection: ConnectionManager,
 const fillProofOfOwnership = async (args: NeftyDropsArgs,
     connection: ConnectionManager, contract: string): Promise<void> => {
   const accountProofOfOwnershipCount = await connection.database.query(
-    'SELECT COUNT(*) FROM neftydrops_proof_of_ownership'
+    'SELECT COUNT(*) FROM neftydrops_proof_of_ownership_filters'
   );
   if (Number(accountProofOfOwnershipCount.rows[0].count) > 0) {
     return; // skip already filled table
   }
 
-  const allDropsProofOfOwnership:ProofOfOwnershipRow[] = [];
+  let allDropsProofOfOwnershipFilterRows:ProofOfOwnershipFiltersRow[] = [];
 
   const dropsProofOfOwnershipTable = await getAllRowsFromTable(connection.chain.rpc, {
     json: true, code: contract, scope: contract, table: 'proofown',
   }, 1000) as ProofOfOwnership[];
   
   dropsProofOfOwnershipTable.forEach((proofOfOwnership) => 
-    allDropsProofOfOwnership.push(parseEosioToDBRow(proofOfOwnership))
+    allDropsProofOfOwnershipFilterRows = [
+      ...allDropsProofOfOwnershipFilterRows,
+      ...getProofOfOwnershipFiltersRows(proofOfOwnership)
+    ]
   );
-  logger.info(`Inserting ${allDropsProofOfOwnership.length} records to neftydrops_proof_of_ownership`);
-  await bulkInsert(connection.database, 'neftydrops_proof_of_ownership', allDropsProofOfOwnership);
+  logger.info(`Inserting ${allDropsProofOfOwnershipFilterRows.length} records to neftydrops_proof_of_ownership_filters`);
+  await bulkInsert(connection.database, 'neftydrops_proof_of_ownership_filters', allDropsProofOfOwnershipFilterRows);
 };
 
 export async function initSecurityMechanisms(args: NeftyDropsArgs, connection: ConnectionManager): Promise<void> {
@@ -253,13 +256,22 @@ export function securityProcessor(core: NeftyDropsHandler, processor: DataProces
   destructors.push(processor.onContractRow(
       contract, 'proofown',
       async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<ProofOfOwnership>): Promise<void> => {
-        await db.delete('neftydrops_proof_of_ownership', {
+        await db.delete('neftydrops_proof_of_ownership_filters', {
           str: 'drop_id = $1',
           values: [delta.value.drop_id]
         });
 
         if (delta.present) {
-          await db.insert('neftydrops_proof_of_ownership', parseEosioToDBRow(delta.value), ['drop_id']);
+          let proofOfOwnership: ProofOfOwnership = delta.value;
+          let newRows = getProofOfOwnershipFiltersRows(proofOfOwnership);
+
+          for (let proofOfOwnershipRow of newRows){
+            await db.insert(
+              'neftydrops_proof_of_ownership_filters',
+              proofOfOwnershipRow,
+              ['drop_id']
+            );
+          }
         }
       }, NeftyDropsUpdatePriority.TABLE_PROOF_OWNERSHIP.valueOf()
   ));

@@ -101,9 +101,8 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 asset_matches_sub.blend_id, 
                 asset_matches_sub.ingredients_count AS "required",
                 sum(asset_matches_sub.fulfilled) AS "fulfilled"
-            FROM(\n` +
-                // The `DISTINCT ON` ensures that the same asset_id is not "matched" twice in the same blend
-`               SELECT 
+            FROM(
+              SELECT 
                     b.contract,
                     b.blend_id,
                     b.ingredients_count,
@@ -173,7 +172,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             // sixpmblends contract does not work with filters because it
             // the filters assume we only check template.immutable_data to determine
             // if an asset satisfies the requirements of an ingredient, that is
-            // no the case for sixpm
+            // not the case for sixpm
             queryString += `
                 AND b.contract <> '${ctx.coreArgs.sixpmblender_account}'
             `;

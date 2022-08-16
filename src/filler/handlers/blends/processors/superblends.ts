@@ -102,6 +102,7 @@ export async function initSuperBlends(args: BlendsArgs, connection: ConnectionMa
 }
 
 const superBlendsTableListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendTableRow>): Promise<void> => {
+
     const blend = await db.query(
         'SELECT blend_id FROM neftyblends_blends WHERE assets_contract = $1 AND contract = $2 AND blend_id = $3',
         [core.args.atomicassets_account, contract, delta.value.blend_id]
