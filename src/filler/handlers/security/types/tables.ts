@@ -7,6 +7,7 @@ export type ProofOfOwnership = {
 }
 export type ProofOfOwnershipFiltersRow = {
     drop_id: string,
+    filter_index: number,
 
     logical_operator: number,
     filter_kind: string,

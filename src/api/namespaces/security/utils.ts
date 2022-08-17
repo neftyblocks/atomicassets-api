@@ -20,6 +20,7 @@ export function getProofOfOwnershipFiltersRows(proofOfOwnership: ProofOfOwnershi
 
     let newRow: ProofOfOwnershipFiltersRow = {
       drop_id,
+      filter_index: i,
       logical_operator,
       filter_kind: type,
       collection_holdings: null,
