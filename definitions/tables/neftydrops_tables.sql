@@ -147,21 +147,25 @@ CREATE TABLE neftydrops_proof_of_ownership_filters
 
     -- All rows with the same drop_id must have the same logical_operator
     logical_operator       smallint              NOT NULL,
-
+    
     -- Either of four values 'COLLECTION_HOLDINGS', 'TEMPLATE_HOLDINGS',
     -- 'SCHEMA_HOLDINGS', or 'TOKEN_HOLDING'
-    filter_kind             character varying(50) NOT NULL,
+    filter_kind            character varying(50) NOT NULL,
 
-    -- NULL if type != 'COLLECTION_HOLDINGS'
+    -- NULL if filter_kind == 'TOKEN_HOLDING'.
+    -- otherwise it is equal to the "..._holdings"->'amount' that is not null
+    nft_amount             bigint,
+
+    -- NULL if filter_kind != 'COLLECTION_HOLDINGS'
     collection_holdings    jsonb,
 
-    -- NULL if type != 'TEMPLATE_HOLDINGS'
+    -- NULL if filter_kind != 'TEMPLATE_HOLDINGS'
     template_holdings      jsonb,
 
-    -- NULL if type != 'SCHEMA_HOLDINGS'
+    -- NULL if filter_kind != 'SCHEMA_HOLDINGS'
     schema_holdings        jsonb, 
 
-    -- NULL if type != 'TOKEN_HOLDING'
+    -- NULL if filter_kind != 'TOKEN_HOLDING'
     token_holding          jsonb,
 
     CONSTRAINT neftydrops_proof_of_ownership_pkey PRIMARY KEY (drop_id, filter_index)

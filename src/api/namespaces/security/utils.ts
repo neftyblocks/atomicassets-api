@@ -23,6 +23,7 @@ export function getProofOfOwnershipFiltersRows(proofOfOwnership: ProofOfOwnershi
       filter_index: i,
       logical_operator,
       filter_kind: type,
+      nft_amount: null,
       collection_holdings: null,
       template_holdings: null,
       schema_holdings: null,
@@ -32,21 +33,25 @@ export function getProofOfOwnershipFiltersRows(proofOfOwnership: ProofOfOwnershi
     switch(type) {
       case 'COLLECTION_HOLDINGS':
       {
+        newRow.nft_amount = details.amount;
         newRow.collection_holdings = encodeDatabaseJson(details);
         break;
       }
       case 'TEMPLATE_HOLDINGS':
       { 
+        newRow.nft_amount = details.amount;
         newRow.template_holdings = encodeDatabaseJson(details);
         break;
       }
       case 'SCHEMA_HOLDINGS':
       {
+        newRow.nft_amount = details.amount;
         newRow.schema_holdings = encodeDatabaseJson(details);
         break;
       }
       case 'TOKEN_HOLDING':
       {
+        newRow.nft_amount = null;
         newRow.token_holding = encodeDatabaseJson(details);
         break;
       }

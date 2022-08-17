@@ -12,6 +12,8 @@ export type ProofOfOwnershipFiltersRow = {
     logical_operator: number,
     filter_kind: string,
 
+    nft_amount: number,
+
     // only one of these properties won't be null
     collection_holdings: string,
     template_holdings: string,

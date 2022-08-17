@@ -1,4 +1,4 @@
-DROP TABLE neftydrops_proof_of_ownership;
+DROP TABLE neftydrops_proof_of_ownership_filters;
 CREATE TABLE IF NOT EXISTS neftydrops_proof_of_ownership_filters
 (
     drop_id                bigint                NOT NULL,
@@ -6,10 +6,14 @@ CREATE TABLE IF NOT EXISTS neftydrops_proof_of_ownership_filters
 
     -- All rows with the same drop_id must have the same logical_operator
     logical_operator       smallint              NOT NULL,
-
+    
     -- Either of four values 'COLLECTION_HOLDINGS', 'TEMPLATE_HOLDINGS',
     -- 'SCHEMA_HOLDINGS', or 'TOKEN_HOLDING'
     filter_kind            character varying(50) NOT NULL,
+
+    -- NULL if filter_kind == 'TOKEN_HOLDING'.
+    -- otherwise it is equal to the "..._holdings"->'amount' that is not null
+    nft_amount             bigint,
 
     -- NULL if filter_kind != 'COLLECTION_HOLDINGS'
     collection_holdings    jsonb,
