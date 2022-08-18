@@ -242,6 +242,7 @@ WHERE
     {
         queryValues.push(args.account);
         queryValues.push(keys);
+        queryValues.push(args.account);
         queryString += `
     AND (
         NOT "drop".auth_required
@@ -251,6 +252,7 @@ WHERE
             "drop".drop_id
         )
         OR neftydrops_is_key_authorized($${++queryVarCounter}, "drop".drop_id)
+        OR neftydrops_account_passes_proof_of_ownership($${++queryVarCounter}, "drop".drop_id)
     )
     `;
     }
