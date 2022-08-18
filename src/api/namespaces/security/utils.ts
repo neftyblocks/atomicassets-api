@@ -23,6 +23,8 @@ export function getProofOfOwnershipFiltersRows(proofOfOwnership: ProofOfOwnershi
       filter_index: i,
       logical_operator,
       filter_kind: type,
+      total_filter_count: filters.length,
+      comparison_operator: details.comparison_operator,
       nft_amount: null,
       collection_holdings: null,
       template_holdings: null,

@@ -9,8 +9,11 @@ export type ProofOfOwnershipFiltersRow = {
     drop_id: string,
     filter_index: number,
 
+    total_filter_count: number,
     logical_operator: number,
     filter_kind: string,
+
+    comparison_operator: number,
 
     nft_amount: number,
 
