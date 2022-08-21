@@ -196,10 +196,20 @@ export async function getDropsClaimableAction(params: RequestValues, ctx: NeftyD
     let queryString:string;
 
     queryValues.push(args.account);
+    queryValues.push(keys);
+    queryValues.push(args.account);
     queryString = `
 SELECT 
     "drop".drop_id,
-    acc_stats.use_counter
+    "drop".auth_required as auth_required,
+    (
+        neftydrops_is_account_in_whitelist(
+            $${++queryVarCounter},
+            acc_stats.use_counter,
+            "drop".drop_id
+        )
+        OR neftydrops_is_key_authorized($${++queryVarCounter}, "drop".drop_id)
+    )as satisfies_first_pass_of_security_checks
 FROM neftydrops_drops "drop"
 LEFT JOIN neftydrops_account_stats acc_stats ON
     acc_stats.drop_id = "drop".drop_id AND
@@ -238,27 +248,84 @@ WHERE
     )`;
     }
 
-    // check all secure.nefty requirements
-    {
-        queryValues.push(args.account);
-        queryValues.push(keys);
-        queryValues.push(args.account);
-        queryString += `
-    AND (
-        NOT "drop".auth_required
-        OR neftydrops_is_account_in_whitelist(
-            $${++queryVarCounter},
-            acc_stats.use_counter,
-            "drop".drop_id
-        )
-        OR neftydrops_is_key_authorized($${++queryVarCounter}, "drop".drop_id)
-        OR neftydrops_account_passes_proof_of_ownership($${++queryVarCounter}, "drop".drop_id)
-    )
-    `;
+    const firstPassResult = await ctx.db.query(queryString, queryValues);
+
+    let claimable_drops = new Set();
+
+    // The reason we do the security checks in 2 different queries is because 
+    // checking if an account passes the proof of ownership we need to go 
+    // through all their assets, and if we do that in a function that takes in a
+    // single drop_id per call, that would be way too slow
+
+    let pendingDropIds = [];
+    for (let row of firstPassResult.rows){
+        if(row.auth_required && !row.satisfies_first_pass_of_security_checks) {
+            pendingDropIds.push(row.drop_id);
+        } else {
+            claimable_drops.add(row.drop_id);
+        }
     }
 
-    // @TODO: make it look like ClaimableDrop
-    const result = await ctx.db.query(queryString, queryValues);
+    if(pendingDropIds.length > 0){
+        let queryValues = [];
+        let queryVarCounter = 0;
+        
+        queryValues.push(args.account);
+        queryValues.push(pendingDropIds);
+        let queryString = `
+select
+    asset_matches_sub.drop_id as "drop_id",
+    asset_matches_sub.logical_operator AS "logical_operator",
+    count(1) AS "fulfilled_filters",
+    asset_matches_sub.total_filter_count AS "total_filter_count"
+FROM (
+    select
+        "filter".drop_id,
+        "filter".filter_index,
+        "filter".logical_operator,
+        "filter".total_filter_count,
+        "filter".comparison_operator,
+        "filter".nft_amount as "required",
+        count(distinct asset.asset_id) as "owned"
+    from neftydrops_proof_of_ownership_filters "filter"
+    join atomicassets_assets asset ON
+        asset.owner=$${++queryVarCounter} AND 
+        "filter".filter_kind != 'TOKEN_HOLDING' AND
+        (
+            ("filter".filter_kind = 'COLLECTION_HOLDINGS' AND asset.collection_name = "filter".collection_holdings->>'collection_name') OR
+            ("filter".filter_kind = 'SCHEMA_HOLDINGS' AND asset.schema_name = "filter".schema_holdings->>'schema_name' AND "filter".filter_kind = 'SCHEMA_HOLDINGS' AND asset.collection_name = "filter".schema_holdings->>'collection_name') OR
+            ("filter".filter_kind = 'TEMPLATE_HOLDINGS' AND asset.template_id = cast("filter".template_holdings->>'template_id' as bigint))
+        )
+    where
+        EXISTS (SELECT FROM UNNEST($${++queryVarCounter}::BIGINT[]) u(c) WHERE u.c = "filter".drop_id)
+    group by 
+        "filter".drop_id,
+        "filter".filter_index,
+        "filter".total_filter_count,
+        "filter".nft_amount
+    having 
+        ("filter".comparison_operator=0 AND count(distinct asset.asset_id) =  "filter".nft_amount) OR
+        ("filter".comparison_operator=1 AND count(distinct asset.asset_id) != "filter".nft_amount) OR
+        ("filter".comparison_operator=2 AND count(distinct asset.asset_id) >  "filter".nft_amount) OR
+        ("filter".comparison_operator=3 AND count(distinct asset.asset_id) >= "filter".nft_amount) OR
+        ("filter".comparison_operator=4 AND count(distinct asset.asset_id) <  "filter".nft_amount) OR
+        ("filter".comparison_operator=5 AND count(distinct asset.asset_id) <= "filter".nft_amount)
+) as asset_matches_sub
+GROUP BY
+    asset_matches_sub.drop_id,
+    asset_matches_sub.logical_operator,
+    asset_matches_sub.total_filter_count
+HAVING
+    (asset_matches_sub.logical_operator=0 AND count(1) >= asset_matches_sub.total_filter_count) OR
+    (asset_matches_sub.logical_operator=1);     
+        `;
 
-    return result.rows;
+        const result = await ctx.db.query(queryString, queryValues);
+
+        for(let row of result.rows){
+            claimable_drops.add(row.drop_id);
+        }
+    }
+
+    return Array.from(claimable_drops);
 }
