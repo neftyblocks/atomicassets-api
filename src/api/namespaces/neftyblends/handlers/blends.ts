@@ -18,6 +18,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         ingredient_match: {type: 'string', allowedValues: ['all', 'missing_x', 'any'], default: 'any'},
         missing_ingredients: {type: 'int', min: 1, default: 1},
         available_only: {type: 'bool', default: false},
+        display_empty_rolls: {type: 'bool', default: false},
         visibility: {type: 'string', allowedValues: ['all', 'visible', 'hidden'], default: 'all'},
         category: {type: 'string', default: ''},
     });
@@ -69,6 +70,11 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 )`
             ;
         }
+
+        if (!args.display_empty_rolls) {
+            queryString += ' AND jsonb_array_length(blend_detail.rolls) > 0';
+        }
+
         if (args.visibility === 'visible') {
             queryString += `
                 AND blend_detail.is_hidden = FALSE
@@ -113,7 +119,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                 FROM
                     neftyblends_blends b 
                     JOIN neftyblends_blend_ingredients i ON
-                        b.blend_id = i.blend_id AND i.ingredient_type != 'TOKEN_INGREDIENT'
+                        b.contract = i.contract AND b.blend_id = i.blend_id AND i.ingredient_type != 'TOKEN_INGREDIENT'
                     LEFT JOIN atomicassets_assets a ON 
                         ((i.ingredient_type = 'TEMPLATE_INGREDIENT' AND a.template_id = i.template_id) OR
                         (i.ingredient_type = 'SCHEMA_INGREDIENT' AND a.schema_name = i.schema_name AND a.collection_name = i.ingredient_collection_name) OR
@@ -173,9 +179,9 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             // the filters assume we only check template.immutable_data to determine
             // if an asset satisfies the requirements of an ingredient, that is
             // not the case for sixpm
-            queryString += `
-                AND b.contract <> '${ctx.coreArgs.sixpmblender_account}'
-            `;
+            // queryString += `
+            //     AND b.contract <> '${ctx.coreArgs.sixpmblender_account}'
+            // `;
         }
 
         queryString += `
@@ -213,6 +219,10 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             blend_filter_sub.contract = blend_detail.contract AND
             blend_filter_sub.blend_id = blend_detail.blend_id
         `;
+
+        if (!args.display_empty_rolls) {
+            queryString += ' WHERE jsonb_array_length(blend_detail.rolls) > 0';
+        }
     }
 
     // This should not lead to sql injection as long as `filterQueryArgs` enforces

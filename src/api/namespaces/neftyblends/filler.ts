@@ -278,12 +278,12 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                     outcomes: filledOutcomes,
                 });
             }
-            filledBlends.push({
-                ...blend,
-                ingredients: filledIngredients,
-                rolls: filledRolls,
-            });
         }
+        filledBlends.push({
+            ...blend,
+            ingredients: filledIngredients,
+            rolls: filledRolls,
+        });
     }
 
     return filledBlends;
