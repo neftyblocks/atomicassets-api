@@ -186,12 +186,14 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                 collectionNames.push(collection.collection_name);
             }
         }
-        for (const roll of blend.rolls) {
-            for (const outcome of roll.outcomes) {
-                for (const result of outcome.results) {
-                    const templateId = result.payload?.template_id;
-                    if (templateId) {
-                        templateIds.push(templateId);
+        if (blend.rolls) {
+            for (const roll of blend.rolls) {
+                for (const outcome of roll.outcomes) {
+                    for (const result of outcome.results) {
+                        const templateId = result.payload?.template_id;
+                        if (templateId) {
+                            templateIds.push(templateId);
+                        }
                     }
                 }
             }
@@ -233,53 +235,55 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                 filledIngredients.push(ingredient);
             }
         }
-        for (const roll of blend.rolls) {
-            const filledOutcomes = [];
-            for (const outcome of roll.outcomes) {
-                const filledResults = [];
-                for (const result of outcome.results) {
-                    if (result.type === BlendResultType.ON_DEMAND_NFT_RESULT) {
-                        const templateId = result.payload?.template_id;
-                        if (templateId) {
+        if (blend.rolls) {
+            for (const roll of blend.rolls) {
+                const filledOutcomes = [];
+                for (const outcome of roll.outcomes) {
+                    const filledResults = [];
+                    for (const result of outcome.results) {
+                        if (result.type === BlendResultType.ON_DEMAND_NFT_RESULT) {
+                            const templateId = result.payload?.template_id;
+                            if (templateId) {
+                                filledResults.push({
+                                    type: result.type,
+                                    template: (await templateFiller.fill(templateId)),
+                                });
+                            }
+                        } else if (result.type === BlendResultType.ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES) {
+                            const templateId = result.payload?.template_id;
+                            if (templateId) {
+                                const mutable_data = result.payload?.mutable_data;
+                                filledResults.push({
+                                    type: result.type,
+                                    template: {
+                                        ...(await templateFiller.fill(templateId))
+                                    },
+                                    mutable_data,
+                                });
+                            }
+                        } else if (result.type === BlendResultType.POOL_NFT_RESULT) {
                             filledResults.push({
                                 type: result.type,
-                                template: (await templateFiller.fill(templateId)),
+                                pool: result.payload,
                             });
                         }
-                    } else if (result.type === BlendResultType.ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES) {
-                        const templateId = result.payload?.template_id;
-                        if (templateId) {
-                            const mutable_data = result.payload?.mutable_data;
-                            filledResults.push({
-                                type: result.type,
-                                template: {
-                                    ...(await templateFiller.fill(templateId))
-                                },
-                                mutable_data,
-                            });
-                        }
-                    } else if (result.type === BlendResultType.POOL_NFT_RESULT) {
-                        filledResults.push({
-                            type: result.type,
-                            pool: result.payload,
-                        });
                     }
+                    filledOutcomes.push({
+                        ...outcome,
+                        results: filledResults,
+                    });
                 }
-                filledOutcomes.push({
-                    ...outcome,
-                    results: filledResults,
+                filledRolls.push({
+                    ...roll,
+                    outcomes: filledOutcomes,
                 });
             }
-            filledRolls.push({
-                ...roll,
-                outcomes: filledOutcomes,
+            filledBlends.push({
+                ...blend,
+                ingredients: filledIngredients,
+                rolls: filledRolls,
             });
         }
-        filledBlends.push({
-            ...blend,
-            ingredients: filledIngredients,
-            rolls: filledRolls,
-        });
     }
 
     return filledBlends;
