@@ -213,19 +213,19 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
 const superBlendsValuerollsTableListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendValuerollsTableRow>): Promise<void> => {
     const valueroll = await db.query(
         'SELECT valueroll_id FROM neftyblends_valuerolls WHERE contract = $1 AND collection_name = $2 AND valueroll_id = $3',
-        [contract, delta.scope, delta.value.valueroll_id ]
+        [contract, delta.scope, delta.value.id ]
     );
 
     if (!delta.present) {
         await db.delete('neftyblends_valuerolls', {
             str: 'contract = $1 AND collection_name = $2 AND valueroll_id = $3',
-            values: [ contract, delta.scope, delta.value.valueroll_id ],
+            values: [ contract, delta.scope, delta.value.id ],
         });
     } else if (valueroll.rowCount === 0) {
         const valuerollDbRow = {
             contract,
             collection_name: delta.scope,
-            valueroll_id: delta.value.valueroll_id,
+            valueroll_id: delta.value.id,
 
             value_outcomes: encodeDatabaseJson(delta.value.value_outcomes),
             total_odds: delta.value.total_odds,
@@ -250,7 +250,7 @@ const superBlendsValuerollsTableListener = (core: CollectionsListHandler, contra
             updated_at_time: block.timestamp ? eosioTimestampToDate(block.timestamp).getTime() : 0,
         }, {
             str: 'contract = $1 AND collection_name = $2 AND valueroll_id = $3',
-            values: [contract, delta.scope, delta.value.valueroll_id ]
+            values: [contract, delta.scope, delta.value.id ]
 
         }, ['contract', 'collection_name', 'valueroll_id']);
     }
@@ -507,7 +507,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
                 if (resultValueType === BlendUpgradeResultValueType.VALUE_ROLL_RESULT) {
                     newUpgradeRequirementDbRow.immediate_type = null;
 
-                    newUpgradeRequirementDbRow.valueroll_id = resultValueObject.valueroll_id;
+                    newUpgradeRequirementDbRow.valueroll_id = resultValueObject.id;
                     newUpgradeRequirementDbRow.immediate_string = null;
                     newUpgradeRequirementDbRow.immediate_uint64 = null;
                 } else if (resultValueType === BlendUpgradeResultValueType.IMMEDIATE_VALUE) {
