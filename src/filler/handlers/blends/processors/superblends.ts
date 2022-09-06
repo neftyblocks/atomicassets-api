@@ -112,9 +112,17 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
         const deleteString = 'assets_contract = $1 AND contract = $2 AND blend_id = $3';
         const deleteValues = [core.args.atomicassets_account, contract, delta.value.blend_id];
         await deleteBlendRolls(db, core.args.atomicassets_account, delta.value.blend_id, contract);
+        await db.delete('neftyblends_blend_upgrade_spec_upgrade_requirements', {
+            str: 'contract = $1 AND blend_id = $2',
+            values: [contract, delta.value.blend_id],
+        });
+        await db.delete('neftyblends_blend_upgrade_spec_upgrade_results', {
+            str: 'contract = $1 AND blend_id = $2',
+            values: [contract, delta.value.blend_id],
+        });
         await db.delete('neftyblends_blend_upgrade_specs', {
-            str: deleteString,
-            values: deleteValues,
+            str: 'contract = $1 AND blend_id = $2',
+            values: [contract, delta.value.blend_id],
         });
         await db.delete('neftyblends_blend_ingredient_attributes', {
             str: deleteString,
