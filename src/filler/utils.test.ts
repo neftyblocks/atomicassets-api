@@ -24,5 +24,9 @@ describe('utils', () => {
             const expected = '%w\u0002eSIG_K1_HGT5Bifx1DrxntWgHMhFfQsQxD6QHvioCKZrhAya1NmG5VLkrRyz2sR4moeAARKk2XHFqW4C8TZDaxS1byn7evyFRRSW7q\u000bNeftyBlock';
             expect(encodeString(val)).to.equal(expected);
         });
+
+        it('should return empty string if no string is provided', () => {
+            expect(encodeString(null)).to.equal('');
+        });
     });
 });

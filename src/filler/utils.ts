@@ -13,7 +13,7 @@ export function encodeDatabaseArray(array: any[]): string {
 }
 
 export function encodeString(txt: string): string {
-    return txt.replace(/\\u0000/g , '').replace(/\0/g, '');
+    return txt?.replace(/\\u0000/g , '')?.replace(/\0/g, '') || '';
 }
 
 export async function getAllScopesFromTable(rpc: JsonRpc, options: any, batchSize: number): Promise<any[]> {
