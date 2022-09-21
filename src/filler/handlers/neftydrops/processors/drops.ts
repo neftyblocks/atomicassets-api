@@ -19,6 +19,7 @@ import {
 } from '../types/actions';
 import {preventInt64Overflow} from '../../../../utils/binary';
 import logger from '../../../../utils/winston';
+import {encodeString} from '../../../utils';
 
 export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor): () => any {
   const destructors: Array<() => any> = [];
@@ -270,8 +271,8 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           total_price: preventInt64Overflow(totalPrice),
           listing_symbol: listingSymbol,
           settlement_symbol: settlementSymbol,
-          referrer: trace.act.data.referrer,
-          country: trace.act.data.country,
+          referrer: encodeString(trace.act.data.referrer),
+          country: encodeString(trace.act.data.country),
           txid: Buffer.from(tx.id, 'hex'),
           created_at_block: block.block_num,
           created_at_time: eosioTimestampToDate(block.timestamp).getTime()

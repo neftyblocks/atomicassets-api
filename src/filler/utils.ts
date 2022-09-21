@@ -12,6 +12,10 @@ export function encodeDatabaseArray(array: any[]): string {
     return `{${array.join(',')}}`;
 }
 
+export function encodeString(txt: string): string {
+    return txt.replace(/\\u0000/g , ' ');
+}
+
 export async function getAllScopesFromTable(rpc: JsonRpc, options: any, batchSize: number): Promise<any[]> {
     let result = await rpc.get_table_by_scope({...options, limit: batchSize});
     
