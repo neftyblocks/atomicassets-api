@@ -19,7 +19,8 @@ export const NEFTYDROPS_BASE_PRIORITY = Math.max(ATOMICASSETS_BASE_PRIORITY, DEL
 export type NeftyDropsArgs = {
     neftydrops_account: string,
     atomicassets_account: string,
-    delphioracle_account: string
+    delphioracle_account: string,
+    social_tokens_contract?: string,
 };
 
 export enum NeftyDropsUpdatePriority {

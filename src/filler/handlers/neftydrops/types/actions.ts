@@ -6,6 +6,7 @@ export type LogCreateDropActionData = {
         tokens_to_back: string[],
         use_pool: boolean,
     }>,
+    result?: Array<any>,
     listing_price: string,
     settlement_symbol: string,
     price_recipient: string,
