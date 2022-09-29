@@ -46,12 +46,22 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       }
   };
 
+  const resultToJson = (result: Array<any>): { type: string, payload: any } => {
+      if (!result || result.length === 0) {
+          return null;
+      }
+      const [type, payload] = result;
+      return {
+          type,
+          payload,
+      };
+  };
+
   destructors.push(processor.onActionTrace(
       contract, 'lognewdrop',
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogCreateDropActionData>): Promise<void> => {
         const settlement_symbol = trace.act.data.settlement_symbol.split(',')[1];
         await insertTokenIfMissing(db, settlement_symbol);
-
         await db.insert('neftydrops_drops', {
           drops_contract: core.args.neftydrops_account,
           assets_contract: core.args.atomicassets_account,
@@ -78,13 +88,25 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           current_claimed: 0,
         }, ['drops_contract', 'drop_id']);
 
+        const result = resultToJson(trace.act.data.result);
+        const assetsToMint: Array<any> = [...trace.act.data.assets_to_mint];
+        if (result && result.type === 'BANK_RESULT') {
+            assetsToMint.push({
+                template_id: -1,
+                use_pool: true,
+                tokens_to_back: result.payload.tokens_to_back,
+                bank_name: result.payload.bank_name,
+            });
+        }
+
         await db.insert('neftydrops_drop_assets', [
-          ...trace.act.data.assets_to_mint.map((asset, index) => ({
+          ...assetsToMint.map((asset, index) => ({
             drops_contract: contract,
             assets_contract: core.args.atomicassets_account,
             drop_id: trace.act.data.drop_id,
             collection_name: trace.act.data.collection_name,
             template_id: asset.template_id,
+            bank_name: asset.bank_name,
             use_pool: asset.use_pool,
             tokens_to_back: asset.tokens_to_back,
             index: index + 1,

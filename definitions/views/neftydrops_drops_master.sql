@@ -49,6 +49,12 @@ ON (drops_contract, drop_id)
     WHERE ndrop.assets_contract = asset.assets_contract AND asset.drop_id = ndrop.drop_id
     ) templates,
 
+    (
+    SELECT json_agg(row_to_json(asset))
+    FROM neftydrops_drop_assets asset
+    WHERE ndrop.assets_contract = asset.assets_contract AND asset.drop_id = ndrop.drop_id
+    ) assets,
+
     ndrop.collection_name,
     json_build_object(
     'collection_name', collection.collection_name,
@@ -76,7 +82,8 @@ ON (drops_contract, drop_id)
     ndrop.account_limit,
     ndrop.account_limit_cooldown,
     ndrop.max_claimable,
-    ndrop.current_claimed
+    ndrop.current_claimed,
+    ndrop.result
 FROM
     neftydrops_drops ndrop LEFT JOIN neftydrops_symbol_pairs pair
 ON (

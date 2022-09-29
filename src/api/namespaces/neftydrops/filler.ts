@@ -1,8 +1,8 @@
 import {DB} from '../../server';
 import {FillerHook} from '../atomicassets/filler';
-import {formatTemplate} from '../atomicassets/format';
+import {formatAsset} from './format';
 
-export class TemplateFiller {
+export class AssetsFiller {
     private templates: Promise<{[key: string]: any}> | null;
 
     constructor(
@@ -16,12 +16,12 @@ export class TemplateFiller {
         this.templates = null;
     }
 
-    async fill(templateIds: string[]): Promise<any[]> {
+    async fill(templateId: string): Promise<any[]> {
         this.query();
 
         const data = await this.templates;
 
-        return templateIds.map((templateId) => data[String(templateId)] || String(templateId));
+        return data[String(templateId)] || String(templateId);
     }
 
     query(): void {
@@ -62,7 +62,7 @@ export async function fillDrops(db: DB, assetContract: string, drops: any[]): Pr
         templateIds.push(...drop.templates);
     }
 
-    const filler = new TemplateFiller(db, assetContract, templateIds, formatTemplate, 'atomicassets_templates_master');
+    const filler = new AssetsFiller(db, assetContract, templateIds, formatAsset, 'atomicassets_templates_master');
 
     return await Promise.all(drops.map(async (drop) => {
         drop.templates = await filler.fill(drop.templates);
