@@ -27,12 +27,12 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
   const socialTokensContract = core.args.social_tokens_contract;
 
   const insertTokenIfMissing = async (db: ContractDBTransaction, code: string): Promise<void> => {
-      if (socialTokensContract) {
+      if (socialTokensContract && code !== 'NULL') {
           const token = await db.query(
-              'SELECT token_contract, token_symbol ' +
+              'SELECT token_contract ' +
               'FROM neftydrops_tokens ' +
-              'WHERE drops_contract = $1 AND token_symbol = $2 AND token_contract = $3',
-              [core.args.neftydrops_account, code, socialTokensContract]
+              'WHERE drops_contract = $1 AND token_symbol = $2',
+              [core.args.neftydrops_account, code]
           );
 
           if (token.rowCount === 0) {
