@@ -1,3 +1,5 @@
+DROP VIEW IF EXISTS neftydrops_claims_master;
+
 CREATE
 OR REPLACE VIEW neftydrops_claims_master AS
 SELECT DISTINCT
