@@ -1,3 +1,5 @@
+DROP VIEW IF EXISTS neftydrops_claims_master;
+
 CREATE
 OR REPLACE VIEW neftydrops_claims_master AS
 SELECT DISTINCT
@@ -7,10 +9,6 @@ ON (drops_contract, claim_id)
     claim.claim_id,
     claim.claimer,
     claim.amount,
-    claim.country,
-
-    json_build_object(
-    'amount', claim.total_price,
 
     json_build_object(
     'amount', claim.total_price,
