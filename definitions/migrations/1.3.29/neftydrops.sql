@@ -9,6 +9,7 @@ ON (drops_contract, claim_id)
     claim.claim_id,
     claim.claimer,
     claim.amount,
+    claim.country,
 
     json_build_object(
     'amount', claim.total_price,

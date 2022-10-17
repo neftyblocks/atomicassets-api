@@ -11,9 +11,6 @@ ON (drops_contract, claim_id)
 
     json_build_object(
     'amount', claim.total_price,
-
-    json_build_object(
-    'amount', claim.total_price,
     'token_contract', (CASE
     WHEN claim.settlement_symbol = 'NULL' THEN '':: VARCHAR (12)
     ELSE token.token_contract
