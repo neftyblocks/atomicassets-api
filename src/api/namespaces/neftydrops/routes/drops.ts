@@ -42,10 +42,10 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             name: 'state',
                             in: 'query',
                             description: 'Filter by drop state (' +
-                                DropApiState.ACTIVE.valueOf() + ': ACTIVE - The drop is active, ' +
+                                DropApiState.ACTIVE.valueOf() + ': ACTIVE - The drop is active (default), ' +
                                 DropApiState.DELETED.valueOf() + ': DELETED - The drop is deleted' +
                                 DropApiState.SOLD_OUT.valueOf() + ': SOLD_OUT - The drop is sold out' +
-                                DropApiState.ENDED.valueOf() + ': SOLD_OUT - The drop is ended' +
+                                DropApiState.ENDED.valueOf() + ': ENDED - The drop is ended' +
                                 ') - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
