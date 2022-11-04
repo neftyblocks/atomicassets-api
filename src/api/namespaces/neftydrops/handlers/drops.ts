@@ -70,7 +70,7 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         price: {column: 'price.price', nullable: true}
     };
 
-    query.append('ORDER BY ' + (args.sort_available_first === true ? 'is_available DESC NULLS LAST, ' : '') + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : ''));
+    query.append('ORDER BY ' + (args.sort_available_first === true ? 'is_available DESC NULLS LAST, (CASE  WHEN end_time > 0 THEN end_time - ' + new Date().getTime() + ' ELSE 999999999999999 END) DESC NULLS LAST, ' : '') + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : ''));
     query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
     const dropQuery = await ctx.db.query(query.buildString(), query.buildValues());
@@ -189,7 +189,7 @@ export async function getDropsClaimableAction(params: RequestValues, ctx: NeftyD
     }
 
     const drop_ids = args.drops.split(',');
-    let keys = (args.keys === '' ? [] : args.keys.split(','));
+    const keys = (args.keys === '' ? [] : args.keys.split(','));
 
     let queryVarCounter:number = 0;
     const queryValues:any[] = [];
@@ -218,10 +218,10 @@ LEFT JOIN neftydrops_account_stats acc_stats ON
 
     // Only get the drop ids that the user sent
     {
-        queryValues.push(drop_ids)
+        queryValues.push(drop_ids);
         queryString += `
 WHERE
-    EXISTS (SELECT FROM UNNEST($${++queryVarCounter}::BIGINT[]) u(c) WHERE u.c = "drop".drop_id)`
+    EXISTS (SELECT FROM UNNEST($${++queryVarCounter}::BIGINT[]) u(c) WHERE u.c = "drop".drop_id)`;
     }
 
     // Only get the drops that have a valid date and have not reached their max_claims
@@ -250,15 +250,15 @@ WHERE
 
     const firstPassResult = await ctx.db.query(queryString, queryValues);
 
-    let claimable_drops = new Set();
+    const claimable_drops = new Set();
 
-    // The reason we do the security checks in 2 different queries is because 
-    // checking if an account passes the proof of ownership we need to go 
+    // The reason we do the security checks in 2 different queries is because
+    // checking if an account passes the proof of ownership we need to go
     // through all their assets, and if we do that in a function that takes in a
     // single drop_id per call, that would be way too slow
 
-    let pendingDropIds = [];
-    for (let row of firstPassResult.rows){
+    const pendingDropIds = [];
+    for (const row of firstPassResult.rows){
         if(row.auth_required && !row.satisfies_first_pass_of_security_checks) {
             pendingDropIds.push(row.drop_id);
         } else {
@@ -267,12 +267,12 @@ WHERE
     }
 
     if(pendingDropIds.length > 0){
-        let queryValues = [];
+        const queryValues = [];
         let queryVarCounter = 0;
-        
+
         queryValues.push(args.account);
         queryValues.push(pendingDropIds);
-        let queryString = `
+        const queryString = `
 select
     asset_matches_sub.drop_id as "drop_id",
     asset_matches_sub.logical_operator AS "logical_operator",
@@ -322,7 +322,7 @@ HAVING
 
         const result = await ctx.db.query(queryString, queryValues);
 
-        for(let row of result.rows){
+        for(const row of result.rows){
             claimable_drops.add(row.drop_id);
         }
     }

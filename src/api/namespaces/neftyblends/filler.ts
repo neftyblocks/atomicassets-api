@@ -217,7 +217,10 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
             if (templateId) {
                 filledIngredients.push({
                     ...ingredient,
-                    template: (await templateFiller.fill(templateId)),
+                    template: {
+                        ...ingredient.template,
+                        ...(await templateFiller.fill(templateId))
+                    },
                 });
             } else if (schemaName) {
                 const collectionName = schema?.collection_name;

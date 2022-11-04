@@ -23,7 +23,6 @@ export function formatDrop(row: any): any {
 export function formatClaim(row: any): any {
     const data = {...row};
     data.txid = row.txid.toString('hex');
-    delete data.country;
     return data;
 }
 
