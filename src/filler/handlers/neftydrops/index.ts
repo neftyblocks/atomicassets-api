@@ -92,7 +92,7 @@ export default class NeftyDropsHandler extends ContractHandler {
     }
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
-        if (version === '1.3.29') {
+        if (version === '1.3.30') {
             const viewsToUpdate = ['neftydrops_drops_master'];
             for (const view of viewsToUpdate) {
                 logger.info(`Refreshing views ${view}`);
