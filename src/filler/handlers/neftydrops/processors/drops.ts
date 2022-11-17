@@ -312,5 +312,12 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       }, NeftyDropsUpdatePriority.ACTION_CLAIM_DROP.valueOf()
   ));
 
+  destructors.push(processor.onActionTrace(
+      contract, 'triggerclaim',
+      async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<ClaimDropActionData>): Promise<void> => {
+        return registerDropClaim(db, block, tx, trace);
+      }, NeftyDropsUpdatePriority.ACTION_CLAIM_DROP.valueOf()
+  ));
+
   return (): any => destructors.map(fn => fn());
 }

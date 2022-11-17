@@ -74,9 +74,10 @@ export type ClaimDropActionData = {
     claimer: string;
     drop_id: number,
     amount: string,
-    intended_delphi_median: string,
+    intended_delphi_median?: string,
     referrer: string,
     country: string
+    receipt_id?: string,
 };
 
 export type LogClaimActionData = {
