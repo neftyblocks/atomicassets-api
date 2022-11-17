@@ -24,10 +24,44 @@ import {encodeString} from '../../../utils';
 export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor): () => any {
   const destructors: Array<() => any> = [];
   const contract = core.args.neftydrops_account;
+  const socialTokensContract = core.args.social_tokens_contract;
+
+  const insertTokenIfMissing = async (db: ContractDBTransaction, code: string): Promise<void> => {
+      if (socialTokensContract && code !== 'NULL') {
+          const token = await db.query(
+              'SELECT token_contract ' +
+              'FROM neftydrops_tokens ' +
+              'WHERE drops_contract = $1 AND token_symbol = $2',
+              [core.args.neftydrops_account, code]
+          );
+
+          if (token.rowCount === 0) {
+              await db.insert('neftydrops_tokens', {
+                  drops_contract: core.args.neftydrops_account,
+                  token_contract: socialTokensContract,
+                  token_symbol: code,
+                  token_precision: 4,
+              }, ['drops_contract', 'token_symbol']);
+          }
+      }
+  };
+
+  const resultToJson = (result: Array<any>): { type: string, payload: any } => {
+      if (!result || result.length === 0) {
+          return null;
+      }
+      const [type, payload] = result;
+      return {
+          type,
+          payload,
+      };
+  };
 
   destructors.push(processor.onActionTrace(
       contract, 'lognewdrop',
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogCreateDropActionData>): Promise<void> => {
+        const settlement_symbol = trace.act.data.settlement_symbol.split(',')[1];
+        await insertTokenIfMissing(db, settlement_symbol);
         await db.insert('neftydrops_drops', {
           drops_contract: core.args.neftydrops_account,
           assets_contract: core.args.atomicassets_account,
@@ -35,7 +69,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           collection_name: trace.act.data.collection_name,
           listing_price: preventInt64Overflow(trace.act.data.listing_price.split(' ')[0].replace('.', '')),
           listing_symbol: trace.act.data.listing_price.split(' ')[1],
-          settlement_symbol: trace.act.data.settlement_symbol.split(',')[1],
+          settlement_symbol,
           price_recipient: trace.act.data.price_recipient,
           auth_required: trace.act.data.auth_required,
           preminted: trace.act.data.assets_to_mint.some(asset => asset.use_pool),
@@ -54,13 +88,25 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           current_claimed: 0,
         }, ['drops_contract', 'drop_id']);
 
+        const result = resultToJson(trace.act.data.result);
+        const assetsToMint: Array<any> = [...trace.act.data.assets_to_mint];
+        if (result && result.type === 'BANK_RESULT') {
+            assetsToMint.push({
+                template_id: -1,
+                use_pool: true,
+                tokens_to_back: result.payload.tokens_to_back,
+                bank_name: result.payload.bank_name,
+            });
+        }
+
         await db.insert('neftydrops_drop_assets', [
-          ...trace.act.data.assets_to_mint.map((asset, index) => ({
+          ...assetsToMint.map((asset, index) => ({
             drops_contract: contract,
             assets_contract: core.args.atomicassets_account,
             drop_id: trace.act.data.drop_id,
             collection_name: trace.act.data.collection_name,
             template_id: asset.template_id,
+            bank_name: asset.bank_name,
             use_pool: asset.use_pool,
             tokens_to_back: asset.tokens_to_back,
             index: index + 1,
@@ -144,10 +190,12 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
   destructors.push(processor.onActionTrace(
       contract, 'setdropprice',
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropPriceActionData>): Promise<void> => {
+        const settlement_symbol = trace.act.data.settlement_symbol.split(',')[1];
+        await insertTokenIfMissing(db, settlement_symbol);
         await db.update('neftydrops_drops', {
           listing_price: preventInt64Overflow(trace.act.data.listing_price.split(' ')[0].replace('.', '')),
           listing_symbol: trace.act.data.listing_price.split(' ')[1],
-          settlement_symbol: trace.act.data.settlement_symbol.split(',')[1],
+          settlement_symbol,
           updated_at_block: block.block_num,
           updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, {
