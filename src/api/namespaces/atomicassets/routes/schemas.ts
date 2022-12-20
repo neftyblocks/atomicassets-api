@@ -1,6 +1,5 @@
 import * as express from 'express';
 
-import logger from '../../../../utils/winston';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import {

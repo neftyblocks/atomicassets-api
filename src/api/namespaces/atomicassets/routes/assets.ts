@@ -22,7 +22,13 @@ import { fillAssets, FillerHook } from '../filler';
 import { createSocketApiNamespace, extractNotificationIdentifiers, } from '../../../utils';
 import ApiNotificationReceiver from '../../../notification';
 import { NotificationData } from '../../../../filler/notifier';
-import { getAssetLogsAction, getAssetsCountAction, getAssetStatsAction, getRawAssetsAction } from '../handlers/assets';
+import {
+    getAssetLogsAction,
+    getAssetsCountAction,
+    getAssetStatsAction,
+    getAttributeStatsAction,
+    getRawAssetsAction
+} from '../handlers/assets';
 import { ApiError } from '../../../error';
 import { filterQueryArgs } from '../../validation';
 
@@ -113,6 +119,8 @@ export class AssetApi {
 
         router.all('/v1/assets/:asset_id/stats', caching({ignoreQueryString: true}), returnAsJSON(getAssetStatsAction, this.core));
 
+        router.all('/v1/assets/:asset_id/attributes', caching(), returnAsJSON(getAttributeStatsAction, this.core));
+
         router.all('/v1/assets/:asset_id/logs', caching(), returnAsJSON(getAssetLogsAction, this.core));
 
         return {
@@ -154,6 +162,40 @@ export class AssetApi {
                             type: 'object',
                             properties: {
                                 template_mint: {type: 'integer'}
+                            }
+                        })
+                    }
+                },
+                '/v1/assets/{asset_id}/attributes': {
+                    get: {
+                        tags: ['assets'],
+                        summary: 'Fetch asset attribute stats',
+                        parameters: [
+                            {
+                                name: 'asset_id',
+                                in: 'path',
+                                description: 'ID of asset',
+                                required: true,
+                                schema: {type: 'integer'}
+                            },
+                            {
+                                name: 'attributes',
+                                in: 'query',
+                                description: 'Filter only the selected attributes (separated by commas)',
+                                required: false,
+                                schema: {type: 'string'}
+                            },
+                        ],
+                        responses: getOpenAPI3Responses([200, 500], {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    attribute: {type: 'string'},
+                                    value: {type: 'string'},
+                                    occurrences: {type: 'integer'},
+                                    supply: {type: 'integer'}
+                                }
                             }
                         })
                     }

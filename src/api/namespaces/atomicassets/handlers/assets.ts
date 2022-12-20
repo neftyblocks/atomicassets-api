@@ -233,7 +233,7 @@ export async function getAssetsCountAction(params: RequestValues, ctx: AtomicAss
 export async function getAssetStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const assetQuery = await ctx.db.query(
         'SELECT * FROM atomicassets_assets WHERE contract = $1 AND asset_id = $2',
-        [this.core.args.atomicassets_account, ctx.pathParams.params.asset_id]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.asset_id]
     );
 
     if (assetQuery.rowCount === 0) {
@@ -244,7 +244,7 @@ export async function getAssetStatsAction(params: RequestValues, ctx: AtomicAsse
 
     const query = await ctx.db.query(
         'SELECT COUNT(*) template_mint FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND template_id = $3 AND schema_name = $4 AND collection_name = $5',
-        [this.core.args.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
+        [ctx.coreArgs.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
     );
 
     return query.rows[0];
@@ -266,4 +266,52 @@ export async function getAssetLogsAction(params: RequestValues, ctx: AtomicAsset
         {asset_id: ctx.pathParams.asset_id},
         (args.page - 1) * args.limit, args.limit, args.order
     );
+}
+
+export async function getAttributeStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+
+    const args = filterQueryArgs(params, {
+        attributes: {type: 'string[]', min: 1},
+    });
+
+    const assetQuery = await ctx.db.query(
+        'SELECT a.*, s.format FROM atomicassets_assets a ' +
+        'INNER JOIN atomicassets_schemas s ON a.schema_name = s.schema_name ' +
+        'WHERE a.contract = $1 AND a.asset_id = $2 ',
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.asset_id]
+    );
+
+    if (assetQuery.rowCount === 0) {
+        throw new ApiError('Asset not found', 416);
+    }
+
+    const asset = assetQuery.rows[0];
+
+    let filterAttributes;
+    if (args.attributes.length === 0) {
+        filterAttributes = asset.format.filter((format: any) => format.type === 'string' && format.name !== 'name').map((format: any) => format.name);
+    } else {
+        filterAttributes = args.attributes;
+    }
+
+    const attriburesQuery = await ctx.db.query(
+        'SELECT stats.key as attribute, stats.value as value, stats.total as occurrences, total.total supply FROM (' +
+        'SELECT d.key, d.value, SUM(CASE WHEN a.asset_id = $2 THEN 1 ELSE 0 END) as count, COUNT(a.asset_id) as total ' +
+        'FROM atomicassets_assets a ' +
+        'JOIN atomicassets_templates t ON a.template_id = t.template_id, ' +
+        'LATERAL jsonb_each(a.mutable_data || a.immutable_data || t.immutable_data) d(key, value) ' +
+        'WHERE a.contract = $1 AND a.collection_name = $3 AND a.schema_name = $4 AND d.key = ANY($5)' +
+        'GROUP BY d.key, d.value ' +
+        ') stats, ' +
+        '(' +
+        'SELECT COUNT(*) as total ' +
+        'FROM atomicassets_assets a ' +
+        'WHERE a.contract = $1 AND a.collection_name = $3 AND a.schema_name = $4 ' +
+        ') total ' +
+        'WHERE stats.count > 0 ' +
+        'ORDER BY stats.key ASC;',
+    [ctx.coreArgs.atomicassets_account, asset.asset_id, asset.collection_name, asset.schema_name, filterAttributes]
+    );
+
+    return attriburesQuery.rows;
 }
