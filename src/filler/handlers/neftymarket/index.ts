@@ -199,7 +199,7 @@ export default class NeftyMarketHandler extends ContractHandler {
         for (const view of materializedViews) {
             let lastVacuum = Date.now();
 
-            this.filler.jobs.add(`Refresh MV ${view.name}`, 60_000, view.priority, async () => {
+            this.filler.jobs.add(`Refresh MV ${view.name}`, 60, view.priority, async () => {
                 await this.connection.database.query(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${view.name}`);
 
                 if (lastVacuum + 3600 * 24 * 1000 < Date.now()) {
@@ -212,14 +212,14 @@ export default class NeftyMarketHandler extends ContractHandler {
             });
         }
 
-        this.filler.jobs.add('update_neftymarket_auction_mints', 30_000, JobQueuePriority.MEDIUM, async () => {
+        this.filler.jobs.add('update_neftymarket_auction_mints', 30, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'CALL update_neftymarket_auction_mints($1, $2)',
                 [this.args.neftymarket_account, this.filler.reader.lastIrreversibleBlock]
             );
         });
 
-        this.filler.jobs.add('refresh_neftymarket_stats_market', 60_000, JobQueuePriority.MEDIUM, async () => {
+        this.filler.jobs.add('refresh_neftymarket_stats_market', 60, JobQueuePriority.MEDIUM, async () => {
             await this.connection.database.query(
                 'SELECT update_neftymarket_stats_market()'
             );

@@ -219,7 +219,7 @@ export default class NeftyDropsHandler extends ContractHandler {
         destructors.push(securityProcessor(this, processor));
 
         for (const view of materializedViews) {
-            this.filler.jobs.add(`Refresh NeftyDrops View ${view}`, 60000, JobQueuePriority.MEDIUM, (async () => {
+            this.filler.jobs.add(`Refresh NeftyDrops View ${view}`, 60, JobQueuePriority.MEDIUM, (async () => {
                 await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view + ';');
             }));
         }
