@@ -94,6 +94,11 @@ export default class NeftyMarketHandler extends ContractHandler {
             await client.query(fs.readFileSync('./definitions/views/neftymarket_template_prices_master.sql', {encoding: 'utf8'}));
             await client.query(fs.readFileSync('./definitions/views/neftymarket_assets_master.sql', {encoding: 'utf8'}));
         }
+
+        if (version === '1.3.35') {
+            await client.query(fs.readFileSync('./definitions/materialized/neftymarket_auction_prices.sql', {encoding: 'utf8'}));
+            await client.query(fs.readFileSync('./definitions/views/neftymarket_auctions_master.sql', {encoding: 'utf8'}));
+        }
     }
 
     constructor(filler: Filler, args: {[key: string]: any}) {

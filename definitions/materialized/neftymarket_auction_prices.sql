@@ -2,15 +2,15 @@ CREATE MATERIALIZED VIEW IF NOT EXISTS neftymarket_auction_prices AS
 SELECT market_contract,
        auction_id,
        CASE
-           WHEN auction_type = 1 AND buyer IS NULL 
-           AND start_time <= FLOOR(extract(epoch from now())* 1000) 
+           WHEN auction_type = 1 AND buyer IS NULL
+           AND start_time <= FLOOR(extract(epoch from now())* 1000)
                THEN GREATEST(
                    (
                        ROUND(
                                    buy_now_price *
                                    POWER(
-                                               1.0 - discount_rate,
-                                               FLOOR((LEAST(FLOOR(extract(epoch from now())* 1000), end_time) - start_time) / discount_interval)
+                                               (1.0 - discount_rate)::numeric,
+                                               FLOOR((LEAST(FLOOR(extract(epoch from now())* 1000), end_time) - start_time) / discount_interval)::numeric
                                        )
                            )
                        ),
