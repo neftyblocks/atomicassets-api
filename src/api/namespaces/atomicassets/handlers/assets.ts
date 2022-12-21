@@ -298,8 +298,8 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
         'SELECT stats.key as attribute, stats.value as value, stats.total as occurrences, total.total supply FROM (' +
         'SELECT d.key, d.value, SUM(CASE WHEN a.asset_id = $2 THEN 1 ELSE 0 END) as count, COUNT(a.asset_id) as total ' +
         'FROM atomicassets_assets a ' +
-        'JOIN atomicassets_templates t ON a.template_id = t.template_id, ' +
-        'LATERAL jsonb_each(a.mutable_data || a.immutable_data || t.immutable_data) d(key, value) ' +
+        'LEFT JOIN atomicassets_templates t ON a.template_id = t.template_id, ' +
+        'LATERAL jsonb_each(a.mutable_data || a.immutable_data || COALESCE(t.immutable_data, \'{}\'::jsonb)) d(key, value) ' +
         'WHERE a.contract = $1 AND a.collection_name = $3 AND a.schema_name = $4 AND d.key = ANY($5)' +
         'GROUP BY d.key, d.value ' +
         ') stats, ' +
