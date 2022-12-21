@@ -286,10 +286,19 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
     }
 
     const asset = assetQuery.rows[0];
+    const attributeBlacklist = [
+        'name',
+        'description',
+        'image',
+        'image_data',
+        'img',
+        'video',
+        'audio',
+    ];
 
     let filterAttributes;
     if (args.attributes.length === 0) {
-        filterAttributes = asset.format.filter((format: any) => format.type === 'string' && format.name !== 'name').map((format: any) => format.name);
+        filterAttributes = asset.format.filter((format: any) => format.type === 'string' && !attributeBlacklist.includes(format.name)).map((format: any) => format.name);
     } else {
         filterAttributes = args.attributes;
     }
@@ -308,7 +317,7 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
         'FROM atomicassets_assets a ' +
         'WHERE a.contract = $1 AND a.collection_name = $3 AND a.schema_name = $4 ' +
         ') total ' +
-        'WHERE stats.count > 0 ' +
+        'WHERE stats.count > 0 AND LENGTH(stats.value::text) > 2 ' +
         'ORDER BY stats.key ASC;',
     [ctx.coreArgs.atomicassets_account, asset.asset_id, asset.collection_name, asset.schema_name, filterAttributes]
     );
