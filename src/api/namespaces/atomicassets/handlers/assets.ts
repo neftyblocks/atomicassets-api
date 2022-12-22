@@ -298,7 +298,7 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
 
     let filterAttributes;
     if (args.attributes.length === 0) {
-        filterAttributes = asset.format.filter((format: any) => format.type === 'string' && !attributeBlacklist.includes(format.name)).map((format: any) => format.name);
+        filterAttributes = asset.format.filter((format: any) => format.type === 'string' && !attributeBlacklist.includes(format.name.toLowerCase())).map((format: any) => format.name);
     } else {
         filterAttributes = args.attributes;
     }
