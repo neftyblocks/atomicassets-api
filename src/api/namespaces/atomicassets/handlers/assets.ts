@@ -277,15 +277,27 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
     const assetQuery = await ctx.db.query(
         'SELECT a.*, s.format FROM atomicassets_assets a ' +
         'INNER JOIN atomicassets_schemas s ON a.schema_name = s.schema_name ' +
-        'WHERE a.contract = $1 AND a.asset_id = $2 ',
-        [ctx.coreArgs.atomicassets_account, ctx.pathParams.asset_id]
+        'WHERE a.asset_id = $1 ',
+        [ctx.pathParams.asset_id]
     );
 
     if (assetQuery.rowCount === 0) {
-        throw new ApiError('Asset not found', 416);
+        throw new ApiError('Asset not found', 404);
     }
 
     const asset = assetQuery.rows[0];
+    const countQuery = await ctx.db.query(
+        'SELECT COUNT(*) count FROM atomicassets_assets a ' +
+        'WHERE a.collection_name = $1 AND a.schema_name = $2 ',
+        [asset.collection_name, asset.schema_name]
+    );
+
+    // Only for schemas with less than 100k assets
+    const supply = countQuery.rows[0].count;
+    if (supply > 100000) {
+        return [];
+    }
+
     const attributeBlacklist = [
         'name',
         'description',
@@ -298,29 +310,27 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
 
     let filterAttributes;
     if (args.attributes.length === 0) {
-        filterAttributes = asset.format.filter((format: any) => format.type === 'string' && !attributeBlacklist.includes(format.name.toLowerCase())).map((format: any) => format.name);
+        filterAttributes = asset.format.filter((format: any) => format.type === 'string' && !attributeBlacklist.includes(format.name.toLowerCase())).map((format: any) => format.name.toLowerCase());
     } else {
         filterAttributes = args.attributes;
     }
 
     const attriburesQuery = await ctx.db.query(
-        'SELECT stats.key as attribute, stats.value as value, stats.total as occurrences, total.total supply FROM (' +
-        'SELECT d.key, d.value, SUM(CASE WHEN a.asset_id = $2 THEN 1 ELSE 0 END) as count, COUNT(a.asset_id) as total ' +
+        'SELECT stats.key as attribute, stats.value as value, stats.total as occurrences FROM (' +
+        'SELECT d.key, d.value, SUM(CASE WHEN a.asset_id = $1 THEN 1 ELSE 0 END) as count, COUNT(a.asset_id) total ' +
         'FROM atomicassets_assets a ' +
         'LEFT JOIN atomicassets_templates t ON a.template_id = t.template_id, ' +
-        'LATERAL jsonb_each(a.mutable_data || a.immutable_data || COALESCE(t.immutable_data, \'{}\'::jsonb)) d(key, value) ' +
-        'WHERE a.contract = $1 AND a.collection_name = $3 AND a.schema_name = $4 AND d.key = ANY($5)' +
+        'LATERAL jsonb_each(COALESCE(a.mutable_data, \'{}\'::jsonb) || COALESCE(a.immutable_data, \'{}\'::jsonb) || COALESCE(t.immutable_data, \'{}\'::jsonb)) d(key, value) ' +
+        'WHERE a.collection_name = $2 AND a.schema_name = $3 AND LOWER(d.key) = ANY($4) ' +
         'GROUP BY d.key, d.value ' +
-        ') stats, ' +
-        '(' +
-        'SELECT COUNT(*) as total ' +
-        'FROM atomicassets_assets a ' +
-        'WHERE a.contract = $1 AND a.collection_name = $3 AND a.schema_name = $4 ' +
-        ') total ' +
+        ') stats ' +
         'WHERE stats.count > 0 AND LENGTH(stats.value::text) > 2 ' +
         'ORDER BY stats.key ASC;',
-    [ctx.coreArgs.atomicassets_account, asset.asset_id, asset.collection_name, asset.schema_name, filterAttributes]
+    [asset.asset_id, asset.collection_name, asset.schema_name, filterAttributes]
     );
 
-    return attriburesQuery.rows;
+    return attriburesQuery.rows.map((row: any) => ({
+        ...row,
+        supply,
+    }));
 }
