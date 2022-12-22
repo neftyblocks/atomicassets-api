@@ -288,7 +288,7 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
     const asset = assetQuery.rows[0];
     const countQuery = await ctx.db.query(
         'SELECT COUNT(*) count FROM atomicassets_assets a ' +
-        'WHERE a.collection_name = $1 AND a.schema_name = $2 ',
+        'WHERE a.collection_name = $1 AND a.schema_name = $2 AND a.owner IS NOT NULL',
         [asset.collection_name, asset.schema_name]
     );
 
@@ -325,7 +325,7 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
         'FROM atomicassets_assets a ' +
         'LEFT JOIN atomicassets_templates t ON a.template_id = t.template_id, ' +
         'LATERAL jsonb_each(COALESCE(a.mutable_data, \'{}\'::jsonb) || COALESCE(a.immutable_data, \'{}\'::jsonb) || COALESCE(t.immutable_data, \'{}\'::jsonb)) d(key, value) ' +
-        'WHERE a.collection_name = $2 AND a.schema_name = $3 AND d.key = ANY($4) AND LENGTH(d.value::text) > 2 AND LENGTH(d.value::text) < 25 AND LOWER(d.value::text) NOT LIKE \'"http%\' ' +
+        'WHERE a.collection_name = $2 AND a.schema_name = $3 AND a.owner IS NOT NULL AND d.key = ANY($4) AND LENGTH(d.value::text) > 2 AND LENGTH(d.value::text) < 25 AND LOWER(d.value::text) NOT LIKE \'"http%\' ' +
         'GROUP BY d.key, d.value ' +
         ') stats ' +
         'WHERE stats.count > 0 ' +
