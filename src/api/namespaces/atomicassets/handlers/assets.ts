@@ -315,7 +315,7 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
 
     // Only for schemas with less than 100k assets
     const supply = countQuery.rows[0].count;
-    if (supply > 500000) {
+    if (supply > 260_000) {
         return [];
     }
 
@@ -325,10 +325,10 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
         'FROM atomicassets_assets a ' +
         'LEFT JOIN atomicassets_templates t ON a.template_id = t.template_id, ' +
         'LATERAL jsonb_each(COALESCE(a.mutable_data, \'{}\'::jsonb) || COALESCE(a.immutable_data, \'{}\'::jsonb) || COALESCE(t.immutable_data, \'{}\'::jsonb)) d(key, value) ' +
-        'WHERE a.collection_name = $2 AND a.schema_name = $3 AND d.key = ANY($4) AND LENGTH(d.value::text) < 25 AND LOWER(d.value::text) NOT LIKE \'"http%\' ' +
+        'WHERE a.collection_name = $2 AND a.schema_name = $3 AND d.key = ANY($4) AND LENGTH(d.value::text) > 2 AND LENGTH(d.value::text) < 25 AND LOWER(d.value::text) NOT LIKE \'"http%\' ' +
         'GROUP BY d.key, d.value ' +
         ') stats ' +
-        'WHERE stats.count > 0 AND LENGTH(stats.value::text) > 2 ' +
+        'WHERE stats.count > 0 ' +
         'ORDER BY stats.key ASC;',
     [asset.asset_id, asset.collection_name, asset.schema_name, filterAttributes]
     );
