@@ -282,7 +282,7 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
     );
 
     if (assetQuery.rowCount === 0) {
-        throw new ApiError('Asset not found', 404);
+        throw new ApiError('Asset not found', 416);
     }
 
     const asset = assetQuery.rows[0];
@@ -313,7 +313,7 @@ export async function getAttributeStatsAction(params: RequestValues, ctx: Atomic
         return [];
     }
 
-    // Only for schemas with less than 100k assets
+    // Only for schemas with less than 260k assets
     const supply = countQuery.rows[0].count;
     if (supply > 260_000) {
         return [];

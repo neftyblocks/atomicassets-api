@@ -186,7 +186,7 @@ export class AssetApi {
                                 schema: {type: 'string'}
                             },
                         ],
-                        responses: getOpenAPI3Responses([200, 500], {
+                        responses: getOpenAPI3Responses([200, 416, 500], {
                             type: 'array',
                             items: {
                                 type: 'object',

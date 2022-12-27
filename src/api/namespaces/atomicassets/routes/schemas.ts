@@ -15,7 +15,8 @@ import {
     getSchemaLogsAction,
     getSchemasAction,
     getSchemasCountAction,
-    getSchemaStatsAction
+    getSchemaStatsAction,
+    getAttributeStatsAction,
 } from '../handlers/schemas';
 
 export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
@@ -24,6 +25,7 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
     router.all('/v1/schemas', caching(), returnAsJSON(getSchemasAction, core));
     router.all('/v1/schemas/_count', caching(), returnAsJSON(getSchemasCountAction, core));
     router.all('/v1/schemas/:collection_name/:schema_name', caching({ignoreQueryString: true}), returnAsJSON(getSchemaAction, core));
+    router.all('/v1/schemas/:collection_name/:schema_name/attributes', caching(), returnAsJSON(getAttributeStatsAction, core));
 
     router.all('/v1/schemas/:collection_name/:schema_name/stats', caching({ignoreQueryString: true}), returnAsJSON(getSchemaStatsAction, core));
 
@@ -108,6 +110,47 @@ export function schemasEndpoints(core: AtomicAssetsNamespace, server: HTTPServer
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Schema'})
+                }
+            },
+            '/v1/schemas/{collection_name}/{schema_name}/attributes': {
+                get: {
+                    tags: ['schemas'],
+                    summary: 'Fetch schema attribute stats',
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Collection name of schema',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'schema_name',
+                            in: 'path',
+                            description: 'Name of schema',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'attributes',
+                            in: 'query',
+                            description: 'Filter only the selected attributes (separated by commas)',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                    ],
+                    responses: getOpenAPI3Responses([200, 416, 500], {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                attribute: {type: 'string'},
+                                value: {type: 'string'},
+                                occurrences: {type: 'integer'},
+                                supply: {type: 'integer'}
+                            }
+                        }
+                    })
                 }
             },
             '/v1/schemas/{collection_name}/{schema_name}/stats': {

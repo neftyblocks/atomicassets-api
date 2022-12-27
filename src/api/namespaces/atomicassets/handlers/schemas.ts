@@ -133,3 +133,69 @@ export async function getSchemaLogsAction(params: RequestValues, ctx: AtomicAsse
         (args.page - 1) * args.limit, args.limit, args.order
     );
 }
+
+export async function getAttributeStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        attributes: {type: 'string[]', min: 1},
+    });
+
+    const schemaQuery = await ctx.db.query(
+        'SELECT * FROM atomicassets_schemas s ' +
+        'WHERE s.collection_name = $1 AND s.schema_name = $2',
+        [ctx.pathParams.collection_name, ctx.pathParams.schema_name]
+    );
+
+    if (schemaQuery.rowCount === 0) {
+        throw new ApiError('Schema not found', 416);
+    }
+
+    const schema = schemaQuery.rows[0];
+    const countQuery = await ctx.db.query(
+        'SELECT COUNT(*) count FROM atomicassets_assets a ' +
+        'WHERE a.collection_name = $1 AND a.schema_name = $2 AND a.owner IS NOT NULL',
+        [schema.collection_name, schema.schema_name]
+    );
+
+    const attributeBlacklist = [
+        'name',
+        'description',
+        'image',
+        'image_data',
+        'img',
+        'video',
+        'audio',
+    ];
+
+    let filterAttributes;
+    if (args.attributes.length === 0) {
+        filterAttributes = schema.format.filter((format: any) => format.type === 'string' && !attributeBlacklist.includes(format.name.toLowerCase())).map((format: any) => format.name);
+    } else {
+        filterAttributes = args.attributes;
+    }
+
+    if (filterAttributes.length === 0) {
+        return [];
+    }
+
+    // Only for schemas with less than 260k assets
+    const supply = countQuery.rows[0].count;
+    if (supply > 260_000 || supply === 0) {
+        return [];
+    }
+
+    const attriburesQuery = await ctx.db.query(
+        'SELECT d.key as attribute, d.value, COUNT(*) as occurrences ' +
+        'FROM atomicassets_assets a ' +
+        'LEFT JOIN atomicassets_templates t ON a.template_id = t.template_id, ' +
+        'LATERAL jsonb_each(COALESCE(a.mutable_data, \'{}\'::jsonb) || COALESCE(a.immutable_data, \'{}\'::jsonb) || COALESCE(t.immutable_data, \'{}\'::jsonb)) d(key, value) ' +
+        'WHERE a.collection_name = $1 AND a.schema_name = $2 AND a.owner IS NOT NULL AND d.key = ANY($3) ' +
+        'AND LENGTH(d.value::text) > 2 AND LENGTH(d.value::text) < 25 AND LOWER(d.value::text) NOT LIKE \'"http%\' ' +
+        'GROUP BY d.key, d.value;',
+        [schema.collection_name, schema.schema_name, filterAttributes]
+    );
+
+    return attriburesQuery.rows.map((row: any) => ({
+        ...row,
+        supply,
+    }));
+}
