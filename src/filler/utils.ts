@@ -2,6 +2,7 @@ import {JsonRpc} from 'eosjs/dist';
 import PostgresConnection from '../connections/postgres';
 import {QueryResult} from 'pg';
 import {arrayChunk} from '../utils';
+import {GetTableByScopeResultRow} from 'eosjs/dist/eosjs-rpc-interfaces';
 
 export function encodeDatabaseJson(obj: any): string {
     return JSON.stringify(obj)
@@ -16,9 +17,9 @@ export function encodeString(txt: string): string {
     return txt?.replace(/\\u0000/g , '')?.replace(/\0/g, '') || '';
 }
 
-export async function getAllScopesFromTable(rpc: JsonRpc, options: any, batchSize: number): Promise<any[]> {
+export async function getAllScopesFromTable(rpc: JsonRpc, options: any, batchSize: number): Promise<GetTableByScopeResultRow[]> {
     let result = await rpc.get_table_by_scope({...options, limit: batchSize});
-    
+
     let { rows } = result;
     while (result.more) {
         const lower_bound = result.more;
