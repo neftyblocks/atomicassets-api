@@ -21,6 +21,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
         collection_whitelist: {type: 'string[]', min: 1},
         collection_blacklist: {type: 'string[]', min: 1},
         only_whitelisted: {type: 'bool'},
+        exclude_blacklisted: {type: 'bool'},
 
         sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
         page: {type: 'int', min: 1, default: 1},
@@ -73,6 +74,14 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: At
                 'FROM helpers_collection_list ' +
                 'WHERE list = \'whitelist\' OR list = \'verified\' OR list = \'exceptions\')'
             );
+            query.addCondition('collection.collection_name NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'blacklist\' OR list = \'scam\')'
+            );
+        }
+    } else if (typeof args.exclude_blacklisted === 'boolean') {
+        if (args.exclude_blacklisted) {
             query.addCondition('collection.collection_name NOT IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +

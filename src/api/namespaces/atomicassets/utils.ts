@@ -221,6 +221,7 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
         collection_whitelist: {type: 'string', min: 1},
         account_blacklist: {type: 'string', min: 1},
         only_whitelisted: {type: 'bool'},
+        exclude_blacklisted: {type: 'bool'},
     });
 
     let collectionBlacklist: string[] = [];
@@ -241,6 +242,14 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
                 'FROM helpers_collection_list ' +
                 'WHERE list = \'whitelist\' OR list = \'verified\' OR list = \'exceptions\')'
             );
+            query.addCondition(columns.collectionName + ' NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'blacklist\' OR list = \'scam\')'
+            );
+        }
+    } else if (typeof args.exclude_blacklisted === 'boolean') {
+        if (args.exclude_blacklisted) {
             query.addCondition(columns.collectionName + ' NOT IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +

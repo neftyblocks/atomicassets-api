@@ -31,6 +31,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         collection_blacklist: {type: 'string', min: 1},
         collection_whitelist: {type: 'string', min: 1},
         only_whitelisted: {type: 'bool'},
+        exclude_blacklisted: {type: 'bool'},
 
         is_recipient_contract: {type: 'bool'},
 
@@ -152,7 +153,32 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
                 'NOT (asset.collection_name = ANY (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE (list = \'whitelist\' OR list = \'verified\') AND list != \'blacklist\' AND list != \'scam\'' +
+                'WHERE (list = \'whitelist\' OR list = \'verified\')' +
+                ')'
+            );
+            query.addCondition(
+                'NOT EXISTS(' +
+                'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
+                '(asset.collection_name = ANY (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE (list = \'blacklist\' OR list = \'scam\')' +
+                ')'
+            );
+        }
+    } else if (typeof args.exclude_blacklisted === 'boolean') {
+        if (args.exclude_blacklisted) {
+            query.addCondition(
+                'NOT EXISTS(' +
+                'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
+                '(asset.collection_name = ANY (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE (list = \'blacklist\' OR list = \'scam\')' +
                 ')'
             );
         }

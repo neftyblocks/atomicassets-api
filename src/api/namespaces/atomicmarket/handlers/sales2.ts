@@ -262,6 +262,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         collection_blacklist: {type: 'string[]', min: 1},
         collection_whitelist: {type: 'string[]', min: 1},
         only_whitelisted: {type: 'bool'},
+        exclude_blacklisted: {type: 'bool'},
 
         owner: {type: 'string[]', min: 1, max: 12},
 
@@ -340,6 +341,14 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
                 'FROM helpers_collection_list ' +
                 'WHERE list = \'whitelist\' OR list = \'verified\' OR list = \'exceptions\')'
             );
+            query.addCondition('SUBSTR(listing.filter[1], 2) NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'blacklist\' OR list = \'scam\')'
+            );
+        }
+    } else if (typeof args.exclude_blacklisted === 'boolean') {
+        if (args.exclude_blacklisted) {
             query.addCondition('SUBSTR(listing.filter[1], 2) NOT IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
