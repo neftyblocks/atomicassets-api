@@ -60,7 +60,7 @@ const preferencesTableListener = () => async (db: ContractDBTransaction, block: 
     if (!delta.present) {
         await db.delete('neftyavatars_pfps', {
             str: 'owner = $1',
-            values: [delta.scope, delta.value.value],
+            values: [delta.scope],
         });
     } else if (pfp.rowCount === 0) {
         await db.insert('neftyavatars_pfps', {
