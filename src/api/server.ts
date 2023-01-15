@@ -202,7 +202,7 @@ export class WebServer {
         };
     }
 
-    returnAsFile = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
+    returnAsPng = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
         const server = this.server;
 
         return async (req: express.Request, res: express.Response): Promise<void> => {
@@ -217,6 +217,7 @@ export class WebServer {
                 };
 
                 const result = await handler(params, ctx);
+                res.contentType('image/png');
                 res.sendFile(result);
             } catch (error) {
                 respondApiError(res, error);

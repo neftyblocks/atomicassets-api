@@ -10,6 +10,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
     const args = filterQueryArgs(params, {
         only_background: {type: 'bool', default: false},
         only_body: {type: 'bool', default: false},
+        width: {type: 'int', default: 300},
     });
 
     const avatarQuery = await ctx.db.query(
@@ -25,6 +26,9 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
     if (avatarQuery.rowCount === 0) {
         return null;
     }
+
+    const onlyBackground = args.only_background === true;
+    const onlyBody = args.only_body === true;
 
     const result = avatarQuery.rows[0];
 
@@ -42,16 +46,16 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
     };
 
     const backgroundLayerName = 'Background';
-    if (!args.only_background) {
+    if (onlyBackground) {
         data = {
             [backgroundLayerName]: data[backgroundLayerName],
         };
-    } else if (args.only_body) {
+    } else if (onlyBody) {
         delete data[backgroundLayerName];
     }
 
     const layerImages: string[] = [];
-    const ignoreDefault = args.only_background;
+    const ignoreDefault = onlyBackground;
     sortedAccessorySpecs.forEach((accessory_spec: any) => {
         const layerValue = data[accessory_spec.layer_name]?.toLowerCase();
         let image = null;
@@ -71,25 +75,28 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
         return null;
     }
 
-    if (layerImages.length === 1) {
-        return {
-            cid: layerImages[0],
-        };
-    }
-
     const hashContent = layerImages.join('-');
     const layersHash = crypto.createHash('sha256').update(hashContent).digest('hex');
-    const avatarLocation = path.join(ctx.coreArgs.avatars_location, ctx.pathParams.account_name, layersHash);
+    const avatarLocation = path.join(ctx.coreArgs.avatars_location, ctx.pathParams.account_name, `${layersHash}_${args.width}.png`);
     if (fs.existsSync(avatarLocation)) {
-        return fs.createReadStream(avatarLocation);
+        return avatarLocation;
     } else {
+        const dirname = path.dirname(avatarLocation);
+        const exist = fs.existsSync(dirname);
+        if (!exist) {
+            fs.mkdirSync(dirname, { recursive: true });
+        }
+
         const combineBody: any = {
             collection_name: result.collection_name,
             schema_name: result.schema_name,
-            layers: layerImages,
+            layers: data,
         };
         if (result.template_id > -1) {
             combineBody.template_id = result.template_id;
+        }
+        if (onlyBackground) {
+            combineBody.ignore_default = true;
         }
         const results = await fetch(`${ctx.coreArgs.avatar_api_url}/combine-layers`, {
             method: 'POST',
@@ -100,9 +107,13 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
         });
 
         const resultJson = await results.json();
-        const file = await fetch(`https://ipfs.io/ipfs/${resultJson.cid}`);
+        const file = await fetch(`https://resizer.neftyblocks.com?ipfs=${resultJson.cid}&width=${args.width}&static=false`);
         const writeStream = fs.createWriteStream(avatarLocation);
-        await file.body.pipe(writeStream);
-        return fs.createReadStream(avatarLocation);
+        await new Promise((resolve, reject) => {
+            file.body.pipe(writeStream);
+            file.body.on('error', reject);
+            writeStream.on('finish', resolve);
+        });
+        return avatarLocation;
     }
 }
