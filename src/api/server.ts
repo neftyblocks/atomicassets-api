@@ -202,6 +202,28 @@ export class WebServer {
         };
     }
 
+    returnAsFile = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
+        const server = this.server;
+
+        return async (req: express.Request, res: express.Response): Promise<void> => {
+            try {
+                const params = mergeRequestData(req);
+                const pathParams = req.params || {};
+
+                const ctx: ActionHandlerContext<any> = {
+                    pathParams,
+                    db: server,
+                    coreArgs: core.args
+                };
+
+                const result = await handler(params, ctx);
+                res.sendFile(result);
+            } catch (error) {
+                respondApiError(res, error);
+            }
+        };
+    }
+
     private middleware(): void {
         this.express.use(bodyParser.json({limit: '10MB'}));
         this.express.use(bodyParser.urlencoded({extended: false, limit: '10MB'}));

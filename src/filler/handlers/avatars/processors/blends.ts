@@ -92,6 +92,7 @@ function getBlendDbRow(blend: BlendTableRow, args: AvatarsArgs, blockNumber: num
         base_template_id: blend.base_spec.template_id,
         lock_schema_name: blend.lock_spec.locked_char_schema,
         accessory_specs: encodeDatabaseJson(blend.accessory_specs),
+        base_spec: encodeDatabaseJson(blend.base_spec),
         updated_at_block: blockNumber || 0,
         updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
         created_at_block: blockNumber || 0,

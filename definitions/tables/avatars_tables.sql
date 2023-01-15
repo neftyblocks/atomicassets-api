@@ -11,6 +11,7 @@ CREATE TABLE neftyavatars_blends
     base_template_id bigint                NOT NULL,
     lock_schema_name character varying(13) NOT NULL,
     accessory_specs  jsonb                 NOT NULL,
+    base_spec        jsonb                 NOT NULL,
     updated_at_block bigint                NOT NULL,
     updated_at_time  bigint                NOT NULL,
     created_at_block bigint                NOT NULL,
