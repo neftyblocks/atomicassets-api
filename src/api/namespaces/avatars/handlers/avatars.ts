@@ -77,7 +77,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
 
     const hashContent = layerImages.join('-');
     const layersHash = crypto.createHash('sha256').update(hashContent).digest('hex');
-    const avatarLocation = path.join(ctx.coreArgs.avatars_location, ctx.pathParams.account_name, `${layersHash}_${args.width}.png`);
+    const avatarLocation = path.join(ctx.coreArgs.avatars_location, result.asset_id, `${layersHash}_${args.width}.png`);
     if (fs.existsSync(avatarLocation)) {
         return avatarLocation;
     } else {
