@@ -77,15 +77,17 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
 
     const hashContent = layerImages.join('-');
     const layersHash = crypto.createHash('sha256').update(hashContent).digest('hex');
-    const avatarLocation = path.join(ctx.coreArgs.avatars_location, result.asset_id, `${layersHash}_${args.width}.png`);
+    const subfolder = onlyBackground ? 'backgrounds' : onlyBody ? 'bodies' : 'avatars';
+    const avatarLocation = path.join(ctx.coreArgs.avatars_location, result.asset_id, subfolder, `${layersHash}_${args.width}.png`);
     if (fs.existsSync(avatarLocation)) {
         return avatarLocation;
     } else {
         const dirname = path.dirname(avatarLocation);
         const exist = fs.existsSync(dirname);
-        if (!exist) {
-            fs.mkdirSync(dirname, { recursive: true });
+        if (exist) {
+            fs.rmdirSync(dirname);
         }
+        fs.mkdirSync(dirname, { recursive: true });
 
         const combineBody: any = {
             collection_name: result.collection_name,

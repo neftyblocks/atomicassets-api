@@ -9,7 +9,7 @@ import {getAvatarAction} from '../handlers/avatars';
 
 export function avatarsEndpoint(core: AvatarsNamespace, server: HTTPServer, router: express.Router): any {
     const { caching, returnAsPng } = server.web;
-    router.all('/v1/avatars/:account_name', caching(), returnAsPng(getAvatarAction, core));
+    router.get('/v1/avatars/:account_name', caching(), returnAsPng(getAvatarAction, core));
 
     return {
         tag: {
