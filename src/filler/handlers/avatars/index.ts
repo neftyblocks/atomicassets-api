@@ -8,17 +8,20 @@ import { ATOMICASSETS_BASE_PRIORITY } from '../atomicassets';
 import DataProcessor from '../../processor';
 import { blendsProcessor, initBlends } from './processors/blends';
 import {initPfps, pfpsProcessor} from './processors/pfps';
+import {initPhotos, photosProcessor} from './processors/photos';
 
 export const AVATARS_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 4000;
 
 export type AvatarsArgs = {
     avatar_account: string,
     pfp_account: string,
+    photos_account: string,
 };
 
 export enum AvatarUpdatePriority {
     TABLE_BLENDS = AVATARS_BASE_PRIORITY + 10,
     TABLE_PFP = AVATARS_BASE_PRIORITY + 30,
+    TABLE_PHOTOS = AVATARS_BASE_PRIORITY + 40,
 }
 
 const views: string[] = [];
@@ -78,6 +81,7 @@ export default class AvatarsHandler extends ContractHandler {
             await this.connection.database.begin();
             await initBlends(this.args, this.connection);
             await initPfps(this.args, this.connection);
+            await initPhotos(this.args, this.connection);
             await this.connection.database.query('COMMIT');
         } catch (error) {
             await this.connection.database.query('ROLLBACK');
@@ -89,6 +93,7 @@ export default class AvatarsHandler extends ContractHandler {
         const tables = [
             'neftyavatars_blends',
             'neftyavatars_pfps',
+            'profile_photos',
         ];
 
         for (const table of tables) {
@@ -102,6 +107,7 @@ export default class AvatarsHandler extends ContractHandler {
         const destructors: Array<() => any> = [];
         destructors.push(blendsProcessor(this, processor));
         destructors.push(pfpsProcessor(this, processor));
+        destructors.push(photosProcessor(this, processor));
         return (): any => destructors.map(fn => fn());
     }
 }

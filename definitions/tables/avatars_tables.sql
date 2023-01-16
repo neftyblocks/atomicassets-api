@@ -26,6 +26,13 @@ CREATE TABLE neftyavatars_pfps
     CONSTRAINT neftyavatars_pfps_pkey PRIMARY KEY (owner)
 );
 
+CREATE TABLE profile_photos
+(
+    owner           character varying(13) NOT NULL,
+    photo_hash      TEXT NOT NULL,
+    CONSTRAINT profile_photos_pkey PRIMARY KEY (owner)
+);
+
 -- Indexes
 CREATE
     INDEX neftyavatars_blends_collection_name ON neftyavatars_blends USING btree (collection_name);

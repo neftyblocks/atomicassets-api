@@ -29,3 +29,8 @@ export type PreferencesTableRow = {
     key: string,
     value: string,
 };
+
+export type PhotoTableRow = {
+    account: string,
+    photo_hash: string,
+};
