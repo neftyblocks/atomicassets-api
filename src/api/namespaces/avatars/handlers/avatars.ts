@@ -19,7 +19,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
         'b.blend_id, b.accessory_specs, b.base_spec ' +
         'FROM neftyavatars_pfps p ' +
         'INNER JOIN atomicassets_assets a ON a.asset_id = p.asset_id ' +
-        'INNER JOIN neftyavatars_blends b ON a.template_id = b.base_template_id ' +
+        'INNER JOIN neftyavatars_blends b ON (a.template_id = b.base_template_id OR (a.collection_name = b.collection_name AND a.schema_name = b.lock_schema_name))' +
         'WHERE p.owner = $1 ',
         [ctx.pathParams.account_name]
     );
