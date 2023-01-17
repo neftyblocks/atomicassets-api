@@ -38,7 +38,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
 
     const avatarQuery = await ctx.db.query(
         'SELECT a.asset_id, a.template_id, a.collection_name, a.schema_name, a.owner, a.mutable_data, a.immutable_data, ' +
-        'b.blend_id, b.accessory_specs, b.base_spec ' +
+        'b.blend_id, b.accessory_specs, b.base_spec, b.lock_schema_name ' +
         'FROM neftyavatars_pfps p ' +
         'INNER JOIN atomicassets_assets a ON a.asset_id = p.asset_id ' +
         'INNER JOIN neftyavatars_blends b ON (a.template_id = b.base_template_id OR (a.collection_name = b.collection_name AND a.schema_name = b.lock_schema_name))' +
@@ -159,6 +159,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
     const avatarDirectory = path.join(ctx.coreArgs.avatars_location, result.asset_id, subfolder);
     const headers = {
         'x-nefty-pfp-verified': 'true',
+        'x-nefty-pfp-locked': result.lock_schema_name === result.schema_name ? 'true' : 'false',
         'x-nefty-pfp-asset-id': result.asset_id,
     };
     const fileName = fs.existsSync(avatarDirectory) ? fs.readdirSync(avatarDirectory).find((file) => file.startsWith(`${layersHash}_${args.width}.`)) : undefined;

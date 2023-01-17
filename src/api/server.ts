@@ -243,7 +243,7 @@ export class WebServer {
 
         this.express.use((req, res, next) => {
             res.setHeader('Access-Control-Allow-Headers', '*');
-            res.setHeader('Access-Control-Expose-Headers', 'x-nefty-pfp-verified, x-nefty-pfp-asset-id');
+            res.setHeader('Access-Control-Expose-Headers', 'x-nefty-pfp-verified, x-nefty-pfp-asset-id, x-nefty-pfp-locked');
 
             logger.debug(req.ip + ': ' + req.method + ' ' + req.originalUrl, req.body);
 
