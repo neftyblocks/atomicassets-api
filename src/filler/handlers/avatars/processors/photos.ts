@@ -64,10 +64,10 @@ const photosTableListener = () => async (db: ContractDBTransaction, block: ShipB
 
 export function photosProcessor(core: CollectionsListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
-    const contract = core.args.pfp_account;
+    const contract = core.args.photos_account;
 
     destructors.push(processor.onContractRow(
-        contract, 'preferences',
+        contract, 'photos',
         photosTableListener(),
         AvatarUpdatePriority.TABLE_PHOTOS.valueOf()
     ));

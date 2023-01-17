@@ -5,8 +5,9 @@ import * as crypto from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs';
 import fetch from 'node-fetch';
+import * as mime from 'mime-types';
 
-export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext): Promise<any> {
+export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext): Promise<{ filePath: string; contentType: string | boolean; }> {
     const args = filterQueryArgs(params, {
         only_background: {type: 'bool', default: false},
         only_body: {type: 'bool', default: false},
@@ -24,7 +25,53 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
     );
 
     if (avatarQuery.rowCount === 0) {
-        return null;
+        const photoQuery = await ctx.db.query(
+            'SELECT p.owner, p.photo_hash ' +
+            'FROM profile_photos p ' +
+            'WHERE p.owner = $1 ',
+            [ctx.pathParams.account_name]
+        );
+
+        if (photoQuery.rowCount === 0) {
+            return null;
+        }
+
+        const photoHash = photoQuery.rows[0].photo_hash;
+        const owner = photoQuery.rows[0].owner;
+        const layersHash = crypto.createHash('sha256').update(photoHash).digest('hex');
+        const photoDirectory = path.join(ctx.coreArgs.avatars_location, owner);
+        const fileName = fs.readdirSync(photoDirectory).find((file) => file.startsWith(`${layersHash}_${args.width}.`));
+        let photoLocation = fileName && path.join(photoDirectory, fileName);
+        if (photoLocation && fs.existsSync(photoLocation)) {
+            const contentType = mime.contentType(path.basename(photoLocation));
+            return {
+                contentType,
+                filePath: photoLocation,
+            };
+        } else {
+            const exist = fs.existsSync(photoDirectory);
+            if (exist) {
+                fs.rmdirSync(photoDirectory, {recursive: true});
+            }
+            fs.mkdirSync(photoDirectory, { recursive: true });
+
+            const file = await fetch(`https://resizer.neftyblocks.com?ipfs=${photoHash}&width=${args.width}&static=false`);
+            if (file.status !== 200) {
+                return null;
+            }
+            const contentType = file.headers.get('content-type');
+            photoLocation = path.join(photoDirectory, `${layersHash}_${args.width}.${mime.extension(contentType)}`);
+            const writeStream = fs.createWriteStream(photoLocation);
+            await new Promise((resolve, reject) => {
+                file.body.pipe(writeStream);
+                file.body.on('error', reject);
+                writeStream.on('finish', resolve);
+            });
+            return {
+                contentType,
+                filePath: photoLocation,
+            };
+        }
     }
 
     const onlyBackground = args.only_background === true;
@@ -78,16 +125,21 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
     const hashContent = layerImages.join('-');
     const layersHash = crypto.createHash('sha256').update(hashContent).digest('hex');
     const subfolder = onlyBackground ? 'backgrounds' : onlyBody ? 'bodies' : 'avatars';
-    const avatarLocation = path.join(ctx.coreArgs.avatars_location, result.asset_id, subfolder, `${layersHash}_${args.width}.png`);
-    if (fs.existsSync(avatarLocation)) {
-        return avatarLocation;
+    const avatarDirectory = path.join(ctx.coreArgs.avatars_location, result.asset_id, subfolder);
+    const fileName = fs.readdirSync(avatarDirectory).find((file) => file.startsWith(`${layersHash}_${args.width}.`));
+    let avatarLocation = fileName && path.join(avatarDirectory, fileName);
+    if (avatarLocation && fs.existsSync(avatarLocation)) {
+        const contentType = mime.contentType(path.basename(avatarLocation));
+        return {
+            contentType,
+            filePath: avatarLocation,
+        };
     } else {
-        const dirname = path.dirname(avatarLocation);
-        const exist = fs.existsSync(dirname);
+        const exist = fs.existsSync(avatarDirectory);
         if (exist) {
-            fs.rmdirSync(dirname);
+            fs.rmdirSync(avatarDirectory, { recursive: true });
         }
-        fs.mkdirSync(dirname, { recursive: true });
+        fs.mkdirSync(avatarDirectory, { recursive: true });
 
         const combineBody: any = {
             collection_name: result.collection_name,
@@ -110,12 +162,20 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
 
         const resultJson = await results.json();
         const file = await fetch(`https://resizer.neftyblocks.com?ipfs=${resultJson.cid}&width=${args.width}&static=false`);
+        if (file.status !== 200) {
+            return null;
+        }
+        const contentType = file.headers.get('content-type');
+        avatarLocation = path.join(avatarDirectory, `${layersHash}_${args.width}.${mime.extension(contentType)}`);
         const writeStream = fs.createWriteStream(avatarLocation);
         await new Promise((resolve, reject) => {
             file.body.pipe(writeStream);
             file.body.on('error', reject);
             writeStream.on('finish', resolve);
         });
-        return avatarLocation;
+        return {
+            contentType,
+            filePath: avatarLocation,
+        };
     }
 }

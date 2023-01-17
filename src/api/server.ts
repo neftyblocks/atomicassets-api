@@ -217,8 +217,10 @@ export class WebServer {
                 };
 
                 const result = await handler(params, ctx);
-                res.contentType('image/png');
-                res.sendFile(result);
+                if (result.contentType) {
+                    res.contentType(result.contentType);
+                }
+                res.sendFile(result.filePath);
             } catch (error) {
                 respondApiError(res, error);
             }
