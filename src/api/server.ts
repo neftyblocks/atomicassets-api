@@ -202,7 +202,7 @@ export class WebServer {
         };
     }
 
-    returnAsPng = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
+    returnAsFile = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
         const server = this.server;
 
         return async (req: express.Request, res: express.Response): Promise<void> => {
@@ -220,7 +220,16 @@ export class WebServer {
                 if (result.contentType) {
                     res.contentType(result.contentType);
                 }
-                res.sendFile(result.filePath);
+                if (result.headers) {
+                    Object.entries(result.headers).forEach(([key, value]) => {
+                        res.setHeader(key, value as string);
+                    });
+                }
+                if (result.filePath) {
+                    res.sendFile(result.filePath);
+                } else if (result.stream) {
+                    result.stream.pipe(res);
+                }
             } catch (error) {
                 respondApiError(res, error);
             }
@@ -234,6 +243,7 @@ export class WebServer {
 
         this.express.use((req, res, next) => {
             res.setHeader('Access-Control-Allow-Headers', '*');
+            res.setHeader('Access-Control-Expose-Headers', 'x-nefty-pfp-verified, x-nefty-pfp-asset-id');
 
             logger.debug(req.ip + ': ' + req.method + ' ' + req.originalUrl, req.body);
 

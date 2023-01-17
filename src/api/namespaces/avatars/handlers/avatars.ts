@@ -6,8 +6,30 @@ import * as path from 'path';
 import * as fs from 'fs';
 import fetch from 'node-fetch';
 import * as mime from 'mime-types';
+import * as replaceStream from 'replacestream';
 
-export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext): Promise<{ filePath: string; contentType: string | boolean; }> {
+const hslToHex = (h: number, s: number, l: number): string => {
+    l /= 100;
+    const a = (s * Math.min(l, 1 - l)) / 100;
+    const f = (n: number): string => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+};
+
+const nameToColour = (str: string): string => {
+    const stringUniqueHash = [...str]
+        .reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
+    let hue = stringUniqueHash % 360;
+    if (hue < 0) {
+        hue = 360 + hue;
+    }
+    return hslToHex(hue, 95, 35);
+};
+
+export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext): Promise<{ filePath?: string; contentType: string | boolean; headers: Record<string, string>, stream?: ReadableStream }> {
     const args = filterQueryArgs(params, {
         only_background: {type: 'bool', default: false},
         only_body: {type: 'bool', default: false},
@@ -33,7 +55,14 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
         );
 
         if (photoQuery.rowCount === 0) {
-            return null;
+            const color = nameToColour(ctx.pathParams.account_name);
+            const defaultAvatarStream = fs.createReadStream(path.join(__dirname, '../../../../../resources/Checker.svg'))
+                .pipe(replaceStream('#######', color, { limit: 1 }));
+            return {
+                headers: {},
+                stream: defaultAvatarStream,
+                contentType: 'image/svg+xml',
+            };
         }
 
         const photoHash = photoQuery.rows[0].photo_hash;
@@ -45,6 +74,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
         if (photoLocation && fs.existsSync(photoLocation)) {
             const contentType = mime.contentType(path.basename(photoLocation));
             return {
+                headers: {},
                 contentType,
                 filePath: photoLocation,
             };
@@ -68,6 +98,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
                 writeStream.on('finish', resolve);
             });
             return {
+                headers: {},
                 contentType,
                 filePath: photoLocation,
             };
@@ -126,11 +157,16 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
     const layersHash = crypto.createHash('sha256').update(hashContent).digest('hex');
     const subfolder = onlyBackground ? 'backgrounds' : onlyBody ? 'bodies' : 'avatars';
     const avatarDirectory = path.join(ctx.coreArgs.avatars_location, result.asset_id, subfolder);
+    const headers = {
+        'x-nefty-pfp-verified': 'true',
+        'x-nefty-pfp-asset-id': result.asset_id,
+    };
     const fileName = fs.existsSync(avatarDirectory) ? fs.readdirSync(avatarDirectory).find((file) => file.startsWith(`${layersHash}_${args.width}.`)) : undefined;
     let avatarLocation = fileName && path.join(avatarDirectory, fileName);
     if (avatarLocation && fs.existsSync(avatarLocation)) {
         const contentType = mime.contentType(path.basename(avatarLocation));
         return {
+            headers,
             contentType,
             filePath: avatarLocation,
         };
@@ -174,6 +210,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
             writeStream.on('finish', resolve);
         });
         return {
+            headers,
             contentType,
             filePath: avatarLocation,
         };

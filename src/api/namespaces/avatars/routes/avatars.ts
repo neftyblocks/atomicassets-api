@@ -8,8 +8,8 @@ import {
 import {getAvatarAction} from '../handlers/avatars';
 
 export function avatarsEndpoint(core: AvatarsNamespace, server: HTTPServer, router: express.Router): any {
-    const { caching, returnAsPng } = server.web;
-    router.get('/v1/avatars/:account_name', caching(), returnAsPng(getAvatarAction, core));
+    const { caching, returnAsFile } = server.web;
+    router.get('/v1/avatars/:account_name', caching(), returnAsFile(getAvatarAction, core));
 
     return {
         tag: {
