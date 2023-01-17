@@ -40,7 +40,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
         const owner = photoQuery.rows[0].owner;
         const layersHash = crypto.createHash('sha256').update(photoHash).digest('hex');
         const photoDirectory = path.join(ctx.coreArgs.avatars_location, owner);
-        const fileName = fs.readdirSync(photoDirectory).find((file) => file.startsWith(`${layersHash}_${args.width}.`));
+        const fileName = fs.existsSync(photoDirectory) ? fs.readdirSync(photoDirectory).find((file) => file.startsWith(`${layersHash}_${args.width}.`)): undefined;
         let photoLocation = fileName && path.join(photoDirectory, fileName);
         if (photoLocation && fs.existsSync(photoLocation)) {
             const contentType = mime.contentType(path.basename(photoLocation));
@@ -126,7 +126,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
     const layersHash = crypto.createHash('sha256').update(hashContent).digest('hex');
     const subfolder = onlyBackground ? 'backgrounds' : onlyBody ? 'bodies' : 'avatars';
     const avatarDirectory = path.join(ctx.coreArgs.avatars_location, result.asset_id, subfolder);
-    const fileName = fs.readdirSync(avatarDirectory).find((file) => file.startsWith(`${layersHash}_${args.width}.`));
+    const fileName = fs.existsSync(avatarDirectory) ? fs.readdirSync(avatarDirectory).find((file) => file.startsWith(`${layersHash}_${args.width}.`)) : undefined;
     let avatarLocation = fileName && path.join(avatarDirectory, fileName);
     if (avatarLocation && fs.existsSync(avatarLocation)) {
         const contentType = mime.contentType(path.basename(avatarLocation));
