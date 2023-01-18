@@ -20,7 +20,7 @@ export const neftyBlendsComponents = {
             ingredients: {
                 type: 'array',
                 // @TODO:
-                // There is actually 3 different possible structures, 
+                // There is actually 3 different possible structures,
                 // template_ingredient, attribute_ingredient and schema_ingredient
                 // but I dont know how to do unions here. For now `any` is good enough
                 items: {type: 'object'}
@@ -40,9 +40,9 @@ export const neftyBlendsComponents = {
                                     results: {
                                         type: 'array',
                                         // @TODO:
-                                        // There is actually 2 different possible 
+                                        // There is actually 2 different possible
                                         // structures, template_result, pool_nft_result
-                                        // but I dont know how to do unions here. 
+                                        // but I dont know how to do unions here.
                                         // For now `any` is good enough
                                         items: {type: 'object'}
                                     }
@@ -51,6 +51,31 @@ export const neftyBlendsComponents = {
                         }
                     }
                 }
+            }
+        },
+    },
+    'Claim': {
+        type: 'object',
+        properties: {
+            claim_id: {type: 'string'},
+            contract: {type: 'string'},
+            claimer: {type: 'string'},
+            blend_id: {type: 'string'},
+            created_at_time: {type: 'string'},
+            created_at_block: {type: 'string'},
+            updated_at_time: {type: 'string'},
+            updated_at_block: {type: 'string'},
+            results: {
+                type: 'array',
+                items: {type: 'object'}
+            },
+            transferred_assets: {
+                type: 'array',
+                items: {type: 'object'}
+            },
+            own_assets: {
+                type: 'array',
+                items: {type: 'object'}
             }
         },
     }

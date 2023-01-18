@@ -18,7 +18,12 @@ import {
     encodeDatabaseJson,
     getAllRowsFromTable
 } from '../../../utils';
-import {LogClaimActionData, LogResultActionData, SetBlendRollsActionData} from '../types/actions';
+import {
+    LogClaimActionData,
+    LogResultActionData,
+    SetBlendMixActionData,
+    SetBlendRollsActionData
+} from '../types/actions';
 import logger from '../../../../utils/winston';
 import { preventInt64Overflow } from '../../../../utils/binary';
 
@@ -152,27 +157,16 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
             delta.value, core.args, block.block_num, block.timestamp, contract
         );
         await db.insert('neftyblends_blends', blendDbRow, ['contract', 'blend_id']);
+
         if (ingredientDbRows.length > 0) {
-            await db.insert(
-                'neftyblends_blend_ingredients',
+            await insertBlendIngredients(
+                db,
                 ingredientDbRows,
-                ['contract', 'blend_id', 'ingredient_index']
-            );
-        }
-        if (ingredientAttributesDbRows.length > 0) {
-            await db.insert(
-                'neftyblends_blend_ingredient_attributes',
                 ingredientAttributesDbRows,
-                ['contract', 'blend_id', 'ingredient_index', 'attribute_index']
+                ingredientTypedAttributesDbRows
             );
         }
-        if (ingredientTypedAttributesDbRows.length > 0) {
-            await db.insert(
-                'neftyblends_blend_ingredient_typed_attributes',
-                ingredientTypedAttributesDbRows,
-                ['contract', 'blend_id', 'ingredient_index', 'typed_attribute_index']
-            );
-        }
+
         if (rollsDbRows.length > 0) {
             await insertBlendRolls(
                 db,
@@ -320,6 +314,29 @@ const superBlendsRollsListener = (core: CollectionsListHandler, contract: string
     );
 };
 
+const superBlendsMixListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetBlendMixActionData>): Promise<void> => {
+    const { ingredientDbRows, ingredientAttributesDbRows, ingredientTypedAttributesDbRows } = getIngredientsDbRows(
+        trace.act.data.blend_id,
+        trace.act.data.ingredients,
+        core.args,
+        block.block_num,
+        block.timestamp, contract
+    );
+
+    await deleteBlendIngredients(
+        db,
+        core.args.atomicassets_account,
+        trace.act.data.blend_id,
+        contract,
+    );
+    await insertBlendIngredients(
+        db,
+        ingredientDbRows,
+        ingredientAttributesDbRows,
+        ingredientTypedAttributesDbRows,
+    );
+};
+
 const logClaimListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogClaimActionData>): Promise<void> => {
     await db.insert('neftyblends_fusions', {
             contract,
@@ -372,6 +389,12 @@ export function superBlendsProcessor(core: CollectionsListHandler, processor: Da
         neftyContract, 'setrolls',
         superBlendsRollsListener(core, neftyContract),
         BlendsUpdatePriority.SET_ROLLS.valueOf()
+    ));
+
+    destructors.push(processor.onActionTrace(
+        neftyContract, 'setblendmix',
+        superBlendsMixListener(core, neftyContract),
+        BlendsUpdatePriority.SET_MIX.valueOf()
     ));
 
     destructors.push(processor.onActionTrace(
@@ -465,68 +488,6 @@ async function deleteBlendRolls(
 }
 
 function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber: number, blockTimeStamp: string, contract: string): any {
-    const ingredients = getSuperBlendIngredients(blend);
-    const ingredientDbRows = [];
-    const ingredientAttributesDbRows = [];
-    const ingredientTypedAttributesDbRows = [];
-    for (const ingredient of ingredients) {
-        ingredientDbRows.push({
-            assets_contract: args.atomicassets_account,
-            contract,
-            blend_id: blend.blend_id,
-            ingredient_collection_name: ingredient.collection_name,
-            template_id: ingredient.template_id,
-            schema_name: ingredient.schema_name,
-            amount: ingredient.amount,
-            effect: encodeDatabaseJson(ingredient.effect),
-            ingredient_index: ingredient.index,
-            ingredient_type: ingredient.type,
-            total_attributes: ingredient.attributes.length || 0,
-            updated_at_block: blockNumber || 0,
-            updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
-            created_at_block: blockNumber || 0,
-            created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
-            display_data: ingredient.display_data,
-            balance_ingredient_attribute_name: ingredient.balance_ingredient_attribute_name,
-            balance_ingredient_cost: ingredient.balance_ingredient_cost,
-            ft_ingredient_quantity_price: ingredient.ft_ingredient_quantity_price,
-            ft_ingredient_quantity_symbol: ingredient.ft_ingredient_quantity_symbol
-        });
-
-        let attributeIndex = 0;
-        for (const attribute of ingredient.attributes) {
-            ingredientAttributesDbRows.push({
-                assets_contract: args.atomicassets_account,
-                contract,
-                blend_id: blend.blend_id,
-                ingredient_collection_name: ingredient.collection_name,
-                ingredient_index: ingredient.index,
-                attribute_index: attributeIndex,
-                attribute_name: attribute.attribute_name,
-                allowed_values: encodeDatabaseArray(attribute.allowed_values),
-            });
-            attributeIndex++;
-        }
-
-        let typedAttributeIndex = 0;
-        for (const typedAttribute of ingredient.typed_attributes) {
-            ingredientTypedAttributesDbRows.push({
-                contract,
-                blend_id: blend.blend_id,
-                ingredient_collection_name: ingredient.collection_name,
-                ingredient_index: ingredient.index,
-                typed_attribute_index: typedAttributeIndex,
-
-                attribute_name: typedAttribute.attribute_name,
-                attribute_type: typedAttribute.attribute_type,
-                // variant type, and variant value
-                allowed_values_type: typedAttribute.allowed_values[0],
-                allowed_values: encodeDatabaseJson(typedAttribute.allowed_values[1])
-            });
-            typedAttributeIndex++;
-        }
-    }
-
     const upgradeSpecsDbRows = [ ];
     const upgradeRequirementsDbRows = [ ];
     const upgradeResultsDbRows = [ ];
@@ -634,9 +595,14 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
                 upgradeResultsDbRows.push(newUpgradeRequirementDbRow);
             }
         }
-
     }
 
+    const ingredients = getSuperBlendIngredients(blend);
+    const {
+        ingredientDbRows,
+        ingredientAttributesDbRows,
+        ingredientTypedAttributesDbRows
+    } = getIngredientsDbRows(blend.blend_id, ingredients, args, blockNumber, blockTimeStamp, contract);
 
     return {
         blendDbRow: {
@@ -667,6 +633,123 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         upgradeRequirementsDbRows,
         upgradeResultsDbRows
     };
+}
+
+async function insertBlendIngredients(
+    db: ContractDBTransaction,
+    ingredientDbRows: any[],
+    ingredientAttributesDbRows: any[],
+    ingredientTypedAttributesDbRows: any[]
+): Promise<void> {
+    if (ingredientDbRows.length > 0) {
+        await db.insert(
+            'neftyblends_blend_ingredients',
+            ingredientDbRows,
+            ['contract', 'blend_id', 'ingredient_index']
+        );
+    }
+    if (ingredientAttributesDbRows.length > 0) {
+        await db.insert(
+            'neftyblends_blend_ingredient_attributes',
+            ingredientAttributesDbRows,
+            ['contract', 'blend_id', 'ingredient_index', 'attribute_index']
+        );
+    }
+    if (ingredientTypedAttributesDbRows.length > 0) {
+        await db.insert(
+            'neftyblends_blend_ingredient_typed_attributes',
+            ingredientTypedAttributesDbRows,
+            ['contract', 'blend_id', 'ingredient_index', 'typed_attribute_index']
+        );
+    }
+}
+
+async function deleteBlendIngredients(
+    db: ContractDBTransaction,
+    atomicAssetsAccount: string,
+    blendId: number,
+    contract: string,
+): Promise<void> {
+    const deleteString = 'assets_contract = $1 AND contract = $2 AND blend_id = $3';
+    const deleteValues = [atomicAssetsAccount, contract, blendId];
+    await db.delete('neftyblends_blend_ingredient_typed_attributes', {
+        str: deleteString,
+        values: deleteValues,
+    });
+    await db.delete('neftyblends_blend_ingredient_attributes', {
+        str: deleteString,
+        values: deleteValues,
+    });
+    await db.delete('neftyblends_blend_ingredients', {
+        str: deleteString,
+        values: deleteValues,
+    });
+}
+
+function getIngredientsDbRows(blendId: number, ingredients: Ingredient[], args: BlendsArgs, blockNumber: number, blockTimeStamp: string, contract: string): {
+    ingredientDbRows: any[], ingredientAttributesDbRows: any[], ingredientTypedAttributesDbRows: any[]
+} {
+    const ingredientDbRows = [];
+    const ingredientAttributesDbRows = [];
+    const ingredientTypedAttributesDbRows = [];
+    for (const ingredient of ingredients) {
+        ingredientDbRows.push({
+            assets_contract: args.atomicassets_account,
+            contract,
+            blend_id: blendId,
+            ingredient_collection_name: ingredient.collection_name,
+            template_id: ingredient.template_id,
+            schema_name: ingredient.schema_name,
+            amount: ingredient.amount,
+            effect: encodeDatabaseJson(ingredient.effect),
+            ingredient_index: ingredient.index,
+            ingredient_type: ingredient.type,
+            total_attributes: ingredient.attributes.length || 0,
+            updated_at_block: blockNumber || 0,
+            updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
+            created_at_block: blockNumber || 0,
+            created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
+            display_data: ingredient.display_data,
+            balance_ingredient_attribute_name: ingredient.balance_ingredient_attribute_name,
+            balance_ingredient_cost: ingredient.balance_ingredient_cost,
+            ft_ingredient_quantity_price: ingredient.ft_ingredient_quantity_price,
+            ft_ingredient_quantity_symbol: ingredient.ft_ingredient_quantity_symbol
+        });
+
+        let attributeIndex = 0;
+        for (const attribute of ingredient.attributes) {
+            ingredientAttributesDbRows.push({
+                assets_contract: args.atomicassets_account,
+                contract,
+                blend_id: blendId,
+                ingredient_collection_name: ingredient.collection_name,
+                ingredient_index: ingredient.index,
+                attribute_index: attributeIndex,
+                attribute_name: attribute.attribute_name,
+                allowed_values: encodeDatabaseArray(attribute.allowed_values),
+            });
+            attributeIndex++;
+        }
+
+        let typedAttributeIndex = 0;
+        for (const typedAttribute of ingredient.typed_attributes) {
+            ingredientTypedAttributesDbRows.push({
+                contract,
+                blend_id: blendId,
+                ingredient_collection_name: ingredient.collection_name,
+                ingredient_index: ingredient.index,
+                typed_attribute_index: typedAttributeIndex,
+
+                attribute_name: typedAttribute.attribute_name,
+                attribute_type: typedAttribute.attribute_type,
+                // variant type, and variant value
+                allowed_values_type: typedAttribute.allowed_values[0],
+                allowed_values: encodeDatabaseJson(typedAttribute.allowed_values[1])
+            });
+            typedAttributeIndex++;
+        }
+    }
+    return {ingredientDbRows, ingredientAttributesDbRows, ingredientTypedAttributesDbRows};
 }
 
 function getRollsDbRows(blendId: number, rollsArray: any[], args: BlendsArgs, blockNumber: number, blockTimeStamp: string, contract: string): any {

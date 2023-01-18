@@ -24,4 +24,10 @@ CREATE TABLE IF NOT EXISTS neftyblends_fusions
 );
 
 CREATE
+    INDEX IF NOT EXISTS neftyblends_fusion_created_at_time ON neftyblends_fusions USING btree (created_at_time);
+CREATE
+    INDEX IF NOT EXISTS neftyblends_fusion_updated_at_time ON neftyblends_fusions USING btree (updated_at_time);
+CREATE
+    INDEX IF NOT EXISTS neftyblends_fusion_claimer ON neftyblends_fusions USING btree (claimer);
+CREATE
     INDEX IF NOT EXISTS neftyblends_fusion_txid ON neftyblends_fusions USING hash (txid);

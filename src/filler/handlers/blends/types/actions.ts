@@ -3,6 +3,11 @@ export type SetBlendRollsActionData = {
     rolls: any[],
 };
 
+export type SetBlendMixActionData = {
+    blend_id: number,
+    ingredients: any[],
+};
+
 export type LogClaimActionData = {
     claim_id: number,
     blend_id: number,

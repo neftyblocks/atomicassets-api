@@ -6,7 +6,12 @@ import {
     getOpenAPI3Responses,
     paginationParameters,
 } from '../../../docs';
-import { getIngredientOwnershipBlendFilter, getBlendDetails } from '../handlers/blends';
+import {
+    getIngredientOwnershipBlendFilter,
+    getBlendDetails,
+    getBlendClaimsAction,
+    getBlendClaimsCountAction
+} from '../handlers/blends';
 
 export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, router: express.Router): any {
     const { caching, returnAsJSON } = server.web;
@@ -19,6 +24,16 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
         '/v1/blends/:contract/:blend_id',
         caching(),
         returnAsJSON(getBlendDetails, core)
+    );
+    router.all(
+        '/v1/blends/:contract/:blend_id/claims',
+        caching(),
+        returnAsJSON(getBlendClaimsAction, core)
+    );
+    router.all(
+        '/v1/blends/:contract/:blend_id/claims/_count',
+        caching(),
+        returnAsJSON(getBlendClaimsCountAction, core)
     );
 
     return {
@@ -116,6 +131,38 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 500], { '$ref': '#/components/schemas/BlendDetails' })
+                }
+            },
+            '/v1/blends/{contract}/{blend_id}/claims': {
+                get: {
+                    tags: ['neftyblends'],
+                    summary: 'Get blend claims',
+                    description: 'Get claims of a single blend',
+                    parameters: [
+                        {
+                            name: 'contract',
+                            in: 'path',
+                            description: 'Blend contract',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'blend_id',
+                            in: 'path',
+                            description: 'Blend id',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'tx_id',
+                            in: 'query',
+                            description: 'Transaction id',
+                            required: false,
+                            schema: {type: 'string', default: ''}
+                        },
+                        ...paginationParameters
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], { '$ref': '#/components/schemas/Claim' })
                 }
             },
         }

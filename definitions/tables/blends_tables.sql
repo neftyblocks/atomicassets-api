@@ -371,6 +371,13 @@ CREATE
     INDEX neftyblends_blend_ingredients_type ON neftyblends_blend_ingredients USING btree (ingredient_type);
 CREATE
     INDEX neftyblends_blend_roll_outcome_results_type ON neftyblends_blend_roll_outcome_results USING btree ("type");
+
+CREATE
+    INDEX neftyblends_fusion_created_at_time ON neftyblends_fusions USING btree (created_at_time);
+CREATE
+    INDEX neftyblends_fusion_updated_at_time ON neftyblends_fusions USING btree (updated_at_time);
+CREATE
+    INDEX neftyblends_fusion_claimer ON neftyblends_fusions USING btree (claimer);
 CREATE
     INDEX neftyblends_fusion_txid ON neftyblends_fusions USING hash (txid);
 
