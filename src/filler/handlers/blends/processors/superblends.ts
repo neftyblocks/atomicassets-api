@@ -10,7 +10,7 @@ import CollectionsListHandler, {
 
 } from '../index';
 import ConnectionManager from '../../../../connections/manager';
-import { Roll, SuperBlendTableRow, SuperBlendValuerollsTableRow } from '../types/tables';
+import {Roll, SuperBlendLimitRow, SuperBlendTableRow, SuperBlendValuerollsTableRow} from '../types/tables';
 import { Ingredient } from '../types/helpers';
 import {
     bulkInsert,
@@ -18,7 +18,7 @@ import {
     encodeDatabaseJson,
     getAllRowsFromTable
 } from '../../../utils';
-import { SetBlendRollsActionData } from '../types/actions';
+import {LogClaimActionData, LogResultActionData, SetBlendRollsActionData} from '../types/actions';
 import logger from '../../../../utils/winston';
 import { preventInt64Overflow } from '../../../../utils/binary';
 
@@ -102,7 +102,6 @@ export async function initSuperBlends(args: BlendsArgs, connection: ConnectionMa
 }
 
 const superBlendsTableListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendTableRow>): Promise<void> => {
-
     const blend = await db.query(
         'SELECT blend_id FROM neftyblends_blends WHERE assets_contract = $1 AND contract = $2 AND blend_id = $3',
         [core.args.atomicassets_account, contract, delta.value.blend_id]
@@ -222,6 +221,33 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
     }
 };
 
+const superBlendLimitsTableListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendLimitRow>): Promise<void> => {
+    const blend = await db.query(
+        'SELECT blend_id FROM neftyblends_blends WHERE assets_contract = $1 AND contract = $2 AND blend_id = $3',
+        [core.args.atomicassets_account, contract, delta.value.blend_id]
+    );
+
+    if (blend.rowCount === 0) {
+        return;
+    }
+
+    let accountLimit = 0;
+    let accountLimitCooldown = 0;
+
+    if (delta.present) {
+        accountLimit = delta.value.account_limit;
+        accountLimitCooldown = delta.value.account_limit_cooldown;
+    }
+
+    await db.update('neftyblends_blends', {
+        account_limit: accountLimit,
+        account_limit_cooldown: accountLimitCooldown,
+    }, {
+        str: 'contract = $1 AND blend_id = $2',
+        values: [contract, delta.value.blend_id]
+    }, ['contract', 'blend_id']);
+};
+
 const superBlendsValuerollsTableListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendValuerollsTableRow>): Promise<void> => {
     const valueroll = await db.query(
         'SELECT valueroll_id FROM neftyblends_valuerolls WHERE contract = $1 AND collection_name = $2 AND valueroll_id = $3',
@@ -294,6 +320,37 @@ const superBlendsRollsListener = (core: CollectionsListHandler, contract: string
     );
 };
 
+const logClaimListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogClaimActionData>): Promise<void> => {
+    await db.insert('neftyblends_fusions', {
+            contract,
+            claim_id: trace.act.data.claim_id,
+            claimer: trace.act.data.claimer,
+            blend_id: trace.act.data.blend_id,
+            txid: Buffer.from(tx.id, 'hex'),
+            transferred_assets: trace.act.data.transferred_assets,
+            own_assets: trace.act.data.own_assets,
+            created_at_block: block.block_num,
+            created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+        },
+        ['contract', 'claim_id']
+    );
+};
+
+const logClaimResultListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogResultActionData>): Promise<void> => {
+    await db.update('neftyblends_fusions', {
+            results: encodeDatabaseJson(trace.act.data.results),
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+        },
+        {
+            str: 'contract = $1 AND claim_id = $2',
+            values: [contract, trace.act.data.claim_id]
+        }, ['contract', 'claim_id']
+    );
+};
+
 export function superBlendsProcessor(core: CollectionsListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
     const neftyContract = core.args.nefty_blender_account;
@@ -305,10 +362,34 @@ export function superBlendsProcessor(core: CollectionsListHandler, processor: Da
         BlendsUpdatePriority.TABLE_BLENDS.valueOf()
     ));
 
+    destructors.push(processor.onContractRow(
+        neftyContract, 'blendlimits',
+        superBlendLimitsTableListener(core, neftyContract),
+        BlendsUpdatePriority.TABLE_BLEND_LIMIT.valueOf()
+    ));
+
     destructors.push(processor.onActionTrace(
         neftyContract, 'setrolls',
         superBlendsRollsListener(core, neftyContract),
         BlendsUpdatePriority.SET_ROLLS.valueOf()
+    ));
+
+    destructors.push(processor.onActionTrace(
+        neftyContract, 'setblendroll',
+        superBlendsRollsListener(core, neftyContract),
+        BlendsUpdatePriority.SET_ROLLS.valueOf()
+    ));
+
+    destructors.push(processor.onActionTrace(
+        neftyContract, 'logclaim',
+        logClaimListener(core, neftyContract),
+        BlendsUpdatePriority.LOG_CLAIM.valueOf()
+    ));
+
+    destructors.push(processor.onActionTrace(
+        neftyContract, 'logresult',
+        logClaimResultListener(core, neftyContract),
+        BlendsUpdatePriority.LOG_RESULT.valueOf()
     ));
 
     destructors.push(processor.onContractRow(

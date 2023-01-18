@@ -62,6 +62,9 @@ export enum BlendsUpdatePriority {
     SET_ROLLS = BLENDS_BASE_PRIORITY + 20,
     TABLE_VALUEROLL = BLENDS_BASE_PRIORITY + 30,
     TABLE_CONFIG = BLENDS_BASE_PRIORITY + 30,
+    TABLE_BLEND_LIMIT = BLENDS_BASE_PRIORITY + 40,
+    LOG_CLAIM = BLENDS_BASE_PRIORITY + 50,
+    LOG_RESULT = BLENDS_BASE_PRIORITY + 60,
 }
 
 const views = [
@@ -109,7 +112,7 @@ export default class BlendsHandler extends ContractHandler {
     }
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
-        if (version === '1.3.18') {
+        if (version === '1.3.37') {
             const viewsToUpdate = ['neftyblends_blend_details_master'];
             const functionsToUpdate = ['neftyblends_blend_details_func'];
             for (const view of viewsToUpdate) {

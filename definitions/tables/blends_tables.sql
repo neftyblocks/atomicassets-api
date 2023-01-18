@@ -1,21 +1,23 @@
 CREATE TABLE neftyblends_blends
 (
-    assets_contract   character varying(12) NOT NULL,
-    contract          character varying(12) NOT NULL,
-    collection_name   character varying(13) NOT NULL,
-    blend_id          bigint                NOT NULL,
-    start_time        bigint                NOT NULL,
-    end_time          bigint                NOT NULL,
-    max               bigint                NOT NULL,
-    use_count         bigint                NOT NULL,
-    ingredients_count integer               NOT NULL,
-    display_data      text                  NOT NULL,
-    updated_at_block  bigint                NOT NULL,
-    updated_at_time   bigint                NOT NULL,
-    created_at_block  bigint                NOT NULL,
-    created_at_time   bigint                NOT NULL,
-    security_id       bigint                NOT NULL,
-    is_hidden         boolean               NOT NULL DEFAULT FALSE,
+    assets_contract        character varying(12) NOT NULL,
+    contract               character varying(12) NOT NULL,
+    collection_name        character varying(13) NOT NULL,
+    blend_id               bigint                NOT NULL,
+    start_time             bigint                NOT NULL,
+    end_time               bigint                NOT NULL,
+    max                    bigint                NOT NULL,
+    use_count              bigint                NOT NULL,
+    account_limit          bigint                NOT NULL DEFAULT 0,
+    account_limit_cooldown bigint                NOT NULL DEFAULT 0,
+    ingredients_count      integer               NOT NULL,
+    display_data           text                  NOT NULL,
+    updated_at_block       bigint                NOT NULL,
+    updated_at_time        bigint                NOT NULL,
+    created_at_block       bigint                NOT NULL,
+    created_at_time        bigint                NOT NULL,
+    security_id            bigint                NOT NULL,
+    is_hidden              boolean               NOT NULL DEFAULT FALSE,
     CONSTRAINT neftyblends_blends_pkey PRIMARY KEY (contract, blend_id)
 );
 
@@ -211,11 +213,28 @@ CREATE TABLE neftyblends_config
 
 CREATE TABLE neftyblends_tokens
 (
-    contract character varying(12) NOT NULL,
+    contract        character varying(12) NOT NULL,
     token_contract  character varying(12) NOT NULL,
     token_symbol    character varying(12) NOT NULL,
     token_precision integer               NOT NULL,
     CONSTRAINT neftyblends_tokens_pkey PRIMARY KEY (contract, token_symbol)
+);
+
+CREATE TABLE neftyblends_fusions
+(
+    claim_id           bigint                NOT NULL,
+    contract           character varying(13) NOT NULL,
+    claimer            character varying(12) NOT NULL,
+    blend_id           bigint                NOT NULL,
+    results            jsonb,
+    transferred_assets bigint[],
+    own_assets         bigint[],
+    txid               bytea                 NOT NULL,
+    created_at_block   bigint                NOT NULL,
+    created_at_time    bigint                NOT NULL,
+    updated_at_block   bigint                NOT NULL,
+    updated_at_time    bigint                NOT NULL,
+    CONSTRAINT neftyblends_fusion_pkey PRIMARY KEY (contract, claim_id)
 );
 
 ALTER TABLE ONLY neftyblends_blend_upgrade_specs
@@ -352,4 +371,6 @@ CREATE
     INDEX neftyblends_blend_ingredients_type ON neftyblends_blend_ingredients USING btree (ingredient_type);
 CREATE
     INDEX neftyblends_blend_roll_outcome_results_type ON neftyblends_blend_roll_outcome_results USING btree ("type");
+CREATE
+    INDEX neftyblends_fusion_txid ON neftyblends_fusions USING hash (txid);
 
