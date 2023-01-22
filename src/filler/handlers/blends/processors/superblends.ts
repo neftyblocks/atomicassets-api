@@ -72,11 +72,12 @@ const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, 
             upgradeResultsRows = upgradeResultsRows.concat(upgradeResultsDbRows);
         }
 
-        await bulkInsert(connection.database, 'neftyblends_blends', blendRows);
+        if (blendRows.length > 0) {
+            await bulkInsert(connection.database, 'neftyblends_blends', blendRows);
+        }
         if (ingredientRows.length > 0) {
             await bulkInsert(connection.database, 'neftyblends_blend_ingredients', ingredientRows);
         }
-
         if (ingredientAttributesRows.length > 0) {
             await bulkInsert(connection.database, 'neftyblends_blend_ingredient_attributes', ingredientAttributesRows);
         }
