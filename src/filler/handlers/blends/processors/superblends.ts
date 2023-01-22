@@ -103,7 +103,10 @@ const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, 
 
 export async function initSuperBlends(args: BlendsArgs, connection: ConnectionManager): Promise<void> {
     await fillSuperBlends(args, connection, args.nefty_blender_account);
-    await fillSuperBlends(args, connection, args.tag_blender_account);
+
+    if (args.tag_blender_account) {
+        await fillSuperBlends(args, connection, args.tag_blender_account);
+    }
 }
 
 const superBlendsTableListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendTableRow>): Promise<void> => {
@@ -415,23 +418,25 @@ export function superBlendsProcessor(core: CollectionsListHandler, processor: Da
         BlendsUpdatePriority.LOG_RESULT.valueOf()
     ));
 
-    destructors.push(processor.onContractRow(
-        tagContract, 'blends',
-        superBlendsTableListener(core, tagContract),
-        BlendsUpdatePriority.TABLE_BLENDS.valueOf()
-    ));
+    if (tagContract) {
+        destructors.push(processor.onContractRow(
+            tagContract, 'blends',
+            superBlendsTableListener(core, tagContract),
+            BlendsUpdatePriority.TABLE_BLENDS.valueOf()
+        ));
 
-    destructors.push(processor.onActionTrace(
-        tagContract, 'setblendroll',
-        superBlendsRollsListener(core, tagContract),
-        BlendsUpdatePriority.SET_ROLLS.valueOf()
-    ));
+        destructors.push(processor.onActionTrace(
+            tagContract, 'setblendroll',
+            superBlendsRollsListener(core, tagContract),
+            BlendsUpdatePriority.SET_ROLLS.valueOf()
+        ));
 
-    destructors.push(processor.onContractRow(
-        tagContract, 'valuerolls',
-        superBlendsValuerollsTableListener(core, tagContract),
-        BlendsUpdatePriority.TABLE_VALUEROLL.valueOf()
-    ));
+        destructors.push(processor.onContractRow(
+            tagContract, 'valuerolls',
+            superBlendsValuerollsTableListener(core, tagContract),
+            BlendsUpdatePriority.TABLE_VALUEROLL.valueOf()
+        ));
+    }
 
     return (): any => destructors.map(fn => fn());
 }

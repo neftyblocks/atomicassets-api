@@ -137,16 +137,15 @@ export default class BlendsHandler extends ContractHandler {
         if (typeof args.nefty_blender_account !== 'string') {
             throw new Error('Blends: Argument missing in helpers handler: nefty_blender_account');
         }
-
-        if (typeof args.blenderizer_account !== 'string') {
-            throw new Error('Blends: Argument missing in helpers handler: blenderizer_account');
-        }
     }
 
     async init(client: PoolClient): Promise<void> {
         try {
             await this.connection.database.begin();
-            await initBlends(this.args, this.connection);
+
+            if (this.args.blenderizer_account) {
+                await initBlends(this.args, this.connection);
+            }
             await initSuperBlends(this.args, this.connection);
 
             if (this.args.store_config) {
@@ -230,7 +229,10 @@ export default class BlendsHandler extends ContractHandler {
     async register(processor: DataProcessor): Promise<() => any> {
         const destructors: Array<() => any> = [];
         destructors.push(superBlendsProcessor(this, processor));
-        destructors.push(blendsProcessor(this, processor));
+
+        if (this.args.blenderizer_account) {
+            destructors.push(blendsProcessor(this, processor));
+        }
         if (this.args.store_config) {
             destructors.push(configProcessor(this, processor));
         }
