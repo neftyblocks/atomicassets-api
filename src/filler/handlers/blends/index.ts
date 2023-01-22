@@ -97,14 +97,6 @@ export default class BlendsHandler extends ContractHandler {
                 encoding: 'utf8'
             }));
 
-            for (const view of views) {
-                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
-            }
-
-            for (const fn of functions) {
-                await client.query(fs.readFileSync('./definitions/functions/' + fn + '.sql', {encoding: 'utf8'}));
-            }
-
             logger.info('Blends tables successfully created');
             return true;
         }
@@ -114,8 +106,8 @@ export default class BlendsHandler extends ContractHandler {
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
         if (version === '1.3.37') {
-            const viewsToUpdate = ['neftyblends_blend_details_master'];
-            const functionsToUpdate = ['neftyblends_blend_details_func'];
+            const viewsToUpdate = views;
+            const functionsToUpdate = functions;
             for (const view of viewsToUpdate) {
                 logger.info(`Refreshing views ${view}`);
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
