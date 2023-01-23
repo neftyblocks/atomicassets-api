@@ -360,6 +360,14 @@ const logClaimListener = (core: CollectionsListHandler, contract: string) => asy
 };
 
 const logClaimResultListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogResultActionData>): Promise<void> => {
+    const claim = await db.query(
+        'SELECT claim_id FROM neftyblends_fusions WHERE contract = $1 AND claim_id = $2',
+        [contract, trace.act.data.claim_id]
+    );
+
+    if (claim.rowCount === 0) {
+        return;
+    }
     await db.update('neftyblends_fusions', {
             results: encodeDatabaseJson(trace.act.data.results),
             updated_at_block: block.block_num,
