@@ -60,8 +60,12 @@ export enum BlendUpgradeImmediateType {
 export enum BlendsUpdatePriority {
     TABLE_BLENDS = BLENDS_BASE_PRIORITY + 10,
     SET_ROLLS = BLENDS_BASE_PRIORITY + 20,
+    SET_MIX = BLENDS_BASE_PRIORITY + 21,
     TABLE_VALUEROLL = BLENDS_BASE_PRIORITY + 30,
     TABLE_CONFIG = BLENDS_BASE_PRIORITY + 30,
+    TABLE_BLEND_LIMIT = BLENDS_BASE_PRIORITY + 40,
+    LOG_CLAIM = BLENDS_BASE_PRIORITY + 50,
+    LOG_RESULT = BLENDS_BASE_PRIORITY + 60,
 }
 
 const views = [
@@ -93,14 +97,6 @@ export default class BlendsHandler extends ContractHandler {
                 encoding: 'utf8'
             }));
 
-            for (const view of views) {
-                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
-            }
-
-            for (const fn of functions) {
-                await client.query(fs.readFileSync('./definitions/functions/' + fn + '.sql', {encoding: 'utf8'}));
-            }
-
             logger.info('Blends tables successfully created');
             return true;
         }
@@ -109,9 +105,9 @@ export default class BlendsHandler extends ContractHandler {
     }
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
-        if (version === '1.3.18') {
-            const viewsToUpdate = ['neftyblends_blend_details_master'];
-            const functionsToUpdate = ['neftyblends_blend_details_func'];
+        if (version === '1.3.37') {
+            const viewsToUpdate = views;
+            const functionsToUpdate = functions;
             for (const view of viewsToUpdate) {
                 logger.info(`Refreshing views ${view}`);
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
@@ -133,16 +129,15 @@ export default class BlendsHandler extends ContractHandler {
         if (typeof args.nefty_blender_account !== 'string') {
             throw new Error('Blends: Argument missing in helpers handler: nefty_blender_account');
         }
-
-        if (typeof args.blenderizer_account !== 'string') {
-            throw new Error('Blends: Argument missing in helpers handler: blenderizer_account');
-        }
     }
 
     async init(client: PoolClient): Promise<void> {
         try {
             await this.connection.database.begin();
-            await initBlends(this.args, this.connection);
+
+            if (this.args.blenderizer_account) {
+                await initBlends(this.args, this.connection);
+            }
             await initSuperBlends(this.args, this.connection);
 
             if (this.args.store_config) {
@@ -226,7 +221,10 @@ export default class BlendsHandler extends ContractHandler {
     async register(processor: DataProcessor): Promise<() => any> {
         const destructors: Array<() => any> = [];
         destructors.push(superBlendsProcessor(this, processor));
-        destructors.push(blendsProcessor(this, processor));
+
+        if (this.args.blenderizer_account) {
+            destructors.push(blendsProcessor(this, processor));
+        }
         if (this.args.store_config) {
             destructors.push(configProcessor(this, processor));
         }

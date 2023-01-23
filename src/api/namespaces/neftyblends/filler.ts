@@ -1,6 +1,6 @@
 import {DB} from '../../server';
-import {FillerHook} from '../atomicassets/filler';
-import {formatTemplate, formatSchema, formatCollection} from '../atomicassets/format';
+import {AssetFiller, FillerHook} from '../atomicassets/filler';
+import {formatTemplate, formatSchema, formatCollection, formatAsset} from '../atomicassets/format';
 import {BlendResultType} from '../../../filler/handlers/blends';
 
 export class TemplateFiller {
@@ -290,4 +290,56 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
     }
 
     return filledBlends;
+}
+
+export async function fillClaims(db: DB, assetContract: string, claims: any[]): Promise<any[]> {
+    const templateIds: string[] = [];
+    const assetIds: any[] = [];
+    for (let i = 0; i < claims.length; i++) {
+        const claim = claims[i];
+        for (let j = 0; j < claim.results.length; j++) {
+            const result = claim.results[j];
+            const [claimType, value] = result.claim;
+            if (claimType === 'POOL_NFT_CLAIM') {
+                assetIds.push(value.asset_id);
+            } else if (claimType === 'ON_DEMAND_NFT_CLAIM') {
+                templateIds.push(value.template_id);
+            }
+        }
+        assetIds.push(...claim.transferred_assets);
+        assetIds.push(...claim.own_assets);
+    }
+
+    const templateFiller = new TemplateFiller(db, assetContract, templateIds, formatTemplate, 'atomicassets_templates_master');
+    const assetFiller = new AssetFiller(db, assetContract, assetIds, formatAsset, 'atomicassets_assets_master');
+    const filledClaims = [];
+
+    for (let i = 0; i < claims.length; i++) {
+        const claim = claims[i];
+        const filledResults = [];
+        for (let j = 0; j < claim.results.length; j++) {
+            const result = claim.results[j];
+            const [claimType, value] = result.claim;
+            if (claimType === 'POOL_NFT_CLAIM') {
+                filledResults.push({
+                    asset: (await assetFiller.fill([value.asset_id]))[0],
+                });
+            }
+            if (claimType === 'ON_DEMAND_NFT_CLAIM') {
+                templateIds.push(value.template_id);
+                filledResults.push({
+                    template: (await templateFiller.fill(value.template_id)),
+                });
+            }
+        }
+
+        filledClaims.push({
+            ...claim,
+            results: filledResults,
+            transferred_assets: (await assetFiller.fill(claim.transferred_assets)),
+            own_assets: (await assetFiller.fill(claim.own_assets)),
+        });
+    }
+
+    return filledClaims;
 }

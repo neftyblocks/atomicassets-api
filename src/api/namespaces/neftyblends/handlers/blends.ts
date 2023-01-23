@@ -3,7 +3,8 @@ import {NeftyBlendsContext} from '../index';
 import QueryBuilder from '../../../builder';
 import { ApiError } from '../../../error';
 import {filterQueryArgs} from '../../validation';
-import {fillBlends} from '../filler';
+import {fillBlends, fillClaims} from '../filler';
+import {formatClaim} from '../format';
 
 export async function getIngredientOwnershipBlendFilter(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -267,4 +268,61 @@ export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsCon
         );
         return filledBlends[0];
     }
+}
+
+export async function getBlendClaimsAction(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        page: {type: 'int', min: 1, default: 1},
+        limit: {type: 'int', min: 1, max: 100, default: 100},
+        tx_id: {type: 'string', default: ''},
+        sort: {
+            type: 'string',
+            allowedValues: [
+                'claim_time', 'created_at_time',
+                'claimer',
+            ],
+            default: 'claim_time'
+        },
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
+        count: {type: 'bool'}
+    });
+
+    const query = new QueryBuilder('SELECT * FROM neftyblends_fusions');
+    query.equal('contract', ctx.pathParams.contract);
+    query.equal('blend_id', ctx.pathParams.blend_id);
+
+    if (args.tx_id && args.tx_id !== '') {
+        const bytes = Buffer.from(args.tx_id, 'hex');
+        query.equal('txid', bytes);
+    }
+
+    if (args.count) {
+        const countQuery = await ctx.db.query(
+            'SELECT COUNT(*) counter FROM (' + query.buildString() + ') x',
+            query.buildValues()
+        );
+
+        return countQuery.rows[0].counter;
+    }
+
+    const sortMapping: {[key: string]: {column: string, nullable: boolean}}  = {
+        claim_time: {column: 'created_at_time', nullable: false},
+        created_at_time: {column: 'created_at_time', nullable: false},
+        claimer: {column: 'claimer', nullable: false},
+    };
+
+    query.append('ORDER BY ' + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : ''));
+    query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+
+    const result = await ctx.db.query(query.buildString(), query.buildValues());
+    const filledClaims = await fillClaims(
+        ctx.db,
+        ctx.coreArgs.atomicassets_account,
+        result.rows
+    );
+    return filledClaims.map((row) => formatClaim(row));
+}
+
+export async function getBlendClaimsCountAction(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
+    return getBlendClaimsCountAction({...params, count: 'true'}, ctx);
 }
