@@ -1,6 +1,6 @@
 import DataProcessor from '../../../processor';
 import {ContractDBTransaction} from '../../../database';
-import {EosioActionTrace, EosioTransaction} from '../../../../types/eosio';
+import {EosioActionTrace, EosioContractRow, EosioTransaction} from '../../../../types/eosio';
 import {ShipBlock} from '../../../../types/ship';
 import {eosioTimestampToDate} from '../../../../utils/eosio';
 import NeftyDropsHandler, {NeftyDropsUpdatePriority} from '../index';
@@ -20,6 +20,7 @@ import {
 import {preventInt64Overflow} from '../../../../utils/binary';
 import logger from '../../../../utils/winston';
 import {encodeString} from '../../../utils';
+import {DropsTableRow} from '../types/tables';
 
 export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor): () => any {
   const destructors: Array<() => any> = [];
@@ -327,10 +328,21 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
         },
         ['drops_contract', 'claim_id']
     );
-
-    const query = 'UPDATE neftydrops_drops SET current_claimed = current_claimed + $1 WHERE drops_contract = $2 AND drop_id = $3';
-    await db.query(query, [amount, core.args.neftydrops_account, trace.act.data.drop_id]);
   };
+
+  destructors.push(processor.onContractRow(
+    contract, 'drops',
+    async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<DropsTableRow>): Promise<void> => {
+        if (delta.present) {
+            await db.update('neftydrops_drops', {
+                current_claimed: delta.value.current_claimed,
+            }, {
+                str: 'drops_contract = $1 AND drop_id = $2',
+                values: [core.args.neftydrops_account, delta.value.drop_id]
+            }, ['drops_contract', 'drop_id']);
+        }
+    }, NeftyDropsUpdatePriority.TABLE_DROP.valueOf()
+  ));
 
   destructors.push(processor.onActionTrace(
       contract, 'claimdrop',
