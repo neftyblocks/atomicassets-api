@@ -7,6 +7,7 @@ import CollectionsListHandler, {CollectionsListArgs, HelpersUpdatePriority} from
 import ConnectionManager from '../../../../connections/manager';
 import {AccListTableRow, FeaturesTableRow} from '../types/tables';
 import {bulkInsert} from '../../../utils';
+import logger from '../../../../utils/winston';
 
 const atomicCollectionListRegex = /^col\..*$/g;
 const neftyCollectionListRegex = /^whitelist|verified|blacklist|nsfw|scam|exceptions$/g;
@@ -29,6 +30,7 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
         });
 
         databaseRows = databaseRows.concat(featuresTable.rows.filter(list => list.list.match(neftyCollectionListRegex)).flatMap((row: FeaturesTableRow) => {
+            logger.info(`Adding collection list ${row.list} to database for contract ${args.features_account}`);
             return [...new Set(row.collections)].map(collection => ({
                 assets_contract: args.atomicassets_account,
                 contract: args.features_account,
@@ -40,6 +42,7 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
         }));
 
         databaseRows = databaseRows.concat(featuresTable.rows.filter(list => list.list.match(zneftyCollectionListRegex)).flatMap((row: FeaturesTableRow) => {
+            logger.info(`Adding collection list ${row.list} to database for contract atomic`);
             return [...new Set(row.collections)].map(collection => ({
                 assets_contract: args.atomicassets_account,
                 contract: 'atomic',
