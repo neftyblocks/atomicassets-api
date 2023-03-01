@@ -10,7 +10,7 @@ import {bulkInsert} from '../../../utils';
 
 const atomicCollectionListRegex = /^col\..*$/g;
 const neftyCollectionListRegex = /^whitelist|verified|blacklist|nsfw|scam|exceptions$/g;
-const zneftyCollectionListRegex = /^z\..*$/g;
+const zneftyCollectionListRegex = /^z\.whitelist|z\.verified|z\.blacklist|z\.nsfw|z\.scam$/g;
 
 export async function initCollections(args: CollectionsListArgs, connection: ConnectionManager): Promise<void> {
     const featuresQuery = await connection.database.query(
@@ -42,7 +42,7 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
         databaseRows = databaseRows.concat(featuresTable.rows.filter(list => list.list.match(zneftyCollectionListRegex)).flatMap((row: FeaturesTableRow) => {
             return [...new Set(row.collections)].map(collection => ({
                 assets_contract: args.atomicassets_account,
-                contract: 'zneftyblocks',
+                contract: 'atomic',
                 list: convertCollectionListName(args.features_account, row.list, args),
                 collection_name: collection,
                 updated_at_block: 0,
@@ -91,7 +91,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<FeaturesTableRow>): Promise<void> => {
             const matchesNeftyList = delta.value.list.match(neftyCollectionListRegex);
             const matchesAtomicList = atomicContract && delta.value.list.match(zneftyCollectionListRegex);
-            const contractName = matchesNeftyList ? neftyContract : matchesAtomicList ? 'zneftyblocks' : null;
+            const contractName = matchesNeftyList ? neftyContract : matchesAtomicList ? 'atomic' : null;
             if (delta.scope === neftyContract && contractName) {
                 const listName = convertCollectionListName(neftyContract, delta.value.list, core.args);
 
