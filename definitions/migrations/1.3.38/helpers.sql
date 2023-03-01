@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS helpers_collection_list;
+TRUNCATE TABLE helpers_collection_list;
