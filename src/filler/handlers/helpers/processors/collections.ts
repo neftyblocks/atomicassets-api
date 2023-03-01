@@ -10,8 +10,8 @@ import {bulkInsert} from '../../../utils';
 import logger from '../../../../utils/winston';
 
 const atomicCollectionListRegex = /^col\..*$/g;
-const neftyCollectionListRegex = /^whitelist|verified|blacklist|nsfw|scam|exceptions$/g;
-const zneftyCollectionListRegex = /^z\.whitelist|z\.verified|z\.blacklist|z\.nsfw|z\.scam$/g;
+const neftyCollectionListRegex = /^(whitelist|verified|blacklist|nsfw|scam|exceptions)$/g;
+const zneftyCollectionListRegex = /^(z\.whitelist|z\.verified|z\.blacklist|z\.nsfw|z\.scam)$/g;
 
 export async function initCollections(args: CollectionsListArgs, connection: ConnectionManager): Promise<void> {
     const featuresQuery = await connection.database.query(
