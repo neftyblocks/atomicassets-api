@@ -10,6 +10,7 @@ import {bulkInsert} from '../../../utils';
 
 const atomicCollectionListRegex = /^col\..*$/g;
 const neftyCollectionListRegex = /^whitelist|verified|blacklist|nsfw|scam|exceptions$/g;
+const zneftyCollectionListRegex = /^z\..*$/g;
 
 export async function initCollections(args: CollectionsListArgs, connection: ConnectionManager): Promise<void> {
     const featuresQuery = await connection.database.query(
@@ -31,6 +32,17 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
             return [...new Set(row.collections)].map(collection => ({
                 assets_contract: args.atomicassets_account,
                 contract: args.features_account,
+                list: convertCollectionListName(args.features_account, row.list, args),
+                collection_name: collection,
+                updated_at_block: 0,
+                updated_at_time: new Date().getTime()
+            }));
+        }));
+
+        databaseRows = databaseRows.concat(featuresTable.rows.filter(list => list.list.match(zneftyCollectionListRegex)).flatMap((row: FeaturesTableRow) => {
+            return [...new Set(row.collections)].map(collection => ({
+                assets_contract: args.atomicassets_account,
+                contract: 'zneftyblocks',
                 list: convertCollectionListName(args.features_account, row.list, args),
                 collection_name: collection,
                 updated_at_block: 0,
@@ -77,17 +89,20 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
     destructors.push(processor.onContractRow(
         neftyContract, 'features',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<FeaturesTableRow>): Promise<void> => {
-            if (delta.scope === neftyContract && delta.value.list.match(neftyCollectionListRegex)) {
+            const matchesNeftyList = delta.value.list.match(neftyCollectionListRegex);
+            const matchesAtomicList = atomicContract && delta.value.list.match(zneftyCollectionListRegex);
+            const contractName = matchesNeftyList ? neftyContract : matchesAtomicList ? 'zneftyblocks' : null;
+            if (delta.scope === neftyContract && contractName) {
                 const listName = convertCollectionListName(neftyContract, delta.value.list, core.args);
 
                 if (!delta.present) {
                     await db.delete('helpers_collection_list', {
                         str: 'assets_contract = $1 AND contract = $2 AND list = $3',
-                        values: [core.args.atomicassets_account, neftyContract, listName]
+                        values: [core.args.atomicassets_account, contractName, listName]
                     });
                 } else {
                     const collectionsQuery = await db.query('SELECT collection_name FROM helpers_collection_list WHERE assets_contract = $1 AND contract = $2 AND list = $3',
-                        [core.args.atomicassets_account, neftyContract, listName]
+                        [core.args.atomicassets_account, contractName, listName]
                     );
 
                     const collections = collectionsQuery.rows.map(({ collection_name }) => collection_name);
@@ -97,7 +112,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                     if (deletedCollections.length > 0) {
                         await db.delete('helpers_collection_list', {
                             str: 'assets_contract = $1 AND contract = $2 AND list = $3 AND collection_name = ANY($4)',
-                            values: [core.args.atomicassets_account, neftyContract, listName, deletedCollections]
+                            values: [core.args.atomicassets_account, contractName, listName, deletedCollections]
                         });
                     }
 
@@ -105,7 +120,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                         await db.insert('helpers_collection_list', addedCollections.map(collection => {
                             return {
                                 assets_contract: core.args.atomicassets_account,
-                                contract: neftyContract,
+                                contract: contractName,
                                 list: listName,
                                 collection_name: collection,
                                 updated_at_block: block.block_num,
@@ -194,6 +209,16 @@ function convertCollectionListName(contract: string, list_name: string, args: Co
             list = 'scam';
         } else if (list_name === 'exceptions') {
             list = 'exceptions';
+        } else  if (list_name === 'z.whitelist') {
+            list = 'whitelist';
+        } else if (list_name === 'z.blacklist') {
+            list = 'blacklist';
+        } else if (list_name === 'z.verified') {
+            list = 'verified';
+        } else if (list_name === 'z.nsfw') {
+            list = 'nsfw';
+        } else if (list_name === 'z.scam') {
+            list = 'scam';
         }
     }
     return list;
