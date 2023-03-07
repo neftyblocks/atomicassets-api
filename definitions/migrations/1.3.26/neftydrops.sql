@@ -18,10 +18,10 @@ CREATE TABLE IF NOT EXISTS neftydrops_proof_of_ownership_filters
     template_holdings      jsonb,
 
     -- NULL if filter_kind != 'SCHEMA_HOLDINGS'
-    schema_holdings        jsonb, 
+    schema_holdings        jsonb,
 
     -- NULL if filter_kind != 'TOKEN_HOLDING'
     token_holding          jsonb,
 
-    CONSTRAINT neftydrops_proof_of_ownership_pkey PRIMARY KEY (drop_id, filter_index)
+    CONSTRAINT neftydrops_proof_of_ownership_filters_pkey PRIMARY KEY (drop_id, filter_index)
 );

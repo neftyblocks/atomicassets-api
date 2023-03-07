@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS neftydrops_proof_of_ownership_filters
     drop_id                bigint                NOT NULL,
     filter_index           bigint                NOT NULL,
 
-    -- All rows with the same drop_id must have the same logical_operator and 
+    -- All rows with the same drop_id must have the same logical_operator and
     -- total_filter_count
     logical_operator       smallint              NOT NULL,
     total_filter_count     bigint                NOT NULL,
@@ -28,10 +28,10 @@ CREATE TABLE IF NOT EXISTS neftydrops_proof_of_ownership_filters
     template_holdings      jsonb,
 
     -- NULL if filter_kind != 'SCHEMA_HOLDINGS'
-    schema_holdings        jsonb, 
+    schema_holdings        jsonb,
 
     -- NULL if filter_kind != 'TOKEN_HOLDING'
     token_holding          jsonb,
 
-    CONSTRAINT neftydrops_proof_of_ownership_pkey PRIMARY KEY (drop_id, filter_index)
+    CONSTRAINT neftydrops_proof_of_ownership_filters_pkey PRIMARY KEY (drop_id, filter_index)
 );
