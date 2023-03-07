@@ -59,7 +59,7 @@ export class NeftyDropsNamespace extends ApiNamespace {
             );
 
             if (market_query.rowCount === 0) {
-                throw new Error(`NeftyMarket not found: ${this.args.neftymarket_name}`);
+                this.args.atomicmarket_account = 'atomicmarket';
             } else {
                 this.args.atomicmarket_account = market_query.rows[0].market_contract;
             }
