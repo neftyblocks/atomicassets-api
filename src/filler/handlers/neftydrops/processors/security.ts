@@ -74,7 +74,7 @@ const fillAccountStats = async (args: NeftyDropsArgs, connection: ConnectionMana
   }
 };
 
-const fillAccountWhitelist = async (args: NeftyDropsArgs, connection: ConnectionManager, 
+const fillAccountWhitelist = async (args: NeftyDropsArgs, connection: ConnectionManager,
     contract: string, securedDrops: DropsTableRow[]): Promise<void> => {
   const accountWhitelistCount = await connection.database.query(
     'SELECT COUNT(*) FROM neftydrops_accounts_whitelist'
@@ -92,8 +92,8 @@ const fillAccountWhitelist = async (args: NeftyDropsArgs, connection: Connection
     const dropsAccountWhitelistTable = await getAllRowsFromTable(connection.chain.rpc, {
       json: true, code: contract, scope: drop_id, table: 'whitelists',
     }, 1000) as AccountsWhitelist[];
-    
-    dropsAccountWhitelistTable.forEach(({account, account_limit = 0}) => 
+
+    dropsAccountWhitelistTable.forEach(({account, account_limit = 0}) =>
       allDropsAccountWhitelist.push({
         drop_id, account, account_limit,
       })
@@ -121,7 +121,7 @@ const fillAuthKeys = async (args: NeftyDropsArgs, connection: ConnectionManager,
     const dropsAuthKeysTable = await getAllRowsFromTable(connection.chain.rpc, {
       json: true, code: contract, scope: drop_id, table: 'authkeys',
     }, 1000) as AuthKeys[];
-    
+
     dropsAuthKeysTable.forEach(
       ({key: public_key, key_limit, key_limit_cooldown, counter: use_counter, last_claim_time}) =>
         allDropsAuthKeys.push({
@@ -153,8 +153,8 @@ const fillProofOfOwnership = async (args: NeftyDropsArgs,
   const dropsProofOfOwnershipTable = await getAllRowsFromTable(connection.chain.rpc, {
     json: true, code: contract, scope: contract, table: 'proofown',
   }, 1000) as ProofOfOwnership[];
-  
-  dropsProofOfOwnershipTable.forEach((proofOfOwnership) => 
+
+  dropsProofOfOwnershipTable.forEach((proofOfOwnership) =>
     allDropsProofOfOwnershipFilterRows = [
       ...allDropsProofOfOwnershipFilterRows,
       ...getProofOfOwnershipFiltersRows(proofOfOwnership)
@@ -262,10 +262,10 @@ export function securityProcessor(core: NeftyDropsHandler, processor: DataProces
         });
 
         if (delta.present) {
-          let proofOfOwnership: ProofOfOwnership = delta.value;
-          let newRows = getProofOfOwnershipFiltersRows(proofOfOwnership);
+          const proofOfOwnership: ProofOfOwnership = delta.value;
+          const newRows = getProofOfOwnershipFiltersRows(proofOfOwnership);
 
-          for (let proofOfOwnershipRow of newRows){
+          for (const proofOfOwnershipRow of newRows){
             await db.insert(
               'neftydrops_proof_of_ownership_filters',
               proofOfOwnershipRow,
