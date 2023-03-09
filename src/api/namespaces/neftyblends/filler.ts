@@ -2,6 +2,9 @@ import {DB} from '../../server';
 import {AssetFiller, FillerHook} from '../atomicassets/filler';
 import {formatTemplate, formatSchema, formatCollection, formatAsset} from '../atomicassets/format';
 import {BlendResultType} from '../../../filler/handlers/blends';
+import { Remarkable } from 'remarkable';
+import { linkify } from 'remarkable/linkify';
+import * as sanitizeHtml from 'sanitize-html';
 
 export class TemplateFiller {
     private templates: Promise<{[key: string]: any}> | null;
@@ -166,10 +169,42 @@ export class CollectionFiller {
     }
 }
 
-export async function fillBlends(db: DB, assetContract: string, blends: any[]): Promise<any[]> {
+const md = new Remarkable({
+    html: true,
+    xhtmlOut: true,
+    breaks: true,
+}).use(linkify);
+
+export async function renderMarkdownToHtml(markdown: string): Promise<string> {
+    return sanitizeHtml(md.render(markdown), {
+        allowedTags: [
+            'img',
+            'p',
+            'h1',
+            'h2',
+            'h3',
+            'h4',
+            'h5',
+            'h6',
+            'br',
+            'ol',
+            'ul',
+            'li',
+            'em',
+            'a',
+            'strong',
+            'blockquote',
+        ],
+    });
+}
+
+export async function fillBlends(db: DB, assetContract: string, blends: any[], renderMarkdown: boolean): Promise<any[]> {
     const templateIds: string[] = [];
     const schemaIds: any[] = [];
     const collectionNames: any[] = [];
+
+
+
     for (const blend of blends) {
         for (const ingredient of blend.ingredients) {
             const templateId = ingredient.template?.template_id;
@@ -197,6 +232,18 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                     }
                 }
             }
+        }
+        if (renderMarkdown) {
+            let displayData: Record<string, any> = {};
+            try {
+                displayData = JSON.parse(blend.display_data);
+                if (displayData.description) {
+                    displayData.description = await renderMarkdownToHtml(displayData.description);
+                }
+            } catch (e) {
+                // Ignore
+            }
+            blend.display_data = displayData;
         }
     }
 

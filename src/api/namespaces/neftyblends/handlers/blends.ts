@@ -26,6 +26,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         display_empty_rolls: {type: 'bool', default: false},
         visibility: {type: 'string', allowedValues: ['all', 'visible', 'hidden'], default: 'all'},
         category: {type: 'string', default: ''},
+        render_markdown: {type: 'bool', default: false},
     });
 
     let queryVarCounter:number = 0;
@@ -248,11 +249,15 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
     return await fillBlends(
         ctx.db,
         ctx.coreArgs.atomicassets_account,
-        result.rows
+        result.rows,
+        args.render_markdown
     );
 }
 
 export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        render_markdown: {type: 'bool', default: false},
+    });
 
     const query = new QueryBuilder(`
         SELECT *  FROM neftyblends_blend_details_master blend_detail
@@ -268,7 +273,8 @@ export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsCon
         const filledBlends = await fillBlends(
             ctx.db,
             ctx.coreArgs.atomicassets_account,
-            result.rows
+            result.rows,
+            args.render_markdown
         );
         return filledBlends[0];
     }

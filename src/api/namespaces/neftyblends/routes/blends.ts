@@ -106,8 +106,25 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                             required: false,
                             schema: {type: 'string'}
                         },
-
-                        ...paginationParameters
+                        {
+                            name: 'render_markdown',
+                            in: 'query',
+                            description: 'Render the display data as html',
+                            required: false,
+                            schema: {type: 'boolean', default: false}
+                        },
+                        ...paginationParameters,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['blend_id', 'created_at_time'],
+                                default: 'blend_id'
+                            }
+                        },
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
@@ -134,7 +151,14 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                             description: 'Blend id',
                             required: true,
                             schema: {type: 'string'}
-                        }
+                        },
+                        {
+                            name: 'render_markdown',
+                            in: 'query',
+                            description: 'Render the display data as html',
+                            required: false,
+                            schema: {type: 'boolean', default: false}
+                        },
                     ],
                     responses: getOpenAPI3Responses([200, 500], { '$ref': '#/components/schemas/BlendDetails' })
                 }
