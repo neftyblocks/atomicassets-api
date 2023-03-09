@@ -10,7 +10,7 @@ import {
     getIngredientOwnershipBlendFilter,
     getBlendDetails,
     getBlendClaimsAction,
-    getBlendClaimsCountAction
+    getBlendClaimsCountAction, getBlendIngredientAssets
 } from '../handlers/blends';
 
 export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, router: express.Router): any {
@@ -34,6 +34,12 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
         '/v1/blends/:contract/:blend_id/claims/_count',
         caching(),
         returnAsJSON(getBlendClaimsCountAction, core)
+    );
+
+    router.all(
+        '/v1/blends/:contract/:blend_id/ingredients/:index/assets',
+        caching(),
+        returnAsJSON(getBlendIngredientAssets, core)
     );
 
     return {
@@ -163,6 +169,65 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                         ...paginationParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], { '$ref': '#/components/schemas/Claim' })
+                }
+            },
+            '/v1/blends/{contract}/{blend_id}/ingredients/{index}/assets': {
+                get: {
+                    tags: ['neftyblends'],
+                    summary: 'Get the matching assets of an ingredient',
+                    description: 'Get the assets that match an ingredient',
+                    parameters: [
+                        {
+                            name: 'contract',
+                            in: 'path',
+                            description: 'Blend contract',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'blend_id',
+                            in: 'path',
+                            description: 'Blend id',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'index',
+                            in: 'path',
+                            description: 'Ingredient index',
+                            required: true,
+                            schema: {type: 'integer'}
+                        },
+                        {
+                            name: 'owner',
+                            in: 'query',
+                            description: 'Filter by owner',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'has_backed_tokens',
+                            in: 'query',
+                            description: 'Show only assets that are backed by a token',
+                            required: false,
+                            schema: {
+                                type: 'boolean'
+                            }
+                        },
+                        ...paginationParameters,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['asset_id', 'minted', 'updated', 'transferred', 'template_mint', 'name'],
+                                default: 'asset_id'
+                            }
+                        },
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Asset'}})
                 }
             },
         }

@@ -1,10 +1,14 @@
-import {RequestValues} from '../../utils';
+import {RequestValues, SortColumn, SortColumnMapping} from '../../utils';
 import {NeftyBlendsContext} from '../index';
 import QueryBuilder from '../../../builder';
 import { ApiError } from '../../../error';
 import {filterQueryArgs} from '../../validation';
 import {fillBlends, fillClaims} from '../filler';
 import {formatClaim} from '../format';
+import {BlendIngredientType} from '../../../../filler/handlers/blends';
+import {hasAssetFilter, hasDataFilters} from '../../atomicassets/utils';
+import {fillAssets} from '../../atomicassets/filler';
+import {formatAsset} from '../../atomicassets/format';
 
 export async function getIngredientOwnershipBlendFilter(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
     const args = filterQueryArgs(params, {
@@ -325,4 +329,125 @@ export async function getBlendClaimsAction(params: RequestValues, ctx: NeftyBlen
 
 export async function getBlendClaimsCountAction(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
     return getBlendClaimsCountAction({...params, count: 'true'}, ctx);
+}
+
+export async function getBlendIngredientAssets(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        page: {type: 'int', min: 1, default: 1},
+        limit: {type: 'int', min: 1, max: 1000, default: 100},
+        sort: {type: 'string', min: 1},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
+        owner: {type: 'string', default: ''},
+        has_backed_tokens: {type: 'bool'},
+        count: {type: 'bool'}
+    });
+
+    const blendQuery = new QueryBuilder(`
+        SELECT *  FROM neftyblends_blend_details_master blend_detail
+    `);
+    blendQuery.equal('blend_detail.blend_id', ctx.pathParams.blend_id);
+    blendQuery.equal('blend_detail.contract', ctx.pathParams.contract);
+
+    const blendResult = await ctx.db.query(blendQuery.buildString(), blendQuery.buildValues());
+    if (blendResult.rows.length < 1){
+        return null;
+    }
+
+    const blend = blendResult.rows[0];
+    const ingredient = blend.ingredients[ctx.pathParams.index];
+    if (!ingredient) {
+        throw new Error('Invalid index');
+    }
+
+    const query = new QueryBuilder(
+        'SELECT asset.asset_id FROM atomicassets_assets asset ' +
+        'LEFT JOIN atomicassets_templates "template" ON (' +
+        'asset.contract = template.contract AND asset.template_id = template.template_id' +
+        ') '
+    );
+
+    addBlendIngredientFilters(query, ingredient);
+
+    if (args.owner) {
+        query.equalMany('asset.owner', args.owner.split(','));
+    }
+
+    if (typeof args.has_backed_tokens === 'boolean') {
+        if (args.has_backed_tokens) {
+            query.addCondition('EXISTS (' +
+                'SELECT * FROM atomicassets_assets_backed_tokens token ' +
+                'WHERE asset.contract = token.contract AND asset..asset_id = token.asset_id' +
+                ')');
+        } else {
+            query.addCondition('NOT EXISTS (' +
+                'SELECT * FROM atomicassets_assets_backed_tokens token ' +
+                'WHERE asset.contract = token.contract AND asset.asset_id = token.asset_id' +
+                ')');
+        }
+    }
+
+    let sorting: SortColumn;
+
+    if (args.sort) {
+        const sortColumnMapping: SortColumnMapping = {
+            asset_id: {column: 'asset.asset_id', nullable: false, numericIndex: true},
+            updated: {column: 'asset.updated_at_time', nullable: false, numericIndex: true},
+            transferred: {column: 'asset.transferred_at_time', nullable: false, numericIndex: true},
+            minted: {column: 'asset.asset_id', nullable: false, numericIndex: true},
+            template_mint: {column: 'asset.template_mint', nullable: true, numericIndex: true},
+            name: {column: `(COALESCE(asset.mutable_data, '{}') || COALESCE(asset.immutable_data, '{}') || COALESCE(template.immutable_data, '{}'))->>'name'`, nullable: true, numericIndex: false},
+        };
+
+        sorting = sortColumnMapping[args.sort];
+    }
+
+    if (!sorting) {
+        sorting = {column: 'asset.asset_id', nullable: false, numericIndex: true};
+    }
+
+    const ignoreIndex = hasAssetFilter(params) || hasDataFilters(params)  && sorting.numericIndex;
+
+    query.append('ORDER BY ' + sorting.column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
+    query.paginate(args.page, args.limit);
+
+    const result = await ctx.db.query(query.buildString(), query.buildValues());
+    const assetIds = result.rows.map((row: any) => row.asset_id);
+    return await fillAssets(
+        ctx.db,
+        ctx.coreArgs.atomicassets_account,
+        assetIds,
+        formatAsset, 'atomicassets_assets_master'
+    );
+}
+
+function addBlendIngredientFilters(query: QueryBuilder, ingredient: any): void {
+    if (ingredient.type === BlendIngredientType.ATTRIBUTE_INGREDIENT) {
+        const attributes = ingredient.attributes;
+        query.equal('asset.collection_name', attributes.collection_name);
+        query.equal('asset.schema_name', attributes.schema_name);
+
+        const conditions: Record<string, any> = {};
+        for (const attribute of attributes.attributes) {
+            const attributeNameVar = query.addVariable(attribute.name);
+            const attributeValueVar = query.addVariable(attribute.allowed_values);
+            query.addCondition('((' +
+                '(asset.mutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+') OR asset.immutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+')) ' +
+                'AND ' +
+                '(asset.mutable_data || asset.immutable_data) != \'{}\' ' +
+                ') ' +
+                'OR ' +
+                '"template".immutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+') ' +
+                ')');
+            conditions[attribute.name] = attribute.allowed_values;
+        }
+    } else if (ingredient.type === BlendIngredientType.TEMPLATE_INGREDIENT) {
+        query.equal('asset.template_id', ingredient.template.template_id);
+    } else if (ingredient.type === BlendIngredientType.SCHEMA_INGREDIENT) {
+        query.equal('asset.collection_name', ingredient.schema.collection_name);
+        query.equal('asset.schema_name', ingredient.schema.schema_name);
+    } else if (ingredient.type === BlendIngredientType.COLLECTION_INGREDIENT) {
+        query.equal('asset.collection_name', ingredient.collection.collection_name);
+    } else if (ingredient.type === BlendIngredientType.BALANCE_INGREDIENT) {
+        query.equal('asset.template_id', ingredient.template.template_id);
+    }
 }
