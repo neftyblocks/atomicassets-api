@@ -360,7 +360,7 @@ export async function getBlendIngredientAssets(params: RequestValues, ctx: Nefty
     }
 
     const blend = blendResult.rows[0];
-    const ingredient = blend.ingredients[ctx.pathParams.index];
+    const ingredient = blend.ingredients.find((i: any) => i.index === parseInt(ctx.pathParams.ingredient_index, 10));
     if (!ingredient) {
         throw new Error('Invalid index');
     }
