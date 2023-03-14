@@ -15,7 +15,7 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         collection_name: {type: 'string', min: 1},
         sort_available_first: {type: 'bool', default: false},
         render_markdown: {type: 'bool', default: false},
-        hide_display_data: {type: 'bool', default: true},
+        hide_description: {type: 'bool', default: false},
         sort: {
             type: 'string',
             allowedValues: [
@@ -93,7 +93,7 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         ctx.coreArgs.atomicassets_account,
         dropQuery.rows.map((row) => formatDrop(
             dropLookup[String(row.drop_id)],
-            args.hide_display_data,
+            args.hide_description,
             args.render_markdown
         )).filter(x => !!x)
     );
@@ -111,7 +111,7 @@ export async function getDropsByCollection(params: RequestValues, ctx: NeftyDrop
         collection_name: {type: 'string', min: 1},
         sort_available_first: {type: 'bool', default: false},
         render_markdown: {type: 'bool', default: false},
-        hide_display_data: {type: 'bool', default: true},
+        hide_description: {type: 'bool', default: true},
         sort: {
             type: 'string',
             allowedValues: [
@@ -199,7 +199,7 @@ export async function getDropsByCollection(params: RequestValues, ctx: NeftyDrop
         ctx.coreArgs.atomicassets_account,
         dropQuery.rows.flatMap(row => row.drop_ids).map(dropId => formatDrop(
             dropLookup[String(dropId)],
-            args.hide_display_data,
+            args.hide_description,
             args.render_markdown
         )).filter(x => !!x),
     );

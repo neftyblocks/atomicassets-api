@@ -1,24 +1,23 @@
 import {formatCollection} from '../atomicassets/format';
 import {renderMarkdownToHtml} from '../utils';
 
-export function formatDrop(row: any, hideDisplayData = false, renderMarkdown = false): any {
+export function formatDrop(row: any, hideDescription = false, renderMarkdown = false): any {
     if (!row) {
         return row;
     }
     const data = {...row};
 
     data.price.amount = row.raw_price;
-    if (!hideDisplayData) {
-        try {
-            data.display_data = JSON.parse(row.display_data);
-            if (renderMarkdown && data.display_data.description) {
-                data.display_data.description = renderMarkdownToHtml(data.display_data.description);
-            }
-        } catch (e) {
-            data.display_data = {};
+    try {
+        data.display_data = JSON.parse(row.display_data);
+        if (hideDescription) {
+            delete data.display_data.description;
         }
-    } else {
-        delete data.display_data;
+        if (renderMarkdown && data.display_data.description) {
+            data.display_data.description = renderMarkdownToHtml(data.display_data.description);
+        }
+    } catch (e) {
+        data.display_data = {};
     }
 
     delete data.raw_price;

@@ -60,11 +60,11 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             schema: {type: 'boolean'}
                         },
                         {
-                            name: 'hide_display_data',
+                            name: 'hide_description',
                             in: 'query',
-                            description: 'Removed the drop display data from the response',
+                            description: 'Removed the drop description from the response',
                             required: false,
-                            schema: {type: 'boolean', default: true}
+                            schema: {type: 'boolean', default: false}
                         },
                         {
                             name: 'render_markdown',
@@ -131,9 +131,9 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             schema: {type: 'boolean'}
                         },
                         {
-                            name: 'hide_display_data',
+                            name: 'hide_description',
                             in: 'query',
-                            description: 'Removed the drop display data from the response',
+                            description: 'Removed the drop description data from the response',
                             required: false,
                             schema: {type: 'boolean', default: true}
                         },
