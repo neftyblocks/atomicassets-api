@@ -1,15 +1,93 @@
 export const neftyDropsComponents = {
   Drop: {
-
+    type: 'object',
+    properties: {
+      drops_contract: {type: 'string'},
+      assets_contract: {type: 'string'},
+      drop_id: {type: 'string'},
+      price: {
+        type: 'object',
+        properties: {
+          token_contract: {type: 'string'},
+          token_symbol: {type: 'string'},
+          token_precision: {type: 'number'},
+          median_price: {type: 'number'},
+          amount: {type: 'string'},
+        }
+      },
+      listing_price: {type: 'string'},
+      listing_symbol: {type: 'boolean'},
+      assets: {
+        type: 'object',
+        properties: {
+          template: {$ref: '#/components/schemas/Template'},
+          backed_tokens: {type: 'array', items: {type: 'string'}},
+        }
+      },
+      display_data: {
+        type: 'object', properties: {
+            name: {type: 'string'},
+            description: {type: 'string'},
+        }
+      },
+      is_deleted: {type: 'boolean'},
+      is_hidden: {type: 'boolean'},
+      updated_at_block: {type: 'string'},
+      updated_at_time: {type: 'string'},
+      created_at_block: {type: 'string'},
+      created_at_time: {type: 'string'},
+      preminted: {type: 'boolean'},
+      start_time: {type: 'string'},
+      end_time: {type: 'string'},
+      auth_required: {type: 'boolean'},
+      account_limits: {type: 'string'},
+      account_limit_cooldown: {type: 'string'},
+      max_claimable: {type: 'string'},
+      current_claimed: {type: 'string'},
+      price_recipient: {type: 'string'},
+    }
   },
-  Claim: {
-
+  DropClaim: {
+    type: 'object',
+    properties: {
+      drops_contract: {type: 'string'},
+      assets_contract: {type: 'string'},
+      claim_id: {type: 'string'},
+      claimer: {type: 'string'},
+      amount: {type: 'string'},
+      country: {type: 'string'},
+      total_price: {
+        type: 'object',
+        properties: {
+          token_contract: {type: 'string'},
+          token_symbol: {type: 'string'},
+          token_precision: {type: 'number'},
+          amount: {type: 'string'},
+        }
+      },
+      referrer: {type: 'string'},
+      txid: {type: 'string'},
+      created_at_block: {type: 'string'},
+      created_at_time: {type: 'string'},
+    }
   },
   CollectionsBalance: {
 
   },
   ClaimersBalance: {
 
+  },
+  GroupedDrop: {
+    type: 'object',
+    properties: {
+      collection: {
+        '$ref': '#/components/schemas/Collection'
+      },
+      drops: {
+        type: 'array',
+        items: {'$ref': '#/components/schemas/Drop'}
+      }
+    }
   },
   SellersBalance: {
 

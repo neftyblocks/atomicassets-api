@@ -1,7 +1,6 @@
 
 export const neftyBlendsComponents = {
-    // @TODO:
-    'BlendDetails': {
+    BlendDetails: {
         type: 'object',
         properties: {
             blend_id: {type: 'string'},
@@ -54,7 +53,7 @@ export const neftyBlendsComponents = {
             }
         },
     },
-    'Claim': {
+    BlendClaim: {
         type: 'object',
         properties: {
             claim_id: {type: 'string'},

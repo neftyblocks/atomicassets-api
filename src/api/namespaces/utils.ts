@@ -152,7 +152,7 @@ export function buildBoundaryFilter(
     }
 }
 
-export async function renderMarkdownToHtml(markdown: string): Promise<string> {
+export function renderMarkdownToHtml(markdown: string): string {
     return sanitizeHtml(md.render(markdown), {
         allowedTags: [
             'img',

@@ -14,6 +14,8 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         limit: {type: 'int', min: 1, max: 100, default: 100},
         collection_name: {type: 'string', min: 1},
         sort_available_first: {type: 'bool', default: false},
+        render_markdown: {type: 'bool', default: false},
+        hide_display_data: {type: 'bool', default: true},
         sort: {
             type: 'string',
             allowedValues: [
@@ -89,7 +91,11 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
     return fillDrops(
         ctx.db,
         ctx.coreArgs.atomicassets_account,
-        dropQuery.rows.map((row) => formatDrop(dropLookup[String(row.drop_id)])).filter(x => !!x)
+        dropQuery.rows.map((row) => formatDrop(
+            dropLookup[String(row.drop_id)],
+            args.hide_display_data,
+            args.render_markdown
+        )).filter(x => !!x)
     );
 }
 
@@ -97,7 +103,128 @@ export async function getDropsCountAction(params: RequestValues, ctx: NeftyDrops
     return getDropsAction({...params, count: 'true'}, ctx);
 }
 
+export async function getDropsByCollection(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        page: {type: 'int', min: 1, default: 1},
+        limit: {type: 'int', min: 1, max: 100, default: 100},
+        drop_limit: {type: 'int', min: 1, max: 50, default: 5},
+        collection_name: {type: 'string', min: 1},
+        sort_available_first: {type: 'bool', default: false},
+        render_markdown: {type: 'bool', default: false},
+        hide_display_data: {type: 'bool', default: true},
+        sort: {
+            type: 'string',
+            allowedValues: [
+                'created', 'updated',
+                'start_time', 'end_time',
+            ],
+            default: 'created'
+        },
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
+        count: {type: 'bool'}
+    });
+
+    const query = new QueryBuilder('');
+
+    buildDropFilter(params, query);
+
+    if (!args.collection_name) {
+        buildGreylistFilter(params, query, {collectionName: 'ndrop.collection_name'});
+    }
+
+    let dateColumn = 'ndrop.created_at_time';
+    if (args.sort === 'updated') {
+        dateColumn = 'ndrop.updated_at_time';
+    } else if (args.sort === 'start_time') {
+        dateColumn = 'ndrop.start_time';
+    } else if (args.sort === 'end_time') {
+        dateColumn = 'ndrop.end_time';
+    }
+
+    buildBoundaryFilter(
+        params, query, 'ndrop.drop_id', 'int',
+        dateColumn
+    );
+
+    const sortMapping: {[key: string]: {column: string}}  = {
+        created: {column: 'created_at_time'},
+        updated: {column: 'updated_at_time'},
+        start_time: {column: 'start_time'},
+        end_time: {column: 'end_time'}
+    };
+
+    const limitVar = query.addVariable(args.limit);
+    const dropLimitVar = query.addVariable(args.drop_limit);
+    const offsetVar = query.addVariable((args.page - 1) * args.limit);
+    const sortColumn = sortMapping[args.sort].column || 'created_at_time';
+    const sortAggregate = args.order === 'desc' ? 'MAX' : 'MIN';
+
+    const queryString = `SELECT collection.${sortColumn}, collection.collection_name, ARRAY_AGG(collection_drops.drop_id) AS drop_ids
+        FROM (
+            SELECT outer_drops.collection_name, ${sortAggregate}(outer_drops.${sortColumn}) AS ${sortColumn}
+            FROM neftydrops_drops outer_drops
+            LEFT JOIN neftydrops_drop_prices price ON (price.drops_contract = outer_drops.drops_contract AND price.drop_id = outer_drops.drop_id)
+            ${query.buildString().replace(/ndrop\./g, 'outer_drops.')}
+            GROUP BY outer_drops.collection_name
+            ORDER BY ${sortColumn} ${args.order}
+            LIMIT ${limitVar} OFFSET ${offsetVar}
+        ) collection
+        JOIN LATERAL (
+            SELECT ndrop.drop_id
+            FROM neftydrops_drops ndrop
+            LEFT JOIN neftydrops_drop_prices price ON (price.drops_contract = ndrop.drops_contract AND price.drop_id = ndrop.drop_id)
+            ${query.buildString()} AND ndrop.collection_name = collection.collection_name
+            ORDER BY ${(args.sort_available_first === true ? 'is_available DESC NULLS LAST, (CASE WHEN end_time = 0 THEN 1 WHEN end_time < ' + new Date().getTime() + ' THEN 0 ELSE 1 END)::INTEGER DESC NULLS LAST, ' : '')} ndrop.${sortColumn} ${args.order}
+            LIMIT ${dropLimitVar} 
+        ) collection_drops on true
+        GROUP BY collection.collection_name, collection.${sortColumn}
+        ORDER BY collection.${sortColumn} ${args.order}
+    `;
+
+    const dropQuery = await ctx.db.query(queryString, query.buildValues());
+
+    const result = await ctx.db.query(
+        'SELECT * FROM neftydrops_drops_master WHERE drops_contract = $1 AND drop_id = ANY ($2)',
+        [ctx.coreArgs.neftydrops_account, dropQuery.rows.flatMap(row => row.drop_ids)]
+    );
+
+    const dropLookup: {[key: string]: any} = {};
+    result.rows.reduce((prev, current) => {
+        prev[String(current.drop_id)] = current;
+        return prev;
+    }, dropLookup);
+
+    const drops = await fillDrops(
+        ctx.db,
+        ctx.coreArgs.atomicassets_account,
+        dropQuery.rows.flatMap(row => row.drop_ids).map(dropId => formatDrop(
+            dropLookup[String(dropId)],
+            args.hide_display_data,
+            args.render_markdown
+        )).filter(x => !!x),
+    );
+
+    const dropsMap = drops.reduce((acc, drop) => {
+        acc[String(drop.drop_id)] = drop;
+        return acc;
+    }, {});
+
+    return dropQuery.rows.map(row => ({
+        collection: dropsMap[row.drop_ids[0]]?.collection,
+        drops: row.drop_ids.map((dropId: any) => ({
+            ...dropsMap[String(dropId)],
+            collection: undefined,
+            templates: undefined,
+            collection_name: undefined,
+        }))
+    }));
+}
+
 export async function getDropAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        render_markdown: {type: 'bool', default: false},
+    });
+
     const query = await ctx.db.query(
         'SELECT * FROM neftydrops_drops_master WHERE drops_contract = $1 AND drop_id = $2',
         [ctx.coreArgs.neftydrops_account, ctx.pathParams.drop_id]
@@ -107,7 +234,11 @@ export async function getDropAction(params: RequestValues, ctx: NeftyDropsContex
         throw new ApiError('Drop not found', 416);
     } else {
         const drops = await fillDrops(
-            ctx.db, ctx.coreArgs.atomicassets_account, query.rows.map((row) => formatDrop(row))
+            ctx.db, ctx.coreArgs.atomicassets_account, query.rows.map((row) => formatDrop(
+                row,
+                false,
+                args.render_markdown
+            ))
         );
         return drops[0];
     }
@@ -199,7 +330,7 @@ export async function getDropsClaimableAction(params: RequestValues, ctx: NeftyD
     queryValues.push(keys);
     queryValues.push(args.account);
     queryString = `
-SELECT 
+SELECT
     "drop".drop_id,
     "drop".auth_required as auth_required,
     (
@@ -289,7 +420,7 @@ FROM (
         count(distinct asset.asset_id) as "owned"
     from neftydrops_proof_of_ownership_filters "filter"
     join atomicassets_assets asset ON
-        asset.owner=$${++queryVarCounter} AND 
+        asset.owner=$${++queryVarCounter} AND
         "filter".filter_kind != 'TOKEN_HOLDING' AND
         (
             ("filter".filter_kind = 'COLLECTION_HOLDINGS' AND asset.collection_name = "filter".collection_holdings->>'collection_name') OR
@@ -298,12 +429,12 @@ FROM (
         )
     where
         EXISTS (SELECT FROM UNNEST($${++queryVarCounter}::BIGINT[]) u(c) WHERE u.c = "filter".drop_id)
-    group by 
+    group by
         "filter".drop_id,
         "filter".filter_index,
         "filter".total_filter_count,
         "filter".nft_amount
-    having 
+    having
         ("filter".comparison_operator=0 AND count(distinct asset.asset_id) =  "filter".nft_amount) OR
         ("filter".comparison_operator=1 AND count(distinct asset.asset_id) != "filter".nft_amount) OR
         ("filter".comparison_operator=2 AND count(distinct asset.asset_id) >  "filter".nft_amount) OR
@@ -317,7 +448,7 @@ GROUP BY
     asset_matches_sub.total_filter_count
 HAVING
     (asset_matches_sub.logical_operator=0 AND count(1) >= asset_matches_sub.total_filter_count) OR
-    (asset_matches_sub.logical_operator=1);     
+    (asset_matches_sub.logical_operator=1);
         `;
 
         const result = await ctx.db.query(queryString, queryValues);

@@ -207,7 +207,7 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[], r
             try {
                 displayData = JSON.parse(blend.display_data);
                 if (displayData.description) {
-                    displayData.description = await renderMarkdownToHtml(displayData.description);
+                    displayData.description = renderMarkdownToHtml(displayData.description);
                 }
             } catch (e) {
                 // Ignore

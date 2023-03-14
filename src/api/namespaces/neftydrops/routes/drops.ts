@@ -15,12 +15,14 @@ import {
     getDropsAction,
     getDropsCountAction,
     getDropsClaimableAction,
+    getDropsByCollection,
 } from '../handlers/drops';
 
 export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, router: express.Router): any {
     const { caching, returnAsJSON } = server.web;
     router.all('/v1/drops', caching(), returnAsJSON(getDropsAction, core));
     router.all('/v1/drops/_count', caching(), returnAsJSON(getDropsCountAction, core));
+    router.all('/v1/drops_by_collection', caching(), returnAsJSON(getDropsByCollection, core));
     router.all('/v1/drops/claimable', caching(), returnAsJSON(getDropsClaimableAction, core));
     router.all('/v1/drops/:drop_id', caching(), returnAsJSON(getDropAction, core));
     router.all('/v1/drops/:drop_id/claims', caching(), returnAsJSON(getDropClaimsAction, core));
@@ -58,6 +60,20 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             schema: {type: 'boolean'}
                         },
                         {
+                            name: 'hide_display_data',
+                            in: 'query',
+                            description: 'Removed the drop display data from the response',
+                            required: false,
+                            schema: {type: 'boolean', default: true}
+                        },
+                        {
+                            name: 'render_markdown',
+                            in: 'query',
+                            description: 'Renders the markdown in the description as HTML',
+                            required: false,
+                            schema: {type: 'boolean', default: false}
+                        },
+                        {
                             name: 'sort_available_first',
                             in: 'query',
                             description: 'Displays available drops first (Not sold out)',
@@ -86,6 +102,86 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                     responses: getOpenAPI3Responses([200, 500], {
                         type: 'array',
                         items: {'$ref': '#/components/schemas/Drop'}
+                    })
+                }
+            },
+            '/v1/drops_by_collection': {
+                get: {
+                    tags: ['drops'],
+                    summary: 'Get drops grouped by collection. ',
+                    description: dropDataFilter,
+                    parameters: [
+                        {
+                            name: 'state',
+                            in: 'query',
+                            description: 'Filter by drop state (' +
+                                DropApiState.ACTIVE.valueOf() + ': ACTIVE - The drop is active (default), ' +
+                                DropApiState.DELETED.valueOf() + ': DELETED - The drop is deleted' +
+                                DropApiState.SOLD_OUT.valueOf() + ': SOLD_OUT - The drop is sold out' +
+                                DropApiState.ENDED.valueOf() + ': ENDED - The drop is ended' +
+                                ') - separate multiple with ","',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'hidden',
+                            in: 'query',
+                            description: 'Display hidden drops',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
+                        {
+                            name: 'hide_display_data',
+                            in: 'query',
+                            description: 'Removed the drop display data from the response',
+                            required: false,
+                            schema: {type: 'boolean', default: true}
+                        },
+                        {
+                            name: 'render_markdown',
+                            in: 'query',
+                            description: 'Renders the markdown in the description as HTML',
+                            required: false,
+                            schema: {type: 'boolean', default: false}
+                        },
+                        {
+                            name: 'sort_available_first',
+                            in: 'query',
+                            description: 'Displays available drops first (Not sold out)',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
+                        ...dropsFilterParameters,
+                        ...dateBoundaryParameters,
+                        {
+                            name: 'drop_limit',
+                            in: 'query',
+                            description: 'Number of drops to return per collection',
+                            required: false,
+                            schema: {
+                                type: 'integer',
+                                default: 5
+                            }
+                        },
+                        ...paginationParameters,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: [
+                                    'created', 'updated',
+                                    'start_time', 'end_time',
+                                ],
+                                default: 'created'
+                            }
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'array',
+                        items: {'$ref': '#/components/schemas/GroupedDrop'}
                     })
                 }
             },
@@ -136,7 +232,14 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             description: 'Drop Id',
                             required: true,
                             schema: {type: 'integer'}
-                        }
+                        },
+                        {
+                            name: 'render_markdown',
+                            in: 'query',
+                            description: 'Renders the markdown in the description as HTML',
+                            required: false,
+                            schema: {type: 'boolean', default: false}
+                        },
                     ],
                     responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/Drop'})
                 }
@@ -168,7 +271,7 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             }
                         }
                     ],
-                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Claim'}})
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/DropClaim'}})
                 }
             }
         }

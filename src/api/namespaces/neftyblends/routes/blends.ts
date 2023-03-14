@@ -192,7 +192,7 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                         },
                         ...paginationParameters
                     ],
-                    responses: getOpenAPI3Responses([200, 500], { '$ref': '#/components/schemas/Claim' })
+                    responses: getOpenAPI3Responses([200, 500], { '$ref': '#/components/schemas/BlendClaim' })
                 }
             },
             '/v1/blends/{contract}/{blend_id}/ingredients/{index}/assets': {
