@@ -246,7 +246,7 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                             required: false,
                             schema: {
                                 type: 'string',
-                                enum: ['asset_id', 'minted', 'updated', 'transferred', 'template_mint', 'name'],
+                                enum: ['asset_id', 'minted', 'updated', 'transferred', 'template_mint', 'name', 'balance_attribute'],
                                 default: 'asset_id'
                             }
                         },

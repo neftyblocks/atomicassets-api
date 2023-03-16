@@ -341,7 +341,16 @@ export async function getBlendIngredientAssets(params: RequestValues, ctx: Nefty
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
-        sort: {type: 'string', min: 1},
+        sort: {
+            type: 'string',
+            allowedValues: [
+                'asset_id', 'updated',
+                'transferred', 'minted',
+                'template_mint', 'name',
+                'balance_attribute'
+            ],
+            default: 'asset_id'
+        },
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
         owner: {type: 'string', default: ''},
         has_backed_tokens: {type: 'bool'},
@@ -372,7 +381,40 @@ export async function getBlendIngredientAssets(params: RequestValues, ctx: Nefty
         ') '
     );
 
-    addBlendIngredientFilters(query, ingredient);
+    let balanceNameVar;
+
+    if (ingredient.type === BlendIngredientType.ATTRIBUTE_INGREDIENT) {
+        const attributes = ingredient.attributes;
+        query.equal('asset.collection_name', attributes.collection_name);
+        query.equal('asset.schema_name', attributes.schema_name);
+
+        const conditions: Record<string, any> = {};
+        for (const attribute of attributes.attributes) {
+            const attributeNameVar = query.addVariable(attribute.name);
+            const attributeValueVar = query.addVariable(attribute.allowed_values);
+            query.addCondition('((' +
+                '(asset.mutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+') OR asset.immutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+')) ' +
+                'AND ' +
+                '(asset.mutable_data || asset.immutable_data) != \'{}\' ' +
+                ') ' +
+                'OR ' +
+                '"template".immutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+') ' +
+                ')');
+            conditions[attribute.name] = attribute.allowed_values;
+        }
+    } else if (ingredient.type === BlendIngredientType.TEMPLATE_INGREDIENT) {
+        query.equal('asset.template_id', ingredient.template.template_id);
+    } else if (ingredient.type === BlendIngredientType.SCHEMA_INGREDIENT) {
+        query.equal('asset.collection_name', ingredient.schema.collection_name);
+        query.equal('asset.schema_name', ingredient.schema.schema_name);
+    } else if (ingredient.type === BlendIngredientType.COLLECTION_INGREDIENT) {
+        query.equal('asset.collection_name', ingredient.collection.collection_name);
+    } else if (ingredient.type === BlendIngredientType.BALANCE_INGREDIENT) {
+        balanceNameVar = query.addVariable(ingredient.template.attribute_name);
+        const costVar = query.addVariable(ingredient.template.cost);
+        query.equal('asset.template_id', ingredient.template.template_id);
+        query.addCondition(`(asset.mutable_data->>${balanceNameVar})::BIGINT >= ${costVar}::BIGINT`);
+    }
 
     if (args.owner) {
         query.equalMany('asset.owner', args.owner.split(','));
@@ -404,6 +446,10 @@ export async function getBlendIngredientAssets(params: RequestValues, ctx: Nefty
             name: {column: `(COALESCE(asset.mutable_data, '{}') || COALESCE(asset.immutable_data, '{}') || COALESCE(template.immutable_data, '{}'))->>'name'`, nullable: true, numericIndex: false},
         };
 
+        if (balanceNameVar) {
+            sortColumnMapping.balance_attribute = {column: `(asset.mutable_data->>${balanceNameVar})::BIGINT`, nullable: true, numericIndex: true};
+        }
+
         sorting = sortColumnMapping[args.sort];
     }
 
@@ -424,36 +470,4 @@ export async function getBlendIngredientAssets(params: RequestValues, ctx: Nefty
         assetIds,
         formatAsset, 'atomicassets_assets_master'
     );
-}
-
-function addBlendIngredientFilters(query: QueryBuilder, ingredient: any): void {
-    if (ingredient.type === BlendIngredientType.ATTRIBUTE_INGREDIENT) {
-        const attributes = ingredient.attributes;
-        query.equal('asset.collection_name', attributes.collection_name);
-        query.equal('asset.schema_name', attributes.schema_name);
-
-        const conditions: Record<string, any> = {};
-        for (const attribute of attributes.attributes) {
-            const attributeNameVar = query.addVariable(attribute.name);
-            const attributeValueVar = query.addVariable(attribute.allowed_values);
-            query.addCondition('((' +
-                '(asset.mutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+') OR asset.immutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+')) ' +
-                'AND ' +
-                '(asset.mutable_data || asset.immutable_data) != \'{}\' ' +
-                ') ' +
-                'OR ' +
-                '"template".immutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+') ' +
-                ')');
-            conditions[attribute.name] = attribute.allowed_values;
-        }
-    } else if (ingredient.type === BlendIngredientType.TEMPLATE_INGREDIENT) {
-        query.equal('asset.template_id', ingredient.template.template_id);
-    } else if (ingredient.type === BlendIngredientType.SCHEMA_INGREDIENT) {
-        query.equal('asset.collection_name', ingredient.schema.collection_name);
-        query.equal('asset.schema_name', ingredient.schema.schema_name);
-    } else if (ingredient.type === BlendIngredientType.COLLECTION_INGREDIENT) {
-        query.equal('asset.collection_name', ingredient.collection.collection_name);
-    } else if (ingredient.type === BlendIngredientType.BALANCE_INGREDIENT) {
-        query.equal('asset.template_id', ingredient.template.template_id);
-    }
 }
