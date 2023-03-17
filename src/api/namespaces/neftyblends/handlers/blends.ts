@@ -334,7 +334,7 @@ export async function getBlendClaimsAction(params: RequestValues, ctx: NeftyBlen
 }
 
 export async function getBlendClaimsCountAction(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
-    return getBlendClaimsCountAction({...params, count: 'true'}, ctx);
+    return getBlendClaimsAction({...params, count: 'true'}, ctx);
 }
 
 export async function getBlendIngredientAssets(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {

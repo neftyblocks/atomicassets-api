@@ -190,7 +190,18 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                             required: false,
                             schema: {type: 'string', default: ''}
                         },
-                        ...paginationParameters
+                        ...paginationParameters,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['claim_time', 'created_at_time', 'claimer'],
+                                default: 'blend_id'
+                            }
+                        },
                     ],
                     responses: getOpenAPI3Responses([200, 500], { '$ref': '#/components/schemas/BlendClaim' })
                 }
