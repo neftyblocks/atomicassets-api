@@ -319,9 +319,18 @@ const superBlendsRollsListener = (core: CollectionsListHandler, contract: string
 };
 
 const superBlendsMixListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetBlendMixActionData>): Promise<void> => {
+    const blends = await db.query(
+        'SELECT * FROM neftyblends_blends WHERE assets_contract = $1 AND contract = $2 AND blend_id = $3',
+        [core.args.atomicassets_account, contract, trace.act.data.blend_id]
+    );
+    if (blends.rowCount === 0) {
+        return;
+    }
+    const blend = blends.rows[0];
+    const ingredients = getSuperBlendIngredients(trace.act.data.ingredients, blend.collection_name);
     const { ingredientDbRows, ingredientAttributesDbRows, ingredientTypedAttributesDbRows } = getIngredientsDbRows(
         trace.act.data.blend_id,
-        trace.act.data.ingredients,
+        ingredients,
         core.args,
         block.block_num,
         block.timestamp, contract
@@ -611,7 +620,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         }
     }
 
-    const ingredients = getSuperBlendIngredients(blend);
+    const ingredients = getSuperBlendIngredients(blend.ingredients, blend.collection_name);
     const {
         ingredientDbRows,
         ingredientAttributesDbRows,
@@ -810,9 +819,8 @@ function getRollsDbRows(blendId: number, rollsArray: any[], args: BlendsArgs, bl
     };
 }
 
-function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
-    const blend_collection = row.collection_name;
-    return row.ingredients.map(([type, payload], index) => {
+function getSuperBlendIngredients(ingredients: any[], blend_collection: string): Ingredient[] {
+    return ingredients.map(([type, payload], index) => {
         const [effectType = '', effectPayload = {}] = payload.effect || [];
         const effect = {
             payload: effectPayload,
