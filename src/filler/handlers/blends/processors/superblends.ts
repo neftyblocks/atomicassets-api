@@ -696,8 +696,8 @@ async function deleteBlendIngredients(
     const deleteString = 'assets_contract = $1 AND contract = $2 AND blend_id = $3';
     const deleteValues = [atomicAssetsAccount, contract, blendId];
     await db.delete('neftyblends_blend_ingredient_typed_attributes', {
-        str: deleteString,
-        values: deleteValues,
+        str: 'contract = $1 AND blend_id = $2',
+        values: [contract, blendId],
     });
     await db.delete('neftyblends_blend_ingredient_attributes', {
         str: deleteString,
