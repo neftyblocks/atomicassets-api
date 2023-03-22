@@ -5,7 +5,7 @@ import { ApiError } from '../../../error';
 import {filterQueryArgs} from '../../validation';
 import {fillBlends, fillClaims} from '../filler';
 import {formatClaim} from '../format';
-import {BlendIngredientType} from '../../../../filler/handlers/blends';
+import {BlendIngredientType, IngredientEffectType} from '../../../../filler/handlers/blends';
 import {hasAssetFilter, hasDataFilters} from '../../atomicassets/utils';
 import {fillAssets} from '../../atomicassets/filler';
 import {formatAsset} from '../../atomicassets/format';
@@ -383,6 +383,9 @@ export async function getBlendIngredientAssets(params: RequestValues, ctx: Nefty
 
     let balanceNameVar;
 
+
+    let requiresTransferable = true;
+    const requiresBurnable = ingredient.effect.type === IngredientEffectType.TYPED_EFFECT && ingredient.effect.payload.type === 0;
     if (ingredient.type === BlendIngredientType.ATTRIBUTE_INGREDIENT) {
         const attributes = ingredient.attributes;
         query.equal('asset.collection_name', attributes.collection_name);
@@ -414,6 +417,15 @@ export async function getBlendIngredientAssets(params: RequestValues, ctx: Nefty
         const costVar = query.addVariable(ingredient.template.cost);
         query.equal('asset.template_id', ingredient.template.template_id);
         query.addCondition(`(asset.mutable_data->>${balanceNameVar})::BIGINT >= ${costVar}::BIGINT`);
+        requiresTransferable = false;
+    }
+
+    if (requiresTransferable) {
+        query.addCondition('"template".transferable IS DISTINCT FROM FALSE');
+    }
+
+    if (requiresBurnable) {
+        query.addCondition('"template".burnable IS DISTINCT FROM FALSE');
     }
 
     if (args.owner) {
