@@ -20,6 +20,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
         collection_blacklist: {type: 'string', min: 1},
         only_whitelisted: {type: 'bool'},
         exclude_blacklisted: {type: 'bool'},
+        exclude_nsfw: {type: 'bool'},
 
         sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
         order: {type: 'string', allowedValues: ['desc', 'asc'], default: 'desc'},
@@ -71,6 +72,15 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
                 'WHERE list = \'blacklist\' OR list = \'scam\') ';
+        }
+    }
+
+    if (typeof args.exclude_nsfw === 'boolean') {
+        if (args.exclude_nsfw) {
+            queryString += 'AND collection_name NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'nsfw\') ';
         }
     }
 
