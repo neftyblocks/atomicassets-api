@@ -280,7 +280,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
               'SELECT pair.invert_delphi_pair, delphi.base_precision, delphi.quote_precision, delphi.median_precision ' +
               'FROM neftydrops_symbol_pairs pair, delphioracle_pairs delphi ' +
               'WHERE pair.listing_symbol = \'USD\' AND pair.settlement_symbol = $1 AND ' +
-              'pair.delphi_contract = delphi.contract AND pair.delphi_pair_name = delphi.delphi_pair_name' +
+              'pair.delphi_contract = delphi.contract AND pair.delphi_pair_name = delphi.delphi_pair_name',
               [coreSymbol]
             );
 
