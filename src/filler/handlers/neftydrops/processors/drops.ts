@@ -292,10 +292,10 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
             let newFinalPrice;
             if (!row.invert_delphi_pair) {
                 newFinalPrice = Math.floor(finalPrice * parseInt(trace.act.data.intended_delphi_median, 10) /
-                    Math.pow(10, row.quote_precision - row.base_precision - row.median_precision));
+                    Math.pow(10, row.median_precision + row.base_precision - row.quote_precision));
             } else {
                 newFinalPrice = Math.floor(finalPrice / parseInt(trace.act.data.intended_delphi_median, 10) /
-                    Math.pow(10, row.median_precision + row.base_precision - row.quote_precision));
+                    Math.pow(10, row.quote_precision - row.base_precision - row.median_precision));
             }
 
             values.final_price = preventInt64Overflow(BigInt(newFinalPrice));
