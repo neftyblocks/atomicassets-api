@@ -253,7 +253,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
         const [coreAmount, coreSymbol] = trace.act.data.core_symbol_amount.split(' ');
 
         const claim = await db.query(
-            'SELECT listing_price, listing_symbol, settlement_symbol, collection_name FROM neftydrops_claims WHERE drops_contract = $1 AND claim_id = $2',
+            'SELECT final_price, listing_symbol, settlement_symbol FROM neftydrops_claims WHERE drops_contract = $1 AND claim_id = $2',
             [core.args.neftydrops_account, claimId]
         );
 
