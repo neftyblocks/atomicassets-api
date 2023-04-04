@@ -242,7 +242,9 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
   destructors.push(processor.onActionTrace(
       contract, 'logclaim',
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogClaimActionData>): Promise<void> => {
-        const claimAction = tx.traces.find(trace => trace.act.account === core.args.neftydrops_account && trace.act.name.startsWith('claim'));
+        const claimAction = tx.traces.find(trace => trace.act.account === core.args.neftydrops_account && (
+            trace.act.name.startsWith('claim') || trace.act.name.startsWith('trigger'))
+        );
         const claimId = claimAction.global_sequence;
 
         const [amountSpent, spentSymbol] = trace.act.data.amount_paid.split(' ');
