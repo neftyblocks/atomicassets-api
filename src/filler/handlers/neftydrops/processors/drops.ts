@@ -245,6 +245,8 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
         const claimAction = tx.traces.find(trace => trace.act.account === core.args.neftydrops_account && (
             trace.act.name.startsWith('claim') || trace.act.name.startsWith('trigger'))
         );
+
+        const fromTrigger = claimAction.act.name.startsWith('trigger');
         const claimId = claimAction.global_sequence;
 
         const [amountSpent, spentSymbol] = trace.act.data.amount_paid.split(' ');
@@ -254,6 +256,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           amount_spent: preventInt64Overflow(amountSpent.replace('.', '')),
           spent_symbol: spentSymbol,
           core_amount: preventInt64Overflow(coreAmount.replace('.', '')),
+          from_trigger: fromTrigger,
           core_symbol: coreSymbol,
         }, {
           str: 'drops_contract = $1 AND claim_id = $2',
