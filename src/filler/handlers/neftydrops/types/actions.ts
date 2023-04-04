@@ -87,4 +87,5 @@ export type LogClaimActionData = {
     quantity: number,
     amount_paid: string,
     core_symbol_amount: string,
+    intended_delphi_median?: string,
 };

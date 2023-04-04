@@ -13,14 +13,17 @@ ON (drops_contract, claim_id)
     'amount', claim.total_price,
     'token_contract', (CASE
     WHEN claim.settlement_symbol = 'NULL' THEN '':: VARCHAR (12)
+    WHEN claim.settlement_symbol = 'USD' THEN '':: VARCHAR (12)
     ELSE token.token_contract
     END),
     'token_symbol', (CASE
     WHEN claim.settlement_symbol = 'NULL' THEN 'NULL':: VARCHAR (12)
+    WHEN claim.settlement_symbol = 'USD' THEN 'USD':: VARCHAR (12)
     ELSE token.token_symbol
     END),
     'token_precision', (CASE
     WHEN claim.settlement_symbol = 'NULL' THEN 0
+    WHEN claim.settlement_symbol = 'USD' THEN 2
     ELSE token.token_precision
     END)
     ) total_price,
@@ -33,7 +36,7 @@ ON (drops_contract, claim_id)
 FROM
     neftydrops_claims claim LEFT JOIN neftydrops_tokens token
 ON (
-    claim.settlement_symbol = token.token_symbol OR claim.settlement_symbol = 'NULL'
+    claim.settlement_symbol = token.token_symbol OR claim.settlement_symbol = 'NULL' OR claim.settlement_symbol = 'USD'
     )
 WHERE
     claim.drops_contract = token.drops_contract

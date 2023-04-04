@@ -252,20 +252,65 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
         const [amountSpent, spentSymbol] = trace.act.data.amount_paid.split(' ');
         const [coreAmount, coreSymbol] = trace.act.data.core_symbol_amount.split(' ');
 
-        await db.update('neftydrops_claims', {
-          amount_spent: preventInt64Overflow(amountSpent.replace('.', '')),
-          spent_symbol: spentSymbol,
-          core_amount: preventInt64Overflow(coreAmount.replace('.', '')),
-          from_trigger: fromTrigger,
-          core_symbol: coreSymbol,
-        }, {
+        const claim = await db.query(
+            'SELECT listing_price, listing_symbol, settlement_symbol, collection_name FROM neftydrops_claims WHERE drops_contract = $1 AND claim_id = $2',
+            [core.args.neftydrops_account, claimId]
+        );
+
+        if (claim.rowCount === 0) {
+            throw new Error(`NeftyDrops: Unable to log claim update`);
+        }
+
+        const {
+            final_price: finalPrice,
+            listing_symbol: listingSymbol,
+            settlement_symbol: settlementSymbol,
+        } = claim.rows[0];
+
+        const values: Record<string, any> = {
+            amount_spent: preventInt64Overflow(amountSpent.replace('.', '')),
+            spent_symbol: spentSymbol,
+            core_amount: preventInt64Overflow(coreAmount.replace('.', '')),
+            from_trigger: fromTrigger,
+            core_symbol: coreSymbol,
+        };
+
+        if (settlementSymbol === 'USD' && listingSymbol !== 'USD' && trace.act.data.intended_delphi_median) {
+            const query = await db.query(
+              'SELECT pair.invert_delphi_pair, delphi.base_precision, delphi.quote_precision, delphi.median_precision ' +
+              'FROM neftydrops_symbol_pairs pair, delphioracle_pairs delphi ' +
+              'WHERE pair.listing_symbol = \'USD\' AND pair.settlement_symbol = $1 AND ' +
+              'pair.delphi_contract = delphi.contract AND pair.delphi_pair_name = delphi.delphi_pair_name AND ' +
+              'drop.drops_contract = $2 AND drop.drop_id = $3',
+              [coreSymbol, core.args.neftydrops_account, trace.act.data.drop_id]
+            );
+
+            if (query.rowCount === 0) {
+                throw new Error('NeftyDrops: Drops was purchased but could not find delphi pair');
+            }
+
+            const row = query.rows[0];
+            let newFinalPrice;
+            if (row.invert_delphi_pair) {
+                newFinalPrice = Math.floor(finalPrice / parseInt(trace.act.data.intended_delphi_median, 10) *
+                    Math.pow(10, row.quote_precision - row.base_precision - row.median_precision));
+            } else {
+                newFinalPrice = Math.floor((finalPrice * parseInt(trace.act.data.intended_delphi_median, 10)) *
+                    Math.pow(10, row.median_precision + row.base_precision - row.quote_precision));
+            }
+
+            values.final_price = preventInt64Overflow(BigInt(newFinalPrice));
+            values.total_price = preventInt64Overflow(BigInt(newFinalPrice * trace.act.data.quantity));
+        }
+
+        await db.update('neftydrops_claims', values, {
           str: 'drops_contract = $1 AND claim_id = $2',
           values: [core.args.neftydrops_account, claimId]
         }, ['drops_contract', 'claim_id']);
       }, NeftyDropsUpdatePriority.ACTION_LOG_CLAIM.valueOf()
   ));
 
-  const registerDropClaim = async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<ClaimDropActionData>): Promise<void> => {
+  const registerDropClaim = async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<ClaimDropActionData>, settleToUSD = false): Promise<void> => {
     const drop = await db.query(
         'SELECT listing_price, listing_symbol, settlement_symbol, collection_name FROM neftydrops_drops WHERE drops_contract = $1 AND drop_id = $2',
         [core.args.neftydrops_account, trace.act.data.drop_id]
@@ -324,7 +369,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           final_price: preventInt64Overflow(finalPrice),
           total_price: preventInt64Overflow(totalPrice),
           listing_symbol: listingSymbol,
-          settlement_symbol: settlementSymbol,
+          settlement_symbol: settleToUSD ? 'USD' : settlementSymbol,
           referrer: encodeString(trace.act.data.referrer),
           country: encodeString(trace.act.data.country),
           txid: Buffer.from(tx.id, 'hex'),
@@ -380,7 +425,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
   destructors.push(processor.onActionTrace(
       contract, 'triggerclaim',
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<ClaimDropActionData>): Promise<void> => {
-        return registerDropClaim(db, block, tx, trace);
+        return registerDropClaim(db, block, tx, trace, true);
       }, NeftyDropsUpdatePriority.ACTION_CLAIM_DROP.valueOf()
   ));
 
