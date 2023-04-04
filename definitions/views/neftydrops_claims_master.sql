@@ -28,7 +28,8 @@ ON (drops_contract, claim_id)
     claim.referrer,
     claim.txid,
     claim.created_at_block,
-    claim.created_at_time
+    claim.created_at_time,
+    claim.from_trigger
 FROM
     neftydrops_claims claim LEFT JOIN neftydrops_tokens token
 ON (
