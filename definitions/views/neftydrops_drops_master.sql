@@ -77,7 +77,8 @@ ON (drops_contract, drop_id)
     ndrop.account_limit_cooldown,
     ndrop.max_claimable,
     ndrop.current_claimed,
-    ndrop.price_recipient
+    ndrop.price_recipient,
+    ndrop.allow_credit_card_payments
 FROM
     neftydrops_drops ndrop LEFT JOIN neftydrops_symbol_pairs pair
 ON (

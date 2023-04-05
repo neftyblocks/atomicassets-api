@@ -5,17 +5,18 @@ import {ShipBlock} from '../../../../types/ship';
 import {eosioTimestampToDate} from '../../../../utils/eosio';
 import NeftyDropsHandler, {NeftyDropsUpdatePriority} from '../index';
 import {
-  ClaimDropActionData,
-  EraseDropActionData,
-  LogClaimActionData,
-  LogCreateDropActionData,
-  SetDropAuthActionData,
-  SetDropDataActionData,
-  SetDropHiddenActionData,
-  SetDropLimitActionData,
-  SetDropMaxActionData,
-  SetDropPriceActionData,
-  SetDropTimesActionData
+    ClaimDropActionData,
+    EraseDropActionData,
+    LogClaimActionData,
+    LogCreateDropActionData,
+    SetDropAuthActionData,
+    SetDropDataActionData,
+    SetDropHiddenActionData,
+    SetDropLimitActionData,
+    SetDropMaxActionData,
+    SetDropPaymentActionData,
+    SetDropPriceActionData,
+    SetDropTimesActionData
 } from '../types/actions';
 import {preventInt64Overflow} from '../../../../utils/binary';
 import logger from '../../../../utils/winston';
@@ -81,6 +82,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           end_time: trace.act.data.end_time * 1000,
           display_data: trace.act.data.display_data,
           is_hidden: trace.act.data.is_hidden || false,
+          allow_credit_card_payments: trace.act.data.allow_credit_card_payments || false,
           is_deleted: false,
           updated_at_block: block.block_num,
           updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
@@ -185,6 +187,20 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           str: 'drops_contract = $1 AND drop_id = $2',
           values: [core.args.neftydrops_account, trace.act.data.drop_id]
         }, ['drops_contract', 'drop_id']);
+      }, NeftyDropsUpdatePriority.ACTION_UPDATE_DROP.valueOf()
+  ));
+
+  destructors.push(processor.onActionTrace(
+      contract, 'setdrophiddn',
+        async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropPaymentActionData>): Promise<void> => {
+          await db.update('neftydrops_drops', {
+              allow_credit_card_payments: trace.act.data.allow_credit_card_payments,
+              updated_at_block: block.block_num,
+              updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+          }, {
+              str: 'drops_contract = $1 AND drop_id = $2',
+              values: [core.args.neftydrops_account, trace.act.data.drop_id]
+          }, ['drops_contract', 'drop_id']);
       }, NeftyDropsUpdatePriority.ACTION_UPDATE_DROP.valueOf()
   ));
 

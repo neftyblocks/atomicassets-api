@@ -19,6 +19,7 @@ export type LogCreateDropActionData = {
     end_time: number,
     display_data: string,
     is_hidden?: boolean
+    allow_credit_card_payments?: boolean
 };
 
 export type SetDropAuthActionData = {
@@ -50,6 +51,12 @@ export type SetDropHiddenActionData = {
     authorized_account: string,
     drop_id: number,
     is_hidden: boolean
+};
+
+export type SetDropPaymentActionData = {
+    authorized_account: string,
+    drop_id: number,
+    allow_credit_card_payments: boolean
 };
 
 export type SetDropPriceActionData = {
