@@ -191,7 +191,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
   ));
 
   destructors.push(processor.onActionTrace(
-      contract, 'setdrophiddn',
+      contract, 'setdroppay',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropPaymentActionData>): Promise<void> => {
           await db.update('neftydrops_drops', {
               allow_credit_card_payments: trace.act.data.allow_credit_card_payments,
