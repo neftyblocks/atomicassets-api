@@ -264,6 +264,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         only_whitelisted: {type: 'bool'},
         exclude_blacklisted: {type: 'bool'},
         exclude_nsfw: {type: 'bool'},
+        exclude_ai: {type: 'bool'},
 
         owner: {type: 'string[]', min: 1, max: 12},
 
@@ -364,6 +365,16 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
                 'WHERE list = \'nsfw\')'
+            );
+        }
+    }
+
+    if (typeof args.exclude_ai === 'boolean') {
+        if (args.exclude_ai) {
+            query.addCondition('SUBSTR(listing.filter[1], 2) NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'ai\')'
             );
         }
     }

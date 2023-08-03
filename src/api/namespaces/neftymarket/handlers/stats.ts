@@ -22,6 +22,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: Ne
         only_whitelisted: {type: 'bool'},
         exclude_blacklisted: {type: 'bool'},
         exclude_nsfw: {type: 'bool'},
+        exclude_ai: {type: 'bool'},
 
         sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
         page: {type: 'int', min: 1, default: 1},
@@ -96,6 +97,16 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: Ne
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
                 'WHERE list = \'nsfw\')'
+            );
+        }
+    }
+
+    if (typeof args.exclude_ai === 'boolean') {
+        if (args.exclude_ai) {
+            query.addCondition('collection.collection_name NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'ai\')'
             );
         }
     }

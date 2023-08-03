@@ -33,6 +33,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         only_whitelisted: {type: 'bool'},
         exclude_blacklisted: {type: 'bool'},
         exclude_nsfw: {type: 'bool'},
+        exclude_ai: {type: 'bool'},
 
         is_recipient_contract: {type: 'bool'},
 
@@ -196,6 +197,22 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
                 'WHERE (list = \'nsfw\')' +
+                ')'
+            );
+        }
+    }
+
+    if (typeof args.exclude_ai === 'boolean') {
+        if (args.exclude_ai) {
+            query.addCondition(
+                'NOT EXISTS(' +
+                'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
+                '(asset.collection_name = ANY (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE (list = \'ai\')' +
                 ')'
             );
         }

@@ -10,7 +10,7 @@ import {bulkInsert} from '../../../utils';
 import logger from '../../../../utils/winston';
 
 const atomicCollectionListRegex = /^col\..*$/g;
-const neftyCollectionListRegex = /^(whitelist|verified|blacklist|nsfw|scam|exceptions)$/g;
+const neftyCollectionListRegex = /^(whitelist|verified|blacklist|nsfw|scam|exceptions|ai)$/g;
 const zneftyCollectionListRegex = /^(z\.whitelist|z\.verified|z\.blacklist|z\.nsfw|z\.scam)$/g;
 
 export async function initCollections(args: CollectionsListArgs, connection: ConnectionManager): Promise<void> {
@@ -222,6 +222,8 @@ function convertCollectionListName(contract: string, list_name: string, args: Co
             list = 'nsfw';
         } else if (list_name === 'z.scam') {
             list = 'scam';
+        } else if (list_name === 'ai') {
+            list = 'ai';
         }
     }
     return list;

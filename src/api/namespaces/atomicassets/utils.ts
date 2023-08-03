@@ -223,6 +223,7 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
         only_whitelisted: {type: 'bool'},
         exclude_blacklisted: {type: 'bool'},
         exclude_nsfw: {type: 'bool'},
+        exclude_ai: {type: 'bool'},
     });
 
     let collectionBlacklist: string[] = [];
@@ -265,6 +266,16 @@ export function buildGreylistFilter(values: FilterValues, query: QueryBuilder, c
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
                 'WHERE list = \'nsfw\')'
+            );
+        }
+    }
+
+    if (typeof args.exclude_ai === 'boolean') {
+        if (args.exclude_ai) {
+            query.addCondition(columns.collectionName + ' NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'ai\')'
             );
         }
     }
