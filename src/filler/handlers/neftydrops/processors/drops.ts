@@ -342,7 +342,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
 
   const registerDropClaim = async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<ClaimDropActionData>, settleToUSD = false): Promise<void> => {
     const drop = await db.query(
-        'SELECT listing_price, listing_symbol, settlement_symbol, collection_name FROM neftydrops_drops WHERE drops_contract = $1 AND drop_id = $2',
+        'SELECT listing_price, listing_symbol, settlement_symbol, collection_name, referral_fee FROM neftydrops_drops WHERE drops_contract = $1 AND drop_id = $2',
         [core.args.neftydrops_account, trace.act.data.drop_id]
     );
 
@@ -356,6 +356,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       listing_symbol: listingSymbol,
       settlement_symbol: settlementSymbol,
       collection_name: collectionName,
+      referral_fee: referralFee,
     } = drop.rows[0];
 
     if (parseInt(trace.act.data.intended_delphi_median || '0', 10) === 0 || settlementSymbol === 'NULL') {
@@ -401,7 +402,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           listing_symbol: listingSymbol,
           settlement_symbol: settleToUSD ? 'USD' : settlementSymbol,
           referrer: encodeString(trace.act.data.referrer),
-          referrer_account: encodeString(trace.act.data.referrer_account),
+          referrer_account: referralFee > 0 ? encodeString(trace.act.data.referrer_account) : '',
           country: encodeString(trace.act.data.country),
           txid: Buffer.from(tx.id, 'hex'),
           created_at_block: block.block_num,
