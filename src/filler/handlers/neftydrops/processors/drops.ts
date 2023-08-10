@@ -402,7 +402,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           listing_symbol: listingSymbol,
           settlement_symbol: settleToUSD ? 'USD' : settlementSymbol,
           referrer: encodeString(trace.act.data.referrer),
-          referrer_account: referralFee > 0 ? encodeString(trace.act.data.referrer_account) : '',
+          referrer_account: referralFee > 0 && trace.act.data.referrer_account !== trace.act.data.claimer ? encodeString(trace.act.data.referrer_account) : '',
           country: encodeString(trace.act.data.country),
           txid: Buffer.from(tx.id, 'hex'),
           created_at_block: block.block_num,
