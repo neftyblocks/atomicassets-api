@@ -20,6 +20,7 @@ export type LogCreateDropActionData = {
     display_data: string,
     is_hidden?: boolean
     allow_credit_card_payments?: boolean
+    referral_fee?: number
 };
 
 export type SetDropAuthActionData = {
@@ -59,6 +60,12 @@ export type SetDropPaymentActionData = {
     allow_credit_card_payments: boolean
 };
 
+export type SetDropReferralFeeActionData = {
+    authorized_account: string,
+    drop_id: number,
+    referral_fee: number
+};
+
 export type SetDropPriceActionData = {
     authorized_account: string,
     drop_id: number,
@@ -86,6 +93,7 @@ export type ClaimDropActionData = {
     referrer: string,
     country: string
     receipt_id?: string,
+    referrer_account?: string,
 };
 
 export type LogClaimActionData = {

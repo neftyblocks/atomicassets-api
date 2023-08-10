@@ -16,6 +16,7 @@ import {
     SetDropMaxActionData,
     SetDropPaymentActionData,
     SetDropPriceActionData,
+    SetDropReferralFeeActionData,
     SetDropTimesActionData
 } from '../types/actions';
 import {preventInt64Overflow} from '../../../../utils/binary';
@@ -195,6 +196,20 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropPaymentActionData>): Promise<void> => {
           await db.update('neftydrops_drops', {
               allow_credit_card_payments: trace.act.data.allow_credit_card_payments,
+              updated_at_block: block.block_num,
+              updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+          }, {
+              str: 'drops_contract = $1 AND drop_id = $2',
+              values: [core.args.neftydrops_account, trace.act.data.drop_id]
+          }, ['drops_contract', 'drop_id']);
+      }, NeftyDropsUpdatePriority.ACTION_UPDATE_DROP.valueOf()
+  ));
+
+  destructors.push(processor.onActionTrace(
+      contract, 'setdropref',
+      async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropReferralFeeActionData>): Promise<void> => {
+          await db.update('neftydrops_drops', {
+              referral_fee: trace.act.data.referral_fee,
               updated_at_block: block.block_num,
               updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
           }, {
@@ -386,6 +401,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           listing_symbol: listingSymbol,
           settlement_symbol: settleToUSD ? 'USD' : settlementSymbol,
           referrer: encodeString(trace.act.data.referrer),
+          referrer_account: encodeString(trace.act.data.referrer_account),
           country: encodeString(trace.act.data.country),
           txid: Buffer.from(tx.id, 'hex'),
           created_at_block: block.block_num,

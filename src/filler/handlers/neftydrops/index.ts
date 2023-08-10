@@ -107,16 +107,8 @@ export default class NeftyDropsHandler extends ContractHandler {
             }
         }
 
-        if (version === '1.3.41') {
-            const viewsToUpdate = ['neftydrops_claims_master'];
-            for (const view of viewsToUpdate) {
-                logger.info(`Refreshing views ${view}`);
-                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
-            }
-        }
-
-        if (version === '1.3.42') {
-            const viewsToUpdate = ['neftydrops_drops_master'];
+        if (version === '1.3.43') {
+            const viewsToUpdate = ['neftydrops_drops_master', 'neftydrops_claims_master'];
             for (const view of viewsToUpdate) {
                 logger.info(`Refreshing views ${view}`);
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));

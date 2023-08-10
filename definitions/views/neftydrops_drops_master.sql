@@ -78,7 +78,8 @@ ON (drops_contract, drop_id)
     ndrop.max_claimable,
     ndrop.current_claimed,
     ndrop.price_recipient,
-    ndrop.allow_credit_card_payments
+    ndrop.allow_credit_card_payments,
+    ndrop.referral_fee
 FROM
     neftydrops_drops ndrop LEFT JOIN neftydrops_symbol_pairs pair
 ON (
