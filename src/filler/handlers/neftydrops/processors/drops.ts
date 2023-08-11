@@ -403,6 +403,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           settlement_symbol: settleToUSD ? 'USD' : settlementSymbol,
           referrer: encodeString(trace.act.data.referrer),
           referrer_account: referralFee > 0 && trace.act.data.referrer_account !== trace.act.data.claimer ? encodeString(trace.act.data.referrer_account) : '',
+          referral_fee: referralFee || 0,
           country: encodeString(trace.act.data.country),
           txid: Buffer.from(tx.id, 'hex'),
           created_at_block: block.block_num,
