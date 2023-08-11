@@ -33,7 +33,8 @@ ON (drops_contract, claim_id)
     claim.created_at_block,
     claim.created_at_time,
     claim.from_trigger,
-    claim.referrer_account
+    claim.referrer_account,
+    claim.referral_fee
 FROM
     neftydrops_claims claim LEFT JOIN neftydrops_tokens token
 ON (
