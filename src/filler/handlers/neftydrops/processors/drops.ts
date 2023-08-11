@@ -81,6 +81,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           max_claimable: trace.act.data.max_claimable,
           start_time: trace.act.data.start_time * 1000,
           end_time: trace.act.data.end_time * 1000,
+          referral_fee: trace.act.data.referral_fee,
           display_data: trace.act.data.display_data,
           is_hidden: trace.act.data.is_hidden || false,
           allow_credit_card_payments: trace.act.data.allow_credit_card_payments || false,
