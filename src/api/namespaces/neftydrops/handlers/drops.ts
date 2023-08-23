@@ -72,7 +72,7 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         price: {column: 'price.price', nullable: true}
     };
 
-    query.append('ORDER BY ' + (args.sort_available_first === true ? 'is_available DESC NULLS LAST, (CASE WHEN end_time = 0 THEN 1 WHEN end_time < ' + new Date().getTime() + ' THEN 0 ELSE 1 END)::INTEGER DESC NULLS LAST, ' : '') + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : ''));
+    query.append('ORDER BY ' + (args.sort_available_first === true ? '(CASE WHEN end_time < ' + Date.now() + ' AND end_time != 0 THEN 0 WHEN is_available THEN 2 ELSE 1 END)::INTEGER DESC NULLS LAST, ' : '') + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : ''));
     query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
     const dropQuery = await ctx.db.query(query.buildString(), query.buildValues());
@@ -174,7 +174,7 @@ export async function getDropsByCollection(params: RequestValues, ctx: NeftyDrop
             FROM neftydrops_drops ndrop
             LEFT JOIN neftydrops_drop_prices price ON (price.drops_contract = ndrop.drops_contract AND price.drop_id = ndrop.drop_id)
             ${query.buildString()} AND ndrop.collection_name = collection.collection_name
-            ORDER BY ${(args.sort_available_first === true ? 'is_available DESC NULLS LAST, (CASE WHEN end_time = 0 THEN 1 WHEN end_time < ' + new Date().getTime() + ' THEN 0 ELSE 1 END)::INTEGER DESC NULLS LAST, ' : '')} ndrop.${sortColumn} ${args.order}
+            ORDER BY ${(args.sort_available_first === true ? '(CASE WHEN end_time < ' + Date.now() + ' AND end_time != 0 THEN 0 WHEN is_available THEN 2 ELSE 1 END)::INTEGER DESC NULLS LAST, ' : '')} ndrop.${sortColumn} ${args.order}
             LIMIT ${dropLimitVar} 
         ) collection_drops on true
         GROUP BY collection.collection_name, collection.${sortColumn}
