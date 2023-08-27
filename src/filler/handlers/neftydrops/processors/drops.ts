@@ -78,7 +78,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           preminted: trace.act.data.assets_to_mint.some(asset => asset.use_pool),
           account_limit: trace.act.data.account_limit,
           account_limit_cooldown: trace.act.data.account_limit_cooldown,
-          max_claimable: trace.act.data.max_claimable,
+          max_claimable: preventInt64Overflow(trace.act.data.max_claimable?.toString()),
           start_time: trace.act.data.start_time * 1000,
           end_time: trace.act.data.end_time * 1000,
           referral_fee: trace.act.data.referral_fee,
@@ -168,7 +168,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       contract, 'setdropmax',
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropMaxActionData>): Promise<void> => {
         await db.update('neftydrops_drops', {
-          max_claimable: trace.act.data.new_max_claimable,
+          max_claimable: preventInt64Overflow(trace.act.data.new_max_claimable?.toString()),
           updated_at_block: block.block_num,
           updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, {
