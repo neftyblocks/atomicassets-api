@@ -76,8 +76,8 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           price_recipient: trace.act.data.price_recipient,
           auth_required: trace.act.data.auth_required,
           preminted: trace.act.data.assets_to_mint.some(asset => asset.use_pool),
-          account_limit: trace.act.data.account_limit,
-          account_limit_cooldown: trace.act.data.account_limit_cooldown,
+          account_limit: preventInt64Overflow(trace.act.data.account_limit.toString()),
+          account_limit_cooldown: preventInt64Overflow(trace.act.data.account_limit_cooldown.toString()),
           max_claimable: preventInt64Overflow(trace.act.data.max_claimable?.toString()),
           start_time: trace.act.data.start_time * 1000,
           end_time: trace.act.data.end_time * 1000,
@@ -153,8 +153,8 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       contract, 'setdroplimit',
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropLimitActionData>): Promise<void> => {
         await db.update('neftydrops_drops', {
-          account_limit: trace.act.data.account_limit,
-          account_limit_cooldown: trace.act.data.account_limit_cooldown,
+          account_limit: preventInt64Overflow(trace.act.data.account_limit.toString()),
+          account_limit_cooldown: preventInt64Overflow(trace.act.data.account_limit_cooldown.toString()),
           updated_at_block: block.block_num,
           updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
         }, {
