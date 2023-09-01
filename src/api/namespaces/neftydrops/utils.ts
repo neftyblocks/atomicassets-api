@@ -78,6 +78,7 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
     const args = filterQueryArgs(values, {
         state: {type: 'string', min: 0},
         hidden: {type: 'bool', default: false},
+        secure: {type: 'bool'},
 
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
@@ -157,6 +158,9 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
         if (args.state.split(',').indexOf(String(DropApiState.ENDED.valueOf())) >= 0) {
             stateFilters.push('(ndrop.is_deleted = FALSE AND ndrop.end_time > 0::BIGINT AND ndrop.end_time < ' + new Date().getTime() +'::BIGINT)');
         }
+        if (args.state.split(',').indexOf(String(DropApiState.AVAILABLE.valueOf())) >= 0) {
+            stateFilters.push('(ndrop.is_deleted = FALSE AND ndrop.is_available = TRUE AND (ndrop.end_time = 0::BIGINT OR ndrop.end_time > ' + new Date().getTime() +'::BIGINT))');
+        }
         query.addCondition('(' + stateFilters.join(' OR ') + ')');
     } else {
         query.addCondition('(ndrop.is_deleted = FALSE AND (ndrop.end_time = 0::BIGINT OR ndrop.end_time > ' + new Date().getTime() +'::BIGINT))');
@@ -164,6 +168,10 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
 
     if (!args.hidden) {
         query.equal('ndrop.is_hidden', false);
+    }
+
+    if (typeof args.secure === 'boolean') {
+        query.equal('ndrop.auth_required', args.secure);
     }
 }
 

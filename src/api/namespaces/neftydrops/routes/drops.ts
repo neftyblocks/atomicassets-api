@@ -48,6 +48,7 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                                 DropApiState.DELETED.valueOf() + ': DELETED - The drop is deleted' +
                                 DropApiState.SOLD_OUT.valueOf() + ': SOLD_OUT - The drop is sold out' +
                                 DropApiState.ENDED.valueOf() + ': ENDED - The drop is ended' +
+                                DropApiState.AVAILABLE.valueOf() + ': AVAILABLE - The drop is available for purchase' +
                                 ') - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
@@ -56,6 +57,13 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             name: 'hidden',
                             in: 'query',
                             description: 'Display hidden drops',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
+                        {
+                            name: 'secure',
+                            in: 'query',
+                            description: 'Filters by secure or non-secured drops',
                             required: false,
                             schema: {type: 'boolean'}
                         },
@@ -119,6 +127,7 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                                 DropApiState.DELETED.valueOf() + ': DELETED - The drop is deleted' +
                                 DropApiState.SOLD_OUT.valueOf() + ': SOLD_OUT - The drop is sold out' +
                                 DropApiState.ENDED.valueOf() + ': ENDED - The drop is ended' +
+                                DropApiState.AVAILABLE.valueOf() + ': AVAILABLE - The drop is available for purchase' +
                                 ') - separate multiple with ","',
                             required: false,
                             schema: {type: 'string'}
@@ -127,6 +136,13 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             name: 'hidden',
                             in: 'query',
                             description: 'Display hidden drops',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
+                        {
+                            name: 'secure',
+                            in: 'query',
+                            description: 'Filters by secure or non-secured drops',
                             required: false,
                             schema: {type: 'boolean'}
                         },

@@ -22,6 +22,7 @@ export enum DropApiState {
     DELETED= 1,
     SOLD_OUT = 2,
     ENDED = 3,
+    AVAILABLE = 4
 }
 
 export type NeftyDropsContext = ActionHandlerContext<NeftyDropsNamespaceArgs>;
