@@ -12,6 +12,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         match: {type: 'string', min: 1},
+        search: {type: 'string', min: 1},
 
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
@@ -44,6 +45,11 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
     if (args.match) {
         queryString += 'AND collection_name ILIKE $' + ++varCounter + ' ';
         queryValues.push('%' + args.match + '%');
+    }
+
+    if (args.search) {
+        queryString += ' AND $'+ ++varCounter + ` <% (collection_name || ' ' || COALESCE(data->>'name', ''))`;
+        queryValues.push(args.search);
     }
 
     if (args.collection_whitelist) {
