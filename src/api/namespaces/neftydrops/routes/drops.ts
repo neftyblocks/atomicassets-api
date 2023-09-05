@@ -41,13 +41,20 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                     description: dropDataFilter,
                     parameters: [
                         {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Filter by symbol',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
                             name: 'state',
                             in: 'query',
                             description: 'Filter by drop state (' +
                                 DropApiState.ACTIVE.valueOf() + ': ACTIVE - The drop is active (default), ' +
-                                DropApiState.DELETED.valueOf() + ': DELETED - The drop is deleted' +
-                                DropApiState.SOLD_OUT.valueOf() + ': SOLD_OUT - The drop is sold out' +
-                                DropApiState.ENDED.valueOf() + ': ENDED - The drop is ended' +
+                                DropApiState.DELETED.valueOf() + ': DELETED - The drop is deleted ' +
+                                DropApiState.SOLD_OUT.valueOf() + ': SOLD_OUT - The drop is sold out ' +
+                                DropApiState.ENDED.valueOf() + ': ENDED - The drop is ended ' +
                                 DropApiState.AVAILABLE.valueOf() + ': AVAILABLE - The drop is available for purchase' +
                                 ') - separate multiple with ","',
                             required: false,
@@ -101,7 +108,7 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                                 type: 'string',
                                 enum: [
                                     'created', 'updated', 'drop_id', 'price',
-                                    'start_time', 'end_time',
+                                    'start_time', 'end_time', 'volume'
                                 ],
                                 default: 'created'
                             }
@@ -124,9 +131,9 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             in: 'query',
                             description: 'Filter by drop state (' +
                                 DropApiState.ACTIVE.valueOf() + ': ACTIVE - The drop is active (default), ' +
-                                DropApiState.DELETED.valueOf() + ': DELETED - The drop is deleted' +
-                                DropApiState.SOLD_OUT.valueOf() + ': SOLD_OUT - The drop is sold out' +
-                                DropApiState.ENDED.valueOf() + ': ENDED - The drop is ended' +
+                                DropApiState.DELETED.valueOf() + ': DELETED - The drop is deleted ' +
+                                DropApiState.SOLD_OUT.valueOf() + ': SOLD_OUT - The drop is sold out ' +
+                                DropApiState.ENDED.valueOf() + ': ENDED - The drop is ended ' +
                                 DropApiState.AVAILABLE.valueOf() + ': AVAILABLE - The drop is available for purchase' +
                                 ') - separate multiple with ","',
                             required: false,
