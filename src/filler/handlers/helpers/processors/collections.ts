@@ -93,7 +93,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
         neftyContract, 'features',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<FeaturesTableRow>): Promise<void> => {
             const matchesNeftyList = delta.value.list.match(neftyCollectionListRegex);
-            const matchesAtomicList = atomicContract && delta.value.list.match(zneftyCollectionListRegex);
+            const matchesAtomicList = delta.value.list.match(zneftyCollectionListRegex);
             const contractName = matchesNeftyList ? neftyContract : matchesAtomicList ? 'atomic' : null;
             if (delta.scope === neftyContract && contractName) {
                 const listName = convertCollectionListName(neftyContract, delta.value.list, core.args);
