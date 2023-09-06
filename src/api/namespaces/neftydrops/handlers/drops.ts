@@ -48,12 +48,23 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         dateColumn = 'ndrop.start_time';
     } else if (args.sort === 'end_time') {
         dateColumn = 'ndrop.end_time';
+    } else if (args.sort === 'volume') {
+        dateColumn = 'stats.created_at_time';
     }
 
     buildBoundaryFilter(
         params, query, 'ndrop.drop_id', 'int',
         dateColumn
     );
+
+    if (args.sort === 'volume') {
+        const symbol = args.symbol;
+        if (!symbol) {
+            throw new ApiError('Param: \'symbol\' is required when sorting by volume', 400);
+        }
+        query.appendToBase(`LEFT JOIN neftydrops_claims stats ON (stats.drops_contract = ndrop.drops_contract AND stats.drop_id = ndrop.drop_id AND stats.settlement_symbol = ${query.addVariable(symbol)})`);
+        query.append('GROUP BY ndrop.drop_id');
+    }
 
     if (args.count) {
         const countQuery = await ctx.db.query(
@@ -73,15 +84,6 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         price: {column: 'price.price', nullable: true},
         volume: {column: 'SUM(stats.total_price)', nullable: true}
     };
-
-    if (args.sort === 'volume') {
-        const symbol = args.symbol;
-        if (!symbol) {
-            throw new ApiError('Param: \'symbol\' is required when sorting by volume', 400);
-        }
-        query.appendToBase(`LEFT JOIN neftydrops_claims stats ON (stats.drops_contract = ndrop.drops_contract AND stats.drop_id = ndrop.drop_id AND stats.settlement_symbol = ${query.addVariable(symbol)})`);
-        query.append('GROUP BY ndrop.drop_id');
-    }
 
     query.append('ORDER BY ' + (args.sort_available_first === true ? '(CASE WHEN end_time < ' + Date.now() + ' AND end_time != 0 THEN 0 WHEN is_available THEN 2 ELSE 1 END)::INTEGER DESC NULLS LAST, ' : '') + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : ''));
     query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
