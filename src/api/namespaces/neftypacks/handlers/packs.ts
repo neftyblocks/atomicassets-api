@@ -26,7 +26,7 @@ export async function getPacksAction(params: RequestValues, ctx: NeftyPacksConte
     });
 
 
-    const query = new QueryBuilder('SELECT packs.pack_id FROM neftypacks_packs packs');
+    const query = new QueryBuilder('SELECT * FROM neftypacks_packs packs');
 
     if (!args.collection_name) {
         buildGreylistFilter(params, query, {collectionName: 'packs.collection_name'});
