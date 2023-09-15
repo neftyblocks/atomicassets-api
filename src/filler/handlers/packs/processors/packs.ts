@@ -38,7 +38,9 @@ const fillPacks = async (args: PacksArgs, connection: ConnectionManager, contrac
 
 export async function initPacks(args: PacksArgs, connection: ConnectionManager): Promise<void> {
     await fillPacks(args, connection, args.nefty_packs_account);
-    await fillPacks(args, connection, args.atomic_packs_account);
+    if (args.atomic_packs_account.trim()) {
+        await fillPacks(args, connection, args.atomic_packs_account.trim());
+    }
 }
 
 const packsTableListener = (core: PacksHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<PacksTableRow>): Promise<void> => {
@@ -77,8 +79,8 @@ const packsTableListener = (core: PacksHandler, contract: string) => async (db: 
 
 export function packsProcessor(core: PacksHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
-    const neftyContract = core.args.nefty_packs_account;
-    const atomicContract = core.args.atomic_packs_account;
+    const neftyContract = core.args.nefty_packs_account.trim();
+    const atomicContract = core.args.atomic_packs_account.trim();
 
     destructors.push(processor.onContractRow(
         neftyContract, 'packs',
@@ -86,11 +88,13 @@ export function packsProcessor(core: PacksHandler, processor: DataProcessor): ()
         PacksUpdatePriority.TABLE_PACKS.valueOf()
     ));
 
-    destructors.push(processor.onContractRow(
-        atomicContract, 'packs',
-        packsTableListener(core, atomicContract),
-        PacksUpdatePriority.TABLE_PACKS.valueOf()
-    ));
+    if (atomicContract) {
+        destructors.push(processor.onContractRow(
+            atomicContract, 'packs',
+            packsTableListener(core, atomicContract),
+            PacksUpdatePriority.TABLE_PACKS.valueOf()
+        ));
+    }
 
     return (): any => destructors.map(fn => fn());
 }
