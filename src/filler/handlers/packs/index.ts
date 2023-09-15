@@ -21,7 +21,7 @@ export enum PacksUpdatePriority {
 }
 
 export default class PacksHandler extends ContractHandler {
-    static handlerName = 'blends';
+    static handlerName = 'neftypacks';
 
     declare readonly args: PacksArgs;
 
@@ -65,7 +65,7 @@ export default class PacksHandler extends ContractHandler {
         }
     }
 
-    async init(client: PoolClient): Promise<void> {
+    async init(): Promise<void> {
         try {
             await this.connection.database.begin();
             await initPacks(this.args, this.connection);
