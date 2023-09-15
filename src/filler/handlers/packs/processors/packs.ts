@@ -47,10 +47,6 @@ const packsTableListener = (core: PacksHandler, contract: string) => async (db: 
         [core.args.atomicassets_account, contract, delta.value.pack_id]
     );
 
-    if (delta.value.pack_template_id < 0) {
-        return;
-    }
-
     if (!delta.present) {
         const deleteString = 'assets_contract = $1 AND contract = $2 AND pack_id = $3';
         const deleteValues = [core.args.atomicassets_account, contract, delta.value.pack_id];
