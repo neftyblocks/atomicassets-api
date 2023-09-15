@@ -12,7 +12,7 @@ export function hasTemplateFilter(values: FilterValues, blacklist: string[] = []
 
     for (const key of keys) {
         if (
-            ['template_id', 'schema_name', 'is_transferable', 'is_burnable'].indexOf(key) >= 0 &&
+            ['template_id', 'schema_name', 'is_transferable', 'is_burnable', 'is_locked'].indexOf(key) >= 0 &&
             blacklist.indexOf(key) === -1
         ) {
             return true;
@@ -32,7 +32,8 @@ export function buildTemplateFilter(
         template_id: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},
         is_transferable: {type: 'bool'},
-        is_burnable: {type: 'bool'}
+        is_burnable: {type: 'bool'},
+        is_locked: { type: 'bool'},
     });
 
     if (options.allowDataFilter !== false) {
@@ -62,6 +63,14 @@ export function buildTemplateFilter(
             query.addCondition(options.templateTable + '.burnable = FALSE');
         }
     }
+
+    if (options.templateTable && typeof args.is_locked === 'boolean') {
+        if (args.is_locked) {
+            query.addCondition('("drop_asset".use_pool = FALSE AND '+options.templateTable + '.max_supply > 0 AND ' + options.templateTable + '.max_supply = ' + options.templateTable + '.issued_supply)');
+        } else {
+            query.addCondition('("drop_asset".use_pool = FALSE AND ('+options.templateTable + '.max_supply = 0 OR ' + options.templateTable + '.max_supply > ' + options.templateTable + '.issued_supply))');
+        }
+    }
 }
 
 export function buildListingFilter(values: FilterValues, query: QueryBuilder): void {
@@ -79,6 +88,7 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
         state: {type: 'string', min: 0},
         hidden: {type: 'bool', default: false},
         secure: {type: 'bool'},
+        has_referrals_enabled: {type: 'bool'},
 
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
@@ -91,20 +101,6 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
     });
 
     buildListingFilter(values, query);
-
-    if (hasTemplateFilter(values) || hasDataFilters(values)) {
-        const assetQuery = new QueryBuilder(
-            'SELECT * FROM neftydrops_drop_assets drop_asset ' +
-            'LEFT JOIN atomicassets_templates "template" ON (drop_asset.assets_contract = "template".contract AND drop_asset.template_id = "template".template_id)',
-            query.buildValues()
-        );
-
-        assetQuery.addCondition('drop_asset.drop_id = ndrop.drop_id');
-        buildTemplateFilter(values, assetQuery, {templateTable: '"template"', allowDataFilter: true});
-
-        query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
-        query.setVars(assetQuery.buildValues());
-    }
 
     if (args.max_assets) {
         query.addCondition(
@@ -154,12 +150,18 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
         }
         if (args.state.split(',').indexOf(String(DropApiState.SOLD_OUT.valueOf())) >= 0) {
             stateFilters.push('(ndrop.is_deleted = FALSE AND ndrop.max_claimable > 0 AND ndrop.max_claimable <= ndrop.current_claimed)');
+            values.is_locked = 'true';
         }
         if (args.state.split(',').indexOf(String(DropApiState.ENDED.valueOf())) >= 0) {
             stateFilters.push('(ndrop.is_deleted = FALSE AND ndrop.end_time > 0::BIGINT AND ndrop.end_time < ' + new Date().getTime() +'::BIGINT)');
         }
         if (args.state.split(',').indexOf(String(DropApiState.AVAILABLE.valueOf())) >= 0) {
             stateFilters.push('(ndrop.is_deleted = FALSE AND ndrop.is_available = TRUE AND (ndrop.end_time = 0::BIGINT OR ndrop.end_time > ' + new Date().getTime() +'::BIGINT))');
+            if (values.is_locked === 'true') {
+                values.is_locked = '';
+            } else {
+                values.is_locked = 'false';
+            }
         }
         query.addCondition('(' + stateFilters.join(' OR ') + ')');
     } else {
@@ -172,6 +174,28 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
 
     if (typeof args.secure === 'boolean') {
         query.equal('ndrop.auth_required', args.secure);
+    }
+
+    if (typeof args.has_referrals_enabled === 'boolean') {
+        if (args.has_referrals_enabled) {
+            query.addCondition('ndrop.referral_fee > 0');
+        } else {
+            query.addCondition('ndrop.referral_fee = 0');
+        }
+    }
+
+    if (hasTemplateFilter(values) || hasDataFilters(values)) {
+        const assetQuery = new QueryBuilder(
+            'SELECT * FROM neftydrops_drop_assets drop_asset ' +
+            'LEFT JOIN atomicassets_templates "template" ON (drop_asset.assets_contract = "template".contract AND drop_asset.template_id = "template".template_id)',
+            query.buildValues()
+        );
+
+        assetQuery.addCondition('drop_asset.drop_id = ndrop.drop_id');
+        buildTemplateFilter(values, assetQuery, {templateTable: '"template"', allowDataFilter: true});
+
+        query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
+        query.setVars(assetQuery.buildValues());
     }
 }
 
