@@ -75,6 +75,13 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             schema: {type: 'boolean'}
                         },
                         {
+                            name: 'has_referrals_enabled',
+                            in: 'query',
+                            description: 'Filters by drops with or without referrals enabled',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
+                        {
                             name: 'hide_description',
                             in: 'query',
                             description: 'Removed the drop description from the response',
@@ -150,6 +157,13 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             name: 'secure',
                             in: 'query',
                             description: 'Filters by secure or non-secured drops',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
+                        {
+                            name: 'has_referrals_enabled',
+                            in: 'query',
+                            description: 'Filters by drops with or without referrals enabled',
                             required: false,
                             schema: {type: 'boolean'}
                         },
