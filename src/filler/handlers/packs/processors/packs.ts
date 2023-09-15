@@ -23,7 +23,7 @@ const fillPacks = async (args: PacksArgs, connection: ConnectionManager, contrac
             scope: contract, table: 'packs'
         }, 1000) as PacksTableRow[];
 
-        const dbMaps = packsTable.map(blend => getPackDbRows(blend, args, null, null, contract));
+        const dbMaps = packsTable.map(pack => getPackDbRows(pack, args, null, null, contract));
 
         const packDbRows = [];
         for (const {
@@ -43,7 +43,7 @@ export async function initPacks(args: PacksArgs, connection: ConnectionManager):
 
 const packsTableListener = (core: PacksHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<PacksTableRow>): Promise<void> => {
     const pack = await db.query(
-        'SELECT blend_id FROM neftypacks_packs WHERE assets_contract = $1 AND contract = $2 AND pack_id = $3',
+        'SELECT pack_id FROM neftypacks_packs WHERE assets_contract = $1 AND contract = $2 AND pack_id = $3',
         [core.args.atomicassets_account, contract, delta.value.pack_id]
     );
 
