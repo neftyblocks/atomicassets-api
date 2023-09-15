@@ -150,18 +150,18 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
         }
         if (args.state.split(',').indexOf(String(DropApiState.SOLD_OUT.valueOf())) >= 0) {
             stateFilters.push('(ndrop.is_deleted = FALSE AND ndrop.max_claimable > 0 AND ndrop.max_claimable <= ndrop.current_claimed)');
-            values.is_locked = 'true';
+            // values.is_locked = 'true';
         }
         if (args.state.split(',').indexOf(String(DropApiState.ENDED.valueOf())) >= 0) {
             stateFilters.push('(ndrop.is_deleted = FALSE AND ndrop.end_time > 0::BIGINT AND ndrop.end_time < ' + new Date().getTime() +'::BIGINT)');
         }
         if (args.state.split(',').indexOf(String(DropApiState.AVAILABLE.valueOf())) >= 0) {
             stateFilters.push('(ndrop.is_deleted = FALSE AND ndrop.is_available = TRUE AND (ndrop.end_time = 0::BIGINT OR ndrop.end_time > ' + new Date().getTime() +'::BIGINT))');
-            if (values.is_locked === 'true') {
-                values.is_locked = '';
-            } else {
-                values.is_locked = 'false';
-            }
+            // if (values.is_locked === 'true') {
+            //     values.is_locked = '';
+            // } else {
+            //     values.is_locked = 'false';
+            // }
         }
         query.addCondition('(' + stateFilters.join(' OR ') + ')');
     } else {
