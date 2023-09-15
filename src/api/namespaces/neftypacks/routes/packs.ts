@@ -28,8 +28,6 @@ export function packsEndpoints(core: NeftyPacksNamespace, server: HTTPServer, ro
                     summary: 'Fetch packs.',
                     description: 'Fetch packs in the nefty and atomic contracts.',
                     parameters: [
-                        ...greylistFilterParameters,
-                        ...paginationParameters,
                         {
                             name: 'collection_name',
                             in: 'query',
@@ -52,12 +50,21 @@ export function packsEndpoints(core: NeftyPacksNamespace, server: HTTPServer, ro
                             schema: {type: 'boolean', default: false}
                         },
                         {
+                            name: 'display_pending',
+                            in: 'query',
+                            description: 'Display pending packs',
+                            required: false,
+                            schema: {type: 'boolean', default: false}
+                        },
+                        {
                             name: 'render_markdown',
                             in: 'query',
                             description: 'Renders the markdown in the description as HTML',
                             required: false,
                             schema: {type: 'boolean', default: false}
                         },
+                        ...greylistFilterParameters,
+                        ...paginationParameters,
                         {
                             name: 'sort',
                             in: 'query',

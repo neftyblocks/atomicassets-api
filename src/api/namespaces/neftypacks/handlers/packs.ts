@@ -13,6 +13,7 @@ export async function getPacksAction(params: RequestValues, ctx: NeftyPacksConte
         collection_name: {type: 'string', min: 1},
         render_markdown: {type: 'bool', default: false},
         hide_description: {type: 'bool', default: false},
+        display_pending: {type: 'bool', default: false},
         contract: {type: 'string'},
         sort: {
             type: 'string',
@@ -38,6 +39,10 @@ export async function getPacksAction(params: RequestValues, ctx: NeftyPacksConte
 
     if (args.collection_name) {
         query.equalMany('packs.collection_name', args.collection_name.split(','));
+    }
+
+    if (args.display_pending === false) {
+        query.addCondition('packs.pack_template_id >= 0');
     }
 
     if (args.count) {
