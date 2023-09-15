@@ -11,6 +11,7 @@ import DataProcessor from '../../processor';
 import {balanceProcessor} from './processors/balances';
 import {configProcessor} from './processors/config';
 import {dropsProcessor} from './processors/drops';
+import {initSecurityMechanisms, securityProcessor} from './processors/security';
 import {JobQueuePriority} from '../../jobqueue';
 
 export const NEFTYDROPS_BASE_PRIORITY = Math.max(ATOMICASSETS_BASE_PRIORITY, DELPHIORACLE_BASE_PRIORITY) + 1000;
@@ -18,16 +19,22 @@ export const NEFTYDROPS_BASE_PRIORITY = Math.max(ATOMICASSETS_BASE_PRIORITY, DEL
 export type NeftyDropsArgs = {
     neftydrops_account: string,
     atomicassets_account: string,
-    delphioracle_account: string
+    delphioracle_account: string,
+    social_tokens_contract?: string,
 };
 
 export enum NeftyDropsUpdatePriority {
     TABLE_BALANCES = NEFTYDROPS_BASE_PRIORITY + 10,
     TABLE_CONFIG = NEFTYDROPS_BASE_PRIORITY + 10,
+    TABLE_ACCOUNT_STATS = NEFTYDROPS_BASE_PRIORITY + 10,
+    TABLE_WHITELISTS = NEFTYDROPS_BASE_PRIORITY + 10,
+    TABLE_AUTH_KEYS = NEFTYDROPS_BASE_PRIORITY + 10,
+    TABLE_PROOF_OWNERSHIP = NEFTYDROPS_BASE_PRIORITY + 10,
     ACTION_CREATE_DROP = NEFTYDROPS_BASE_PRIORITY + 20,
     ACTION_UPDATE_DROP = NEFTYDROPS_BASE_PRIORITY + 20,
     ACTION_CLAIM_DROP = NEFTYDROPS_BASE_PRIORITY + 40,
-    ACTION_LOG_CLAIM = ACTION_CLAIM_DROP + 10,
+    ACTION_LOG_CLAIM = ACTION_CLAIM_DROP + 50,
+    TABLE_DROP = NEFTYDROPS_BASE_PRIORITY + 50,
 }
 
 const views = [
@@ -38,6 +45,12 @@ const views = [
     'neftydrops_attribute_filters_master'
 ];
 const materializedViews = ['neftydrops_stats', 'neftydrops_drop_prices', 'neftydrops_attribute_filters'];
+
+const functions = [
+    'neftydrops_is_account_within_use_limits',
+    'neftydrops_is_account_in_whitelist',
+    'neftydrops_is_key_authorized'
+];
 
 export default class NeftyDropsHandler extends ContractHandler {
     static handlerName = 'neftydrops';
@@ -67,6 +80,10 @@ export default class NeftyDropsHandler extends ContractHandler {
                 await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
             }
 
+            for (const fn of functions) {
+                await client.query(fs.readFileSync('./definitions/functions/' + fn + '.sql', {encoding: 'utf8'}));
+            }
+
             logger.info('NeftyDrops tables successfully created');
 
             return true;
@@ -78,14 +95,23 @@ export default class NeftyDropsHandler extends ContractHandler {
     static async upgrade(client: PoolClient, version: string): Promise<void> {
         if (version === '1.3.2') {
             const viewsToUpdate = ['neftydrops_drops_master', 'neftydrops_drop_prices_master'];
-            const materializedViewsToUpdate = ['neftydrops_drop_prices'];
+            const materializedToUpdate = ['neftydrops_drop_prices'];
             for (const view of viewsToUpdate) {
                 logger.info(`Refreshing views ${view}`);
                 await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
             }
-            for (const view of materializedViewsToUpdate) {
+
+            for (const view of materializedToUpdate) {
                 logger.info(`Refreshing materialized views ${view}`);
                 await client.query(fs.readFileSync('./definitions/materialized/' + view + '.sql', {encoding: 'utf8'}));
+            }
+        }
+
+        if (version === '1.3.43') {
+            const viewsToUpdate = ['neftydrops_drops_master', 'neftydrops_claims_master'];
+            for (const view of viewsToUpdate) {
+                logger.info(`Refreshing views ${view}`);
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
             }
         }
     }
@@ -99,77 +125,85 @@ export default class NeftyDropsHandler extends ContractHandler {
     }
 
     async init(client: PoolClient): Promise<void> {
-        const configQuery = await client.query(
-            'SELECT * FROM neftydrops_config WHERE drops_contract = $1',
-            [this.args.neftydrops_account]
-        );
+        try {
+            await this.connection.database.begin();
+            await initSecurityMechanisms(this.args, this.connection);
+            const configQuery = await client.query(
+                'SELECT * FROM neftydrops_config WHERE drops_contract = $1',
+                [this.args.neftydrops_account]
+            );
 
-        if (configQuery.rows.length === 0) {
-            const configTable = await this.connection.chain.rpc.get_table_rows({
-                json: true, code: this.args.neftydrops_account,
-                scope: this.args.neftydrops_account, table: 'config'
-            });
+            if (configQuery.rows.length === 0) {
+                const configTable = await this.connection.chain.rpc.get_table_rows({
+                    json: true, code: this.args.neftydrops_account,
+                    scope: this.args.neftydrops_account, table: 'config'
+                });
 
-            if (configTable.rows.length === 0) {
-                throw new Error('NeftyDrops: Unable to fetch neftydrops version');
+                if (configTable.rows.length === 0) {
+                    throw new Error('NeftyDrops: Unable to fetch neftydrops version');
+                }
+
+                const config: ConfigTableRow = configTable.rows[0];
+
+                this.args.delphioracle_account = config.delphioracle_account;
+                this.args.atomicassets_account = config.atomicassets_account;
+
+                await client.query(
+                    'INSERT INTO neftydrops_config ' +
+                    '(' +
+                        'drops_contract, assets_contract, delphi_contract, ' +
+                        'version, drop_fee, drop_fee_recipient ' +
+                    ') ' +
+                    'VALUES ($1, $2, $3, $4, $5, $6)',
+                    [
+                        this.args.neftydrops_account,
+                        this.args.atomicassets_account,
+                        config.delphioracle_account,
+                        config.version,
+                        config.drop_fee,
+                        config.drop_fee_recipient
+                    ]
+                );
+
+                this.config = {
+                    ...config,
+                    supported_symbol_pairs: [],
+                    supported_tokens: []
+                };
+            } else {
+                this.args.delphioracle_account = configQuery.rows[0].delphi_contract;
+                this.args.atomicassets_account = configQuery.rows[0].assets_contract;
+
+                const tokensQuery = await this.connection.database.query(
+                    'SELECT * FROM neftydrops_tokens WHERE drops_contract = $1',
+                    [this.args.neftydrops_account]
+                );
+
+                const pairsQuery = await this.connection.database.query(
+                    'SELECT * FROM neftydrops_symbol_pairs WHERE drops_contract = $1',
+                    [this.args.neftydrops_account]
+                );
+
+                this.config = {
+                    ...configQuery.rows[0],
+                    supported_symbol_pairs: pairsQuery.rows.map(row => ({
+                        listing_symbol: 'X,' + row.listing_symbol,
+                        settlement_symbol: 'X,' + row.settlement_symbol,
+                        invert_delphi_pair: row.invert_delphi_pair,
+                        delphi_pair_name: row.delphi_pair_name
+                    })),
+                    supported_tokens: tokensQuery.rows.map(row => ({
+                        token_contract: row.token_contract,
+                        token_symbol: row.token_precision + ',' + row.token_symbol
+                    })),
+                    delphioracle_account: this.args.delphioracle_account,
+                    atomicassets_account: this.args.atomicassets_account
+                };
             }
-
-            const config: ConfigTableRow = configTable.rows[0];
-
-            this.args.delphioracle_account = config.delphioracle_account;
-            this.args.atomicassets_account = config.atomicassets_account;
-
-            await client.query(
-                'INSERT INTO neftydrops_config ' +
-                '(' +
-                    'drops_contract, assets_contract, delphi_contract, ' +
-                    'version, drop_fee, drop_fee_recipient ' +
-                ') ' +
-                'VALUES ($1, $2, $3, $4, $5, $6)',
-                [
-                    this.args.neftydrops_account,
-                    this.args.atomicassets_account,
-                    config.delphioracle_account,
-                    config.version,
-                    config.drop_fee,
-                    config.drop_fee_recipient
-                ]
-            );
-
-            this.config = {
-                ...config,
-                supported_symbol_pairs: [],
-                supported_tokens: []
-            };
-        } else {
-            this.args.delphioracle_account = configQuery.rows[0].delphi_contract;
-            this.args.atomicassets_account = configQuery.rows[0].assets_contract;
-
-            const tokensQuery = await this.connection.database.query(
-                'SELECT * FROM neftydrops_tokens WHERE drops_contract = $1',
-                [this.args.neftydrops_account]
-            );
-
-            const pairsQuery = await this.connection.database.query(
-                'SELECT * FROM neftydrops_symbol_pairs WHERE drops_contract = $1',
-                [this.args.neftydrops_account]
-            );
-
-            this.config = {
-                ...configQuery.rows[0],
-                supported_symbol_pairs: pairsQuery.rows.map(row => ({
-                    listing_symbol: 'X,' + row.listing_symbol,
-                    settlement_symbol: 'X,' + row.settlement_symbol,
-                    invert_delphi_pair: row.invert_delphi_pair,
-                    delphi_pair_name: row.delphi_pair_name
-                })),
-                supported_tokens: tokensQuery.rows.map(row => ({
-                    token_contract: row.token_contract,
-                    token_symbol: row.token_precision + ',' + row.token_symbol
-                })),
-                delphioracle_account: this.args.delphioracle_account,
-                atomicassets_account: this.args.atomicassets_account
-            };
+            await this.connection.database.query('COMMIT');
+        } catch (error) {
+            await this.connection.database.query('ROLLBACK');
+            throw error;
         }
     }
 
@@ -197,9 +231,10 @@ export default class NeftyDropsHandler extends ContractHandler {
         destructors.push(configProcessor(this, processor));
         destructors.push(balanceProcessor(this, processor));
         destructors.push(dropsProcessor(this, processor));
+        destructors.push(securityProcessor(this, processor));
 
         for (const view of materializedViews) {
-            this.filler.jobs.add(`Refresh NeftyDrops View ${view}`, 60000, JobQueuePriority.MEDIUM, (async () => {
+            this.filler.jobs.add(`Refresh NeftyDrops View ${view}`, 60, JobQueuePriority.MEDIUM, (async () => {
                 await this.connection.database.query('REFRESH MATERIALIZED VIEW CONCURRENTLY ' + view + ';');
             }));
         }

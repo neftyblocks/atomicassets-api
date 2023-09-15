@@ -41,7 +41,7 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
     const CollectionResult = {
         type: 'object',
         properties: {
-            ...atomicassetsComponents.Collection,
+            ...atomicassetsComponents.Collection.properties,
             volume: {type: 'string'},
             sales: {type: 'string'}
         }
@@ -93,6 +93,15 @@ export function statsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             in: 'query',
                             description: 'Token Symbol',
                             required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        {
+                            name: 'search',
+                            in: 'query',
+                            description: 'Perform a collection search',
+                            required: false,
                             schema: {
                                 type: 'string'
                             }

@@ -6,6 +6,7 @@ export type LogCreateDropActionData = {
         tokens_to_back: string[],
         use_pool: boolean,
     }>,
+    result?: Array<any>,
     listing_price: string,
     settlement_symbol: string,
     price_recipient: string,
@@ -18,6 +19,8 @@ export type LogCreateDropActionData = {
     end_time: number,
     display_data: string,
     is_hidden?: boolean
+    allow_credit_card_payments?: boolean
+    referral_fee?: number
 };
 
 export type SetDropAuthActionData = {
@@ -51,6 +54,18 @@ export type SetDropHiddenActionData = {
     is_hidden: boolean
 };
 
+export type SetDropPaymentActionData = {
+    authorized_account: string,
+    drop_id: number,
+    allow_credit_card_payments: boolean
+};
+
+export type SetDropReferralFeeActionData = {
+    authorized_account: string,
+    drop_id: number,
+    referral_fee: number
+};
+
 export type SetDropPriceActionData = {
     authorized_account: string,
     drop_id: number,
@@ -74,9 +89,11 @@ export type ClaimDropActionData = {
     claimer: string;
     drop_id: number,
     amount: string,
-    intended_delphi_median: string,
+    intended_delphi_median?: string,
     referrer: string,
     country: string
+    receipt_id?: string,
+    referrer_account?: string,
 };
 
 export type LogClaimActionData = {
@@ -85,4 +102,5 @@ export type LogClaimActionData = {
     quantity: number,
     amount_paid: string,
     core_symbol_amount: string,
+    intended_delphi_median?: string,
 };

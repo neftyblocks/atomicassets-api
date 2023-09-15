@@ -108,6 +108,74 @@ CREATE TABLE neftydrops_config
     CONSTRAINT neftydrops_config_pkey PRIMARY KEY (drops_contract)
 );
 
+CREATE TABLE neftydrops_account_stats
+(
+    claimer                character varying(12) NOT NULL,
+    drop_id                bigint                NOT NULL,
+    use_counter            bigint                NOT NULL,
+    last_claim_time        bigint                NOT NULL,
+    used_nonces            bigint[]              NOT NULL,
+
+    CONSTRAINT neftydrops_account_stats_pkey PRIMARY KEY (claimer, drop_id)
+);
+
+CREATE TABLE neftydrops_accounts_whitelist
+(
+    drop_id                bigint                NOT NULL,
+    account                character varying(12) NOT NULL,
+    account_limit          bigint                NOT NULL,
+
+    CONSTRAINT neftydrops_accounts_whitelist_pkey PRIMARY KEY (drop_id, account)
+);
+
+CREATE TABLE neftydrops_authkeys
+(
+    drop_id                bigint                 NOT NULL,
+    public_key             character varying(53) NOT NULL,
+    key_limit              bigint                NOT NULL,
+    key_limit_cooldown     bigint                NOT NULL,
+    use_counter            bigint                NOT NULL,
+    last_claim_time        bigint                NOT NULL,
+
+    CONSTRAINT neftydrops_authkeys_pkey PRIMARY KEY (drop_id, public_key)
+);
+
+CREATE TABLE neftydrops_proof_of_ownership_filters
+(
+    drop_id                bigint                NOT NULL,
+    filter_index           bigint                NOT NULL,
+
+    -- All rows with the same drop_id must have the same logical_operator and
+    -- total_filter_count
+    logical_operator       smallint              NOT NULL,
+    total_filter_count     bigint                NOT NULL,
+
+    -- Either of four values 'COLLECTION_HOLDINGS', 'TEMPLATE_HOLDINGS',
+    -- 'SCHEMA_HOLDINGS', or 'TOKEN_HOLDING'
+    filter_kind            character varying(50) NOT NULL,
+
+    -- Equal to the "..._holdings"->'comparison_operator' that is not null
+    comparison_operator    smallint              NOT NULL,
+
+    -- NULL if filter_kind == 'TOKEN_HOLDING'.
+    -- otherwise it is equal to the "..._holdings"->'amount' that is not null
+    nft_amount             bigint,
+
+    -- NULL if filter_kind != 'COLLECTION_HOLDINGS'
+    collection_holdings    jsonb,
+
+    -- NULL if filter_kind != 'TEMPLATE_HOLDINGS'
+    template_holdings      jsonb,
+
+    -- NULL if filter_kind != 'SCHEMA_HOLDINGS'
+    schema_holdings        jsonb,
+
+    -- NULL if filter_kind != 'TOKEN_HOLDING'
+    token_holding          jsonb,
+
+    CONSTRAINT neftydrops_proof_of_ownership_filters_pkey PRIMARY KEY (drop_id, filter_index)
+);
+
 ALTER TABLE ONLY neftydrops_balances
     ADD CONSTRAINT neftydrops_balances_symbols_fkey FOREIGN KEY (token_symbol, drops_contract)
         REFERENCES neftydrops_tokens (token_symbol, drops_contract) MATCH SIMPLE ON
@@ -185,3 +253,18 @@ CREATE
     INDEX neftydrops_drop_assets_template_id ON neftydrops_drop_assets USING btree (template_id);
 CREATE
     INDEX neftydrops_drop_assets_collection_name ON neftydrops_drop_assets USING btree (collection_name);
+
+CREATE
+    INDEX IF NOT EXISTS neftydrops_account_stats_claimer ON neftydrops_account_stats USING btree (claimer);
+CREATE
+    INDEX IF NOT EXISTS neftydrops_account_stats_drop_id ON neftydrops_account_stats USING btree (drop_id);
+CREATE
+    INDEX IF NOT EXISTS neftydrops_accounts_whitelist_drop_id ON neftydrops_accounts_whitelist USING btree (drop_id);
+CREATE
+    INDEX IF NOT EXISTS neftydrops_accounts_whitelist_account ON neftydrops_accounts_whitelist USING btree (account);
+CREATE
+    INDEX IF NOT EXISTS neftydrops_authkeys_drop_id ON neftydrops_authkeys USING btree (drop_id);
+CREATE
+    INDEX IF NOT EXISTS neftydrops_authkeys_public_key ON neftydrops_authkeys USING btree (public_key);
+CREATE
+    INDEX IF NOT EXISTS neftydrops_proof_of_ownership_filters_drop_id ON neftydrops_proof_of_ownership_filters USING btree (drop_id);

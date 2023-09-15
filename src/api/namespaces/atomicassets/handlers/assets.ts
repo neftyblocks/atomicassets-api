@@ -107,9 +107,13 @@ export function buildAssetQueryCondition(
 }
 
 export async function getRawAssetsAction(
-    params: RequestValues,
+    {search, match, ...params}: RequestValues,
     ctx: AtomicAssetsContext,
-    options?: {extraTables: string, extraSort: SortColumnMapping}): Promise<Array<number> | string> {
+    options?: {
+        extraTables?: string,
+        extraSort: SortColumnMapping,
+        hook?: (query: QueryBuilder) => void
+    }): Promise<Array<number> | string> {
 
     const maxLimit = ctx.coreArgs.limits?.assets || 1000;
     const args = filterQueryArgs(params, {
@@ -130,6 +134,9 @@ export async function getRawAssetsAction(
     if (options?.extraTables) {
         query.appendToBase(options.extraTables);
     }
+    if (options?.hook) {
+        options?.hook(query);
+    }
 
     query.equal('asset.contract', ctx.coreArgs.atomicassets_account);
 
@@ -138,6 +145,8 @@ export async function getRawAssetsAction(
         params, query, 'asset.asset_id', 'int',
         args.sort === 'updated' ? 'asset.updated_at_time' : 'asset.minted_at_time'
     );
+
+    const hasStrongTemplateFilter = await addTemplateFilter(query, ctx, match, search);
 
     if (args.count) {
         const countQuery = await ctx.db.query(
@@ -156,8 +165,8 @@ export async function getRawAssetsAction(
             updated: {column: 'asset.updated_at_time', nullable: false, numericIndex: true},
             transferred: {column: 'asset.transferred_at_time', nullable: false, numericIndex: true},
             minted: {column: 'asset.asset_id', nullable: false, numericIndex: true},
-            template_mint: {column: 'asset.template_mint', nullable: true, numericIndex: false},
-            name: {column: '"template".immutable_data->>\'name\'', nullable: true, numericIndex: false},
+            template_mint: {column: 'asset.template_mint', nullable: true, numericIndex: true},
+            name: {column: `(COALESCE(asset.mutable_data, '{}') || COALESCE(asset.immutable_data, '{}') || COALESCE(template.immutable_data, '{}'))->>'name'`, nullable: true, numericIndex: false},
             ...options?.extraSort,
         };
 
@@ -168,13 +177,53 @@ export async function getRawAssetsAction(
         sorting = {column: 'asset.asset_id', nullable: false, numericIndex: true};
     }
 
-    const ignoreIndex = (hasAssetFilter(params) || hasDataFilters(params)) && sorting.numericIndex;
+    const ignoreIndex = (hasStrongTemplateFilter || hasAssetFilter(params) || hasDataFilters(params))
+        && sorting.numericIndex;
 
     query.append('ORDER BY ' + sorting.column + (ignoreIndex ? ' + 1 ' : ' ') + args.order + ' ' + (sorting.nullable ? 'NULLS LAST' : '') + ', asset.asset_id ASC');
     query.paginate(args.page, args.limit);
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
     return result.rows.map((row: any) => row.asset_id);
+}
+
+async function addTemplateFilter(query: QueryBuilder, ctx: AtomicAssetsContext, match?: string, search?: string): Promise<boolean> {
+    const templateFilters = [];
+    const sqlParams = [ctx.coreArgs.atomicassets_account];
+
+    if (typeof match === 'string' && match.length > 0) {
+        templateFilters.push(`(immutable_data->>'name') ILIKE $${sqlParams.push('%' + query.escapeLikeVariable(match) + '%')}`);
+    }
+
+    if (typeof search === 'string' && search.length > 0) {
+        templateFilters.push(`$${sqlParams.push('%' + query.escapeLikeVariable(search) + '%')}::TEXT <% (immutable_data->>'name')`);
+    }
+
+    if (!templateFilters.length) {
+        return false;
+    }
+
+    const sql = `
+        WITH templates AS (
+            SELECT template_id
+            FROM atomicassets_templates
+            WHERE contract = $1
+                AND ${templateFilters.join(' AND ')}
+        )
+        SELECT ARRAY_AGG(DISTINCT templates.template_id) template_id, COALESCE(SUM(ac.assets), 0)::INT assets
+        FROM templates
+            LEFT OUTER JOIN atomicassets_asset_counts ac ON ac.contract = $1 AND templates.template_id = ac.template_id
+    `;
+
+    const {rows: [row]} = await ctx.db.query(sql, sqlParams);
+
+    if (row.template_id?.length) {
+        query.equalMany('asset.template_id', row.template_id);
+    } else {
+        query.addCondition('FALSE');
+    }
+
+    return row.assets <= 1_100_000;
 }
 
 export async function getAssetsCountAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
@@ -184,7 +233,7 @@ export async function getAssetsCountAction(params: RequestValues, ctx: AtomicAss
 export async function getAssetStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const assetQuery = await ctx.db.query(
         'SELECT * FROM atomicassets_assets WHERE contract = $1 AND asset_id = $2',
-        [this.core.args.atomicassets_account, ctx.pathParams.params.asset_id]
+        [ctx.coreArgs.atomicassets_account, ctx.pathParams.asset_id]
     );
 
     if (assetQuery.rowCount === 0) {
@@ -195,7 +244,7 @@ export async function getAssetStatsAction(params: RequestValues, ctx: AtomicAsse
 
     const query = await ctx.db.query(
         'SELECT COUNT(*) template_mint FROM atomicassets_assets WHERE contract = $1 AND asset_id <= $2 AND template_id = $3 AND schema_name = $4 AND collection_name = $5',
-        [this.core.args.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
+        [ctx.coreArgs.atomicassets_account, asset.asset_id, asset.template_id, asset.schema_name, asset.collection_name]
     );
 
     return query.rows[0];
@@ -207,8 +256,8 @@ export async function getAssetLogsAction(params: RequestValues, ctx: AtomicAsset
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
-        action_whitelist: {type: 'string', min: 1},
-        action_blacklist: {type: 'string', min: 1}
+        action_whitelist: {type: 'string[]', min: 1},
+        action_blacklist: {type: 'string[]', min: 1},
     });
 
     return await getContractActionLogs(
@@ -217,4 +266,75 @@ export async function getAssetLogsAction(params: RequestValues, ctx: AtomicAsset
         {asset_id: ctx.pathParams.asset_id},
         (args.page - 1) * args.limit, args.limit, args.order
     );
+}
+
+export async function getAttributeStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+
+    const args = filterQueryArgs(params, {
+        attributes: {type: 'string[]', min: 1},
+    });
+
+    const assetQuery = await ctx.db.query(
+        'SELECT a.*, s.format FROM atomicassets_assets a ' +
+        'INNER JOIN atomicassets_schemas s ON (a.collection_name = s.collection_name AND a.schema_name = s.schema_name) ' +
+        'WHERE a.asset_id = $1 ',
+        [ctx.pathParams.asset_id]
+    );
+
+    if (assetQuery.rowCount === 0) {
+        throw new ApiError('Asset not found', 416);
+    }
+
+    const asset = assetQuery.rows[0];
+    const countQuery = await ctx.db.query(
+        'SELECT COUNT(*) count FROM atomicassets_assets a ' +
+        'WHERE a.collection_name = $1 AND a.schema_name = $2 AND a.owner IS NOT NULL',
+        [asset.collection_name, asset.schema_name]
+    );
+
+    const attributeBlacklist = [
+        'name',
+        'description',
+        'image',
+        'image_data',
+        'img',
+        'video',
+        'audio',
+    ];
+
+    let filterAttributes;
+    if (args.attributes.length === 0) {
+        filterAttributes = asset.format.filter((format: any) => format.type === 'string' && !attributeBlacklist.includes(format.name.toLowerCase())).map((format: any) => format.name);
+    } else {
+        filterAttributes = args.attributes;
+    }
+
+    if (filterAttributes.length === 0) {
+        return [];
+    }
+
+    // Only for schemas with less than 260k assets
+    const supply = countQuery.rows[0].count;
+    if (supply > 260_000) {
+        return [];
+    }
+
+    const attriburesQuery = await ctx.db.query(
+        'SELECT stats.key as attribute, stats.value as value, stats.total as occurrences FROM (' +
+        'SELECT d.key, d.value, SUM(CASE WHEN a.asset_id = $1 THEN 1 ELSE 0 END) as count, COUNT(a.asset_id) total ' +
+        'FROM atomicassets_assets a ' +
+        'LEFT JOIN atomicassets_templates t ON a.template_id = t.template_id, ' +
+        'LATERAL jsonb_each(COALESCE(a.mutable_data, \'{}\'::jsonb) || COALESCE(a.immutable_data, \'{}\'::jsonb) || COALESCE(t.immutable_data, \'{}\'::jsonb)) d(key, value) ' +
+        'WHERE a.collection_name = $2 AND a.schema_name = $3 AND a.owner IS NOT NULL AND d.key = ANY($4) AND LENGTH(d.value::text) > 2 AND LENGTH(d.value::text) < 25 AND LOWER(d.value::text) NOT LIKE \'"http%\' ' +
+        'GROUP BY d.key, d.value ' +
+        ') stats ' +
+        'WHERE stats.count > 0 ' +
+        'ORDER BY stats.key ASC;',
+    [asset.asset_id, asset.collection_name, asset.schema_name, filterAttributes]
+    );
+
+    return attriburesQuery.rows.map((row: any) => ({
+        ...row,
+        supply,
+    }));
 }

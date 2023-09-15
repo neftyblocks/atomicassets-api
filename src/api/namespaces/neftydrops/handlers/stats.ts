@@ -12,6 +12,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
     const args = filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         match: {type: 'string', min: 1},
+        search: {type: 'string', min: 1},
 
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
@@ -19,6 +20,9 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
         collection_whitelist: {type: 'string', min: 1},
         collection_blacklist: {type: 'string', min: 1},
         only_whitelisted: {type: 'bool'},
+        exclude_blacklisted: {type: 'bool'},
+        exclude_nsfw: {type: 'bool'},
+        exclude_ai: {type: 'bool'},
 
         sort: {type: 'string', allowedValues: ['volume', 'sales'], default: 'volume'},
         order: {type: 'string', allowedValues: ['desc', 'asc'], default: 'desc'},
@@ -43,6 +47,11 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
         queryValues.push('%' + args.match + '%');
     }
 
+    if (args.search) {
+        queryString += ' AND $'+ ++varCounter + ` <% (collection_name || ' ' || COALESCE(data->>'name', ''))`;
+        queryValues.push(args.search);
+    }
+
     if (args.collection_whitelist) {
         queryString += 'AND collection_name = ANY ($' + ++varCounter + ') ';
         queryValues.push(args.collection_whitelist.split(','));
@@ -55,11 +64,39 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
 
     if (typeof args.only_whitelisted === 'boolean') {
         if (args.only_whitelisted) {
-            queryString += 'AND collection_name = ANY (' +
+            queryString += 'AND collection_name IN (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\')' +
-                ')  ';
+                'WHERE list = \'whitelist\' OR list = \'verified\' OR list = \'exceptions\') ';
+            queryString += 'AND collection_name NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'blacklist\' OR list = \'scam\') ';
+        }
+    } else if (typeof args.exclude_blacklisted === 'boolean') {
+        if (args.exclude_blacklisted) {
+            queryString += 'AND collection_name NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'blacklist\' OR list = \'scam\') ';
+        }
+    }
+
+    if (typeof args.exclude_nsfw === 'boolean') {
+        if (args.exclude_nsfw) {
+            queryString += 'AND collection_name NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'nsfw\') ';
+        }
+    }
+
+    if (typeof args.exclude_ai === 'boolean') {
+        if (args.exclude_ai) {
+            queryString += 'AND collection_name NOT IN (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE list = \'ai\') ';
         }
     }
 

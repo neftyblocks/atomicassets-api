@@ -13,14 +13,14 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         sort: {type: 'string', allowedValues: ['created', 'updated'], default: 'created'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
-        account: {type: 'string', min: 1},
-        sender: {type: 'string', min: 1},
-        recipient: {type: 'string', min: 1},
+        account: {type: 'string[]', min: 1},
+        sender: {type: 'string[]', min: 1},
+        recipient: {type: 'string[]', min: 1},
         state: {type: 'string', min: 1},
         memo: {type: 'string', min: 1},
         match_memo: {type: 'string', min: 1},
 
-        asset_id: {type: 'string', min: 1},
+        asset_id: {type: 'id[]'},
 
         recipient_asset_blacklist: {type: 'string', min: 1},
         recipient_asset_whitelist: {type: 'string', min: 1},
@@ -31,6 +31,9 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         collection_blacklist: {type: 'string', min: 1},
         collection_whitelist: {type: 'string', min: 1},
         only_whitelisted: {type: 'bool'},
+        exclude_blacklisted: {type: 'bool'},
+        exclude_nsfw: {type: 'bool'},
+        exclude_ai: {type: 'bool'},
 
         is_recipient_contract: {type: 'bool'},
 
@@ -44,17 +47,17 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
 
     query.equal('contract', ctx.coreArgs.atomicassets_account);
 
-    if (args.account) {
-        const varName = query.addVariable(args.account.split(','));
+    if (args.account.length) {
+        const varName = query.addVariable(args.account);
         query.addCondition('(sender = ANY (' + varName + ') OR recipient = ANY (' + varName + '))');
     }
 
-    if (args.sender) {
-        query.equalMany('sender', args.sender.split(','));
+    if (args.sender.length) {
+        query.equalMany('sender', args.sender);
     }
 
-    if (args.recipient) {
-        query.equalMany('recipient', args.recipient.split(','));
+    if (args.recipient.length) {
+        query.equalMany('recipient', args.recipient);
     }
 
     if (args.state) {
@@ -67,7 +70,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
 
     if (args.match_memo) {
         query.addCondition(
-            'memo ILIKE ' + query.addVariable('%' + args.match_memo.replace('%', '\\%').replace('_', '\\_') + '%')
+            'memo ILIKE ' + query.addVariable('%' + query.escapeLikeVariable(args.match_memo) + '%')
         );
     }
 
@@ -81,7 +84,7 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         query.addCondition(
             'NOT EXISTS(SELECT * FROM contract_codes ' +
             'WHERE (account = offer.recipient OR account = offer.sender) AND NOT (account = ANY(' +
-            query.addVariable([args.account, args.sender, args.recipient].filter(row => !!row)) +
+            query.addVariable([...args.account, ...args.sender, ...args.recipient]) +
             ')))'
         );
     }
@@ -110,12 +113,12 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
         query.setVars(assetQuery.buildValues());
     }
 
-    if (args.asset_id) {
+    if (args.asset_id.length) {
         query.addCondition(
             'EXISTS(' +
             'SELECT * FROM atomicassets_offers_assets asset ' +
             'WHERE offer.contract = asset.contract AND offer.offer_id = asset.offer_id AND ' +
-            'asset_id = ANY (' + query.addVariable(args.asset_id.split(',')) + ')' +
+            'asset_id = ANY (' + query.addVariable(args.asset_id) + ')' +
             ')'
         );
     }
@@ -152,7 +155,64 @@ export async function getRawOffersAction(params: RequestValues, ctx: AtomicAsset
                 'NOT (asset.collection_name = ANY (' +
                 'SELECT DISTINCT(collection_name) ' +
                 'FROM helpers_collection_list ' +
-                'WHERE (list = \'whitelist\' OR list = \'verified\') AND (list != \'blacklist\' OR list != \'scam\')' +
+                'WHERE (list = \'whitelist\' OR list = \'verified\')' +
+                ')'
+            );
+            query.addCondition(
+                'NOT EXISTS(' +
+                'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
+                '(asset.collection_name = ANY (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE (list = \'blacklist\' OR list = \'scam\')' +
+                ')'
+            );
+        }
+    } else if (typeof args.exclude_blacklisted === 'boolean') {
+        if (args.exclude_blacklisted) {
+            query.addCondition(
+                'NOT EXISTS(' +
+                'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
+                '(asset.collection_name = ANY (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE (list = \'blacklist\' OR list = \'scam\')' +
+                ')'
+            );
+        }
+    }
+
+    if (typeof args.exclude_nsfw === 'boolean') {
+        if (args.exclude_nsfw) {
+            query.addCondition(
+                'NOT EXISTS(' +
+                'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
+                '(asset.collection_name = ANY (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE (list = \'nsfw\')' +
+                ')'
+            );
+        }
+    }
+
+    if (typeof args.exclude_ai === 'boolean') {
+        if (args.exclude_ai) {
+            query.addCondition(
+                'NOT EXISTS(' +
+                'SELECT * FROM atomicassets_offers_assets offer_asset, atomicassets_assets asset ' +
+                'WHERE offer_asset.contract = offer.contract AND offer_asset.offer_id = offer.offer_id AND ' +
+                'offer_asset.contract = asset.contract AND offer_asset.asset_id = asset.asset_id AND ' +
+                '(asset.collection_name = ANY (' +
+                'SELECT DISTINCT(collection_name) ' +
+                'FROM helpers_collection_list ' +
+                'WHERE (list = \'ai\')' +
                 ')'
             );
         }
@@ -242,7 +302,9 @@ export async function getOfferLogsCountAction(params: RequestValues, ctx: Atomic
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
-        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
+        action_whitelist: {type: 'string[]', min: 1},
+        action_blacklist: {type: 'string[]', min: 1},
     });
 
     return await getContractActionLogs(

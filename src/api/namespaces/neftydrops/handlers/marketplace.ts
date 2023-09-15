@@ -142,7 +142,7 @@ export async function getCollectionsCountAction(params: RequestValues, ctx: Neft
 //   * All drop_claims that were bought with NEFTY
 //   * All sold market_sales that were bought in our market_place
 //   * All sold market_sales that were listed in our market_place
-// 
+//
 // To get average NEFTY reward we only need to know the total NEFTY to be
 // distributed and the total number of distinct beneficiaries
 // (total_nefty_reward / number_of_distinct_beneficiaries)
@@ -152,8 +152,8 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
         after: {type: 'int', min: 1, default: 0},
         total_nefty_reward: {type: 'float', min: 1, default: 10000}
     });
-    
-    
+
+
     // @NOTE: both: dropsTradingVolumeQuery and marketTradingVolumeQuery could be
     // executed in the same ctx.db.query, but the `pg` library won't let us because
     // it throws: 'cannot insert multiple commands into a prepared statement'
@@ -161,7 +161,7 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
     const dropsRangeCondition = buildRangeCondition('created_at_time', args.after, args.before);
     const marketRangeCondition = buildRangeCondition('updated_at_time', args.after, args.before);
 
-    let dropsTradingVolumesQueryString = `
+    const dropsTradingVolumesQueryString = `
         SELECT claimer, 
             SUM( 
                 CASE COALESCE(spent_symbol, 'NULL') 
@@ -179,10 +179,10 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
             settlement_symbol IS DISTINCT FROM 'NULL'
             AND drops_contract = $1
             ${dropsRangeCondition}
-        GROUP BY claimer;`
+        GROUP BY claimer;`;
     const dropsTradingVolumes = (await ctx.db.query(dropsTradingVolumesQueryString, [ctx.coreArgs.neftydrops_account])).rows;
 
-    let marketTradingVolumesQueryString = `
+    const marketTradingVolumesQueryString = `
         SELECT 
             seller, 
             buyer,
@@ -200,14 +200,18 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
     const marketTradingVolumes = (await ctx.db.query(marketTradingVolumesQueryString, [ctx.coreArgs.atomicmarket_account, ctx.coreArgs.neftymarket_name])).rows;
 
     let totalTradingVolume:number = 0;
-    let beneficiaries = new Set<string>();
+    const beneficiaries = new Set<string>();
 
-    for(let dropTradingVolume of dropsTradingVolumes){
-        totalTradingVolume += parseFloat(dropTradingVolume.sold_wax);
-        totalTradingVolume += parseFloat(dropTradingVolume.sold_nefty);
+    for(const dropTradingVolume of dropsTradingVolumes){
+        if (dropTradingVolume.sold_wax) {
+            totalTradingVolume += parseFloat(dropTradingVolume.sold_wax);
+        }
+        if (dropTradingVolume.sold_nefty) {
+            totalTradingVolume += parseFloat(dropTradingVolume.sold_nefty);
+        }
         beneficiaries.add(dropTradingVolume.claimer);
     }
-    for(let marketTradingVolume of marketTradingVolumes){
+    for(const marketTradingVolume of marketTradingVolumes){
         if(marketTradingVolume.maker_marketplace === ctx.coreArgs.neftymarket_name){
             totalTradingVolume += parseFloat(marketTradingVolume.final_price);
             beneficiaries.add(marketTradingVolume.seller);
@@ -218,10 +222,10 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
         }
     }
 
-    // In the db we store token amounts as their integer representation, 
+    // In the db we store token amounts as their integer representation,
     // because all token amounts have 8 decimal places, we need to divide by
     // 100000000 to get the real amount
-    let trading_volume = totalTradingVolume / 100000000;
+    const trading_volume = totalTradingVolume / 100000000;
 
     let averageReward;
     if(beneficiaries.size === 0)
@@ -229,7 +233,7 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
     else
         averageReward =  args.total_nefty_reward / beneficiaries.size;
 
-    return { 
+    return {
         trading_volume,
         averageReward
     };

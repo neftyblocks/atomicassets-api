@@ -43,11 +43,11 @@ ON (drops_contract, drop_id)
     ndrop.listing_price,
     ndrop.listing_symbol,
 
-    ARRAY(
-    SELECT asset.template_id
+    (
+    SELECT json_agg(row_to_json(asset))
     FROM neftydrops_drop_assets asset
     WHERE ndrop.assets_contract = asset.assets_contract AND asset.drop_id = ndrop.drop_id
-    ) templates,
+    ) assets,
 
     ndrop.collection_name,
     json_build_object(
@@ -76,7 +76,10 @@ ON (drops_contract, drop_id)
     ndrop.account_limit,
     ndrop.account_limit_cooldown,
     ndrop.max_claimable,
-    ndrop.current_claimed
+    ndrop.current_claimed,
+    ndrop.price_recipient,
+    ndrop.allow_credit_card_payments,
+    ndrop.referral_fee
 FROM
     neftydrops_drops ndrop LEFT JOIN neftydrops_symbol_pairs pair
 ON (

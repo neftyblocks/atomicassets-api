@@ -2,16 +2,22 @@ import * as express from 'express';
 
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
+import { AssetApi } from '../atomicassets/routes/assets';
 import { filtersEndpoints } from './routes/filters';
 import { auctionsEndpoints } from './routes/auctions';
 import { neftyMarketComponents } from './openapi';
 import {ActionHandlerContext} from '../../actionhandler';
 import {ILimits} from '../../../types/config';
+import {statsEndpoints} from './routes/stats';
+import {assetsEndpoints} from './routes/assets';
+import {pricesEndpoints} from './routes/prices';
+import {buildAssetFillerHook, formatListingAsset} from '../atomicmarket/format';
 
 export type NeftyMarketNamespaceArgs = {
     atomicassets_account: string,
     connected_reader: string;
     neftymarket_account: string;
+    default_symbol?: string,
     limits?: ILimits;
 };
 
@@ -51,9 +57,19 @@ export class NeftyMarketNamespace extends ApiNamespace {
             server.web.express.use(this.path + '/v1', server.web.limiter);
         }
 
+        const assetApi = new AssetApi(
+            this, server, 'ListingAsset',
+            'atomicassets_assets_master',
+            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: true})
+        );
+
         const endpointsDocs = [];
         endpointsDocs.push(filtersEndpoints(this, server, router));
         endpointsDocs.push(auctionsEndpoints(this, server, router));
+        endpointsDocs.push(statsEndpoints(this, server, router));
+        endpointsDocs.push(assetsEndpoints(this, server, router));
+        endpointsDocs.push(assetApi.singleAssetEndpoints(router));
+        endpointsDocs.push(pricesEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {

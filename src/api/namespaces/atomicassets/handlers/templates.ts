@@ -61,7 +61,7 @@ export async function getTemplatesAction(params: RequestValues, ctx: AtomicAsset
         query.addCondition(
             'EXISTS(' +
             'SELECT * FROM atomicassets_assets asset ' +
-            'WHERE template.contract = asset.contract AND template.template_id = asset.template_id AND owner IS NOT NULL' +
+            'WHERE template.contract = asset.contract AND template.template_id = asset.template_id AND owner || \'\' IS NOT NULL' +
             ')'
         );
     }
@@ -144,7 +144,11 @@ export async function getTemplateAction(params: RequestValues, ctx: AtomicAssets
     );
 
     if (query.rowCount === 0) {
-        throw new ApiError('Template not found', 416);
+        throw new ApiError('Template not found', 404);
+    }
+
+    if (query.rows[0].collection_name !== ctx.pathParams.collection_name) {
+        throw new ApiError('Template not found', 404);
     }
 
     return formatTemplate(query.rows[0]);
@@ -153,7 +157,7 @@ export async function getTemplateAction(params: RequestValues, ctx: AtomicAssets
 export async function getTemplateStatsAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
     const query = await ctx.db.query(
         `SELECT SUM(assets) AS assets, SUM(burned) AS burned
-                FROM atomicassets_template_counts
+                FROM atomicassets_asset_counts
                 WHERE contract = $1 AND template_id = $2`,
         [ctx.coreArgs.atomicassets_account, ctx.pathParams.template_id]
     );
@@ -166,7 +170,9 @@ export async function getTemplateLogsAction(params: RequestValues, ctx: AtomicAs
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
-        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'}
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
+        action_whitelist: {type: 'string[]', min: 1},
+        action_blacklist: {type: 'string[]', min: 1},
     });
 
     return await getContractActionLogs(

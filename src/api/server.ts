@@ -42,7 +42,8 @@ export class HTTPServer implements DB {
     constructor(readonly config: IServerConfig, readonly connection: ConnectionManager) {
         this.database = connection.database.createPool({
             statement_timeout: config.max_query_time_ms || 10000,
-            max: config.max_db_connections || 50
+            max: config.max_db_connections || 50,
+            idleTimeoutMillis: 1000 * 60 * 10,
         });
         this.web = new WebServer(this);
 
@@ -201,6 +202,40 @@ export class WebServer {
         };
     }
 
+    returnAsFile = (handler: ActionHandler, core: ApiNamespace): express.Handler => {
+        const server = this.server;
+
+        return async (req: express.Request, res: express.Response): Promise<void> => {
+            try {
+                const params = mergeRequestData(req);
+                const pathParams = req.params || {};
+
+                const ctx: ActionHandlerContext<any> = {
+                    pathParams,
+                    db: server,
+                    coreArgs: core.args
+                };
+
+                const result = await handler(params, ctx);
+                if (result.contentType) {
+                    res.contentType(result.contentType);
+                }
+                if (result.headers) {
+                    Object.entries(result.headers).forEach(([key, value]) => {
+                        res.setHeader(key, value as string);
+                    });
+                }
+                if (result.filePath) {
+                    res.sendFile(result.filePath);
+                } else if (result.stream) {
+                    result.stream.pipe(res);
+                }
+            } catch (error) {
+                respondApiError(res, error);
+            }
+        };
+    }
+
     private middleware(): void {
         this.express.use(bodyParser.json({limit: '10MB'}));
         this.express.use(bodyParser.urlencoded({extended: false, limit: '10MB'}));
@@ -208,6 +243,7 @@ export class WebServer {
 
         this.express.use((req, res, next) => {
             res.setHeader('Access-Control-Allow-Headers', '*');
+            res.setHeader('Access-Control-Expose-Headers', 'x-nefty-pfp-verified, x-nefty-pfp-asset-id, x-nefty-pfp-locked');
 
             logger.debug(req.ip + ': ' + req.method + ' ' + req.originalUrl, req.body);
 

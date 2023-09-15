@@ -14,6 +14,12 @@ export type SuperBlendTableRow = {
     upgrade_specs?: any[]
 };
 
+export type SuperBlendLimitRow = {
+    blend_id: number,
+    account_limit: number,
+    account_limit_cooldown: number,
+};
+
 export type ValueOutcome = {
     // variant: RESULT_VALUE
     result: any[],

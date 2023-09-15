@@ -10,7 +10,7 @@ import CollectionsListHandler, {
 
 } from '../index';
 import ConnectionManager from '../../../../connections/manager';
-import { Roll, SuperBlendTableRow, SuperBlendValuerollsTableRow } from '../types/tables';
+import {Roll, SuperBlendLimitRow, SuperBlendTableRow, SuperBlendValuerollsTableRow} from '../types/tables';
 import { Ingredient } from '../types/helpers';
 import {
     bulkInsert,
@@ -18,7 +18,12 @@ import {
     encodeDatabaseJson,
     getAllRowsFromTable
 } from '../../../utils';
-import { SetBlendRollsActionData } from '../types/actions';
+import {
+    LogClaimActionData,
+    LogResultActionData,
+    SetBlendMixActionData,
+    SetBlendRollsActionData
+} from '../types/actions';
 import logger from '../../../../utils/winston';
 import { preventInt64Overflow } from '../../../../utils/binary';
 
@@ -67,11 +72,12 @@ const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, 
             upgradeResultsRows = upgradeResultsRows.concat(upgradeResultsDbRows);
         }
 
-        await bulkInsert(connection.database, 'neftyblends_blends', blendRows);
+        if (blendRows.length > 0) {
+            await bulkInsert(connection.database, 'neftyblends_blends', blendRows);
+        }
         if (ingredientRows.length > 0) {
             await bulkInsert(connection.database, 'neftyblends_blend_ingredients', ingredientRows);
         }
-
         if (ingredientAttributesRows.length > 0) {
             await bulkInsert(connection.database, 'neftyblends_blend_ingredient_attributes', ingredientAttributesRows);
         }
@@ -98,7 +104,10 @@ const fillSuperBlends = async (args: BlendsArgs, connection: ConnectionManager, 
 
 export async function initSuperBlends(args: BlendsArgs, connection: ConnectionManager): Promise<void> {
     await fillSuperBlends(args, connection, args.nefty_blender_account);
-    await fillSuperBlends(args, connection, args.tag_blender_account);
+
+    if (args.tag_blender_account) {
+        await fillSuperBlends(args, connection, args.tag_blender_account);
+    }
 }
 
 const superBlendsTableListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendTableRow>): Promise<void> => {
@@ -111,6 +120,18 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
         const deleteString = 'assets_contract = $1 AND contract = $2 AND blend_id = $3';
         const deleteValues = [core.args.atomicassets_account, contract, delta.value.blend_id];
         await deleteBlendRolls(db, core.args.atomicassets_account, delta.value.blend_id, contract);
+        await db.delete('neftyblends_blend_upgrade_spec_upgrade_requirements', {
+            str: 'contract = $1 AND blend_id = $2',
+            values: [contract, delta.value.blend_id],
+        });
+        await db.delete('neftyblends_blend_upgrade_spec_upgrade_results', {
+            str: 'contract = $1 AND blend_id = $2',
+            values: [contract, delta.value.blend_id],
+        });
+        await db.delete('neftyblends_blend_upgrade_specs', {
+            str: 'contract = $1 AND blend_id = $2',
+            values: [contract, delta.value.blend_id],
+        });
         await db.delete('neftyblends_blend_ingredient_attributes', {
             str: deleteString,
             values: deleteValues,
@@ -140,27 +161,16 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
             delta.value, core.args, block.block_num, block.timestamp, contract
         );
         await db.insert('neftyblends_blends', blendDbRow, ['contract', 'blend_id']);
+
         if (ingredientDbRows.length > 0) {
-            await db.insert(
-                'neftyblends_blend_ingredients',
+            await insertBlendIngredients(
+                db,
                 ingredientDbRows,
-                ['contract', 'blend_id', 'ingredient_index']
-            );
-        }
-        if (ingredientAttributesDbRows.length > 0) {
-            await db.insert(
-                'neftyblends_blend_ingredient_attributes',
                 ingredientAttributesDbRows,
-                ['contract', 'blend_id', 'ingredient_index', 'attribute_index']
+                ingredientTypedAttributesDbRows
             );
         }
-        if (ingredientTypedAttributesDbRows.length > 0) {
-            await db.insert(
-                'neftyblends_blend_ingredient_typed_attributes',
-                ingredientTypedAttributesDbRows,
-                ['contract', 'blend_id', 'ingredient_index', 'typed_attribute_index']
-            );
-        }
+
         if (rollsDbRows.length > 0) {
             await insertBlendRolls(
                 db,
@@ -207,6 +217,33 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
             values: [contract, delta.value.blend_id]
         }, ['contract', 'blend_id']);
     }
+};
+
+const superBlendLimitsTableListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendLimitRow>): Promise<void> => {
+    const blend = await db.query(
+        'SELECT blend_id FROM neftyblends_blends WHERE assets_contract = $1 AND contract = $2 AND blend_id = $3',
+        [core.args.atomicassets_account, contract, delta.value.blend_id]
+    );
+
+    if (blend.rowCount === 0) {
+        return;
+    }
+
+    let accountLimit = 0;
+    let accountLimitCooldown = 0;
+
+    if (delta.present) {
+        accountLimit = delta.value.account_limit;
+        accountLimitCooldown = delta.value.account_limit_cooldown;
+    }
+
+    await db.update('neftyblends_blends', {
+        account_limit: accountLimit,
+        account_limit_cooldown: accountLimitCooldown,
+    }, {
+        str: 'contract = $1 AND blend_id = $2',
+        values: [contract, delta.value.blend_id]
+    }, ['contract', 'blend_id']);
 };
 
 const superBlendsValuerollsTableListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendValuerollsTableRow>): Promise<void> => {
@@ -281,6 +318,77 @@ const superBlendsRollsListener = (core: CollectionsListHandler, contract: string
     );
 };
 
+const superBlendsMixListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetBlendMixActionData>): Promise<void> => {
+    const blends = await db.query(
+        'SELECT * FROM neftyblends_blends WHERE assets_contract = $1 AND contract = $2 AND blend_id = $3',
+        [core.args.atomicassets_account, contract, trace.act.data.blend_id]
+    );
+    if (blends.rowCount === 0) {
+        return;
+    }
+    const blend = blends.rows[0];
+    const ingredients = getSuperBlendIngredients(trace.act.data.ingredients, blend.collection_name);
+    const { ingredientDbRows, ingredientAttributesDbRows, ingredientTypedAttributesDbRows } = getIngredientsDbRows(
+        trace.act.data.blend_id,
+        ingredients,
+        core.args,
+        block.block_num,
+        block.timestamp, contract
+    );
+
+    await deleteBlendIngredients(
+        db,
+        core.args.atomicassets_account,
+        trace.act.data.blend_id,
+        contract,
+    );
+    await insertBlendIngredients(
+        db,
+        ingredientDbRows,
+        ingredientAttributesDbRows,
+        ingredientTypedAttributesDbRows,
+    );
+};
+
+const logClaimListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogClaimActionData>): Promise<void> => {
+    await db.insert('neftyblends_fusions', {
+            contract,
+            claim_id: trace.act.data.claim_id,
+            claimer: trace.act.data.claimer,
+            blend_id: trace.act.data.blend_id,
+            txid: Buffer.from(tx.id, 'hex'),
+            transferred_assets: trace.act.data.transferred_assets,
+            own_assets: trace.act.data.own_assets,
+            created_at_block: block.block_num,
+            created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+        },
+        ['contract', 'claim_id']
+    );
+};
+
+const logClaimResultListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogResultActionData>): Promise<void> => {
+    const claim = await db.query(
+        'SELECT claim_id FROM neftyblends_fusions WHERE contract = $1 AND claim_id = $2',
+        [contract, trace.act.data.claim_id]
+    );
+
+    if (claim.rowCount === 0) {
+        return;
+    }
+    await db.update('neftyblends_fusions', {
+            results: encodeDatabaseJson(trace.act.data.results),
+            updated_at_block: block.block_num,
+            updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
+        },
+        {
+            str: 'contract = $1 AND claim_id = $2',
+            values: [contract, trace.act.data.claim_id]
+        }, ['contract', 'claim_id']
+    );
+};
+
 export function superBlendsProcessor(core: CollectionsListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
     const neftyContract = core.args.nefty_blender_account;
@@ -292,29 +400,61 @@ export function superBlendsProcessor(core: CollectionsListHandler, processor: Da
         BlendsUpdatePriority.TABLE_BLENDS.valueOf()
     ));
 
+    destructors.push(processor.onContractRow(
+        neftyContract, 'blendlimits',
+        superBlendLimitsTableListener(core, neftyContract),
+        BlendsUpdatePriority.TABLE_BLEND_LIMIT.valueOf()
+    ));
+
     destructors.push(processor.onActionTrace(
         neftyContract, 'setrolls',
         superBlendsRollsListener(core, neftyContract),
         BlendsUpdatePriority.SET_ROLLS.valueOf()
     ));
 
-    destructors.push(processor.onContractRow(
-        tagContract, 'blends',
-        superBlendsTableListener(core, tagContract),
-        BlendsUpdatePriority.TABLE_BLENDS.valueOf()
+    destructors.push(processor.onActionTrace(
+        neftyContract, 'setblendmix',
+        superBlendsMixListener(core, neftyContract),
+        BlendsUpdatePriority.SET_MIX.valueOf()
     ));
 
     destructors.push(processor.onActionTrace(
-        tagContract, 'setblendroll',
-        superBlendsRollsListener(core, tagContract),
+        neftyContract, 'setblendroll',
+        superBlendsRollsListener(core, neftyContract),
         BlendsUpdatePriority.SET_ROLLS.valueOf()
     ));
 
-    destructors.push(processor.onContractRow(
-        tagContract, 'valuerolls',
-        superBlendsValuerollsTableListener(core, tagContract),
-        BlendsUpdatePriority.TABLE_VALUEROLL.valueOf()
+    destructors.push(processor.onActionTrace(
+        neftyContract, 'logclaim',
+        logClaimListener(core, neftyContract),
+        BlendsUpdatePriority.LOG_CLAIM.valueOf()
     ));
+
+    destructors.push(processor.onActionTrace(
+        neftyContract, 'logresult',
+        logClaimResultListener(core, neftyContract),
+        BlendsUpdatePriority.LOG_RESULT.valueOf()
+    ));
+
+    if (tagContract) {
+        destructors.push(processor.onContractRow(
+            tagContract, 'blends',
+            superBlendsTableListener(core, tagContract),
+            BlendsUpdatePriority.TABLE_BLENDS.valueOf()
+        ));
+
+        destructors.push(processor.onActionTrace(
+            tagContract, 'setblendroll',
+            superBlendsRollsListener(core, tagContract),
+            BlendsUpdatePriority.SET_ROLLS.valueOf()
+        ));
+
+        destructors.push(processor.onContractRow(
+            tagContract, 'valuerolls',
+            superBlendsValuerollsTableListener(core, tagContract),
+            BlendsUpdatePriority.TABLE_VALUEROLL.valueOf()
+        ));
+    }
 
     return (): any => destructors.map(fn => fn());
 }
@@ -371,68 +511,6 @@ async function deleteBlendRolls(
 }
 
 function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber: number, blockTimeStamp: string, contract: string): any {
-    const ingredients = getSuperBlendIngredients(blend);
-    const ingredientDbRows = [];
-    const ingredientAttributesDbRows = [];
-    const ingredientTypedAttributesDbRows = [];
-    for (const ingredient of ingredients) {
-        ingredientDbRows.push({
-            assets_contract: args.atomicassets_account,
-            contract,
-            blend_id: blend.blend_id,
-            ingredient_collection_name: ingredient.collection_name,
-            template_id: ingredient.template_id,
-            schema_name: ingredient.schema_name,
-            amount: ingredient.amount,
-            effect: encodeDatabaseJson(ingredient.effect),
-            ingredient_index: ingredient.index,
-            ingredient_type: ingredient.type,
-            total_attributes: ingredient.attributes.length || 0,
-            updated_at_block: blockNumber || 0,
-            updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
-            created_at_block: blockNumber || 0,
-            created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
-            display_data: ingredient.display_data,
-            balance_ingredient_attribute_name: ingredient.balance_ingredient_attribute_name,
-            balance_ingredient_cost: ingredient.balance_ingredient_cost,
-            ft_ingredient_quantity_price: ingredient.ft_ingredient_quantity_price,
-            ft_ingredient_quantity_symbol: ingredient.ft_ingredient_quantity_symbol
-        });
-
-        let attributeIndex = 0;
-        for (const attribute of ingredient.attributes) {
-            ingredientAttributesDbRows.push({
-                assets_contract: args.atomicassets_account,
-                contract,
-                blend_id: blend.blend_id,
-                ingredient_collection_name: ingredient.collection_name,
-                ingredient_index: ingredient.index,
-                attribute_index: attributeIndex,
-                attribute_name: attribute.attribute_name,
-                allowed_values: encodeDatabaseArray(attribute.allowed_values),
-            });
-            attributeIndex++;
-        }
-
-        let typedAttributeIndex = 0;
-        for (const typedAttribute of ingredient.typed_attributes) {
-            ingredientTypedAttributesDbRows.push({
-                contract,
-                blend_id: blend.blend_id,
-                ingredient_collection_name: ingredient.collection_name,
-                ingredient_index: ingredient.index,
-                typed_attribute_index: typedAttributeIndex,
-
-                attribute_name: typedAttribute.attribute_name,
-                attribute_type: typedAttribute.attribute_type,
-                // variant type, and variant value
-                allowed_values_type: typedAttribute.allowed_values[0],
-                allowed_values: encodeDatabaseJson(typedAttribute.allowed_values[1])
-            });
-            typedAttributeIndex++;
-        }
-    }
-
     const upgradeSpecsDbRows = [ ];
     const upgradeRequirementsDbRows = [ ];
     const upgradeResultsDbRows = [ ];
@@ -506,7 +584,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
                 if (resultValueType === BlendUpgradeResultValueType.VALUE_ROLL_RESULT) {
                     newUpgradeRequirementDbRow.immediate_type = null;
 
-                    newUpgradeRequirementDbRow.valueroll_id = resultValueObject.valueroll_id;
+                    newUpgradeRequirementDbRow.valueroll_id = resultValueObject.id;
                     newUpgradeRequirementDbRow.immediate_string = null;
                     newUpgradeRequirementDbRow.immediate_uint64 = null;
                 } else if (resultValueType === BlendUpgradeResultValueType.IMMEDIATE_VALUE) {
@@ -540,9 +618,14 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
                 upgradeResultsDbRows.push(newUpgradeRequirementDbRow);
             }
         }
-
     }
 
+    const ingredients = getSuperBlendIngredients(blend.ingredients, blend.collection_name);
+    const {
+        ingredientDbRows,
+        ingredientAttributesDbRows,
+        ingredientTypedAttributesDbRows
+    } = getIngredientsDbRows(blend.blend_id, ingredients, args, blockNumber, blockTimeStamp, contract);
 
     return {
         blendDbRow: {
@@ -573,6 +656,123 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         upgradeRequirementsDbRows,
         upgradeResultsDbRows
     };
+}
+
+async function insertBlendIngredients(
+    db: ContractDBTransaction,
+    ingredientDbRows: any[],
+    ingredientAttributesDbRows: any[],
+    ingredientTypedAttributesDbRows: any[]
+): Promise<void> {
+    if (ingredientDbRows.length > 0) {
+        await db.insert(
+            'neftyblends_blend_ingredients',
+            ingredientDbRows,
+            ['contract', 'blend_id', 'ingredient_index']
+        );
+    }
+    if (ingredientAttributesDbRows.length > 0) {
+        await db.insert(
+            'neftyblends_blend_ingredient_attributes',
+            ingredientAttributesDbRows,
+            ['contract', 'blend_id', 'ingredient_index', 'attribute_index']
+        );
+    }
+    if (ingredientTypedAttributesDbRows.length > 0) {
+        await db.insert(
+            'neftyblends_blend_ingredient_typed_attributes',
+            ingredientTypedAttributesDbRows,
+            ['contract', 'blend_id', 'ingredient_index', 'typed_attribute_index']
+        );
+    }
+}
+
+async function deleteBlendIngredients(
+    db: ContractDBTransaction,
+    atomicAssetsAccount: string,
+    blendId: number,
+    contract: string,
+): Promise<void> {
+    const deleteString = 'assets_contract = $1 AND contract = $2 AND blend_id = $3';
+    const deleteValues = [atomicAssetsAccount, contract, blendId];
+    await db.delete('neftyblends_blend_ingredient_typed_attributes', {
+        str: 'contract = $1 AND blend_id = $2',
+        values: [contract, blendId],
+    });
+    await db.delete('neftyblends_blend_ingredient_attributes', {
+        str: deleteString,
+        values: deleteValues,
+    });
+    await db.delete('neftyblends_blend_ingredients', {
+        str: deleteString,
+        values: deleteValues,
+    });
+}
+
+function getIngredientsDbRows(blendId: number, ingredients: Ingredient[], args: BlendsArgs, blockNumber: number, blockTimeStamp: string, contract: string): {
+    ingredientDbRows: any[], ingredientAttributesDbRows: any[], ingredientTypedAttributesDbRows: any[]
+} {
+    const ingredientDbRows = [];
+    const ingredientAttributesDbRows = [];
+    const ingredientTypedAttributesDbRows = [];
+    for (const ingredient of ingredients) {
+        ingredientDbRows.push({
+            assets_contract: args.atomicassets_account,
+            contract,
+            blend_id: blendId,
+            ingredient_collection_name: ingredient.collection_name,
+            template_id: ingredient.template_id,
+            schema_name: ingredient.schema_name,
+            amount: ingredient.amount,
+            effect: encodeDatabaseJson(ingredient.effect),
+            ingredient_index: ingredient.index,
+            ingredient_type: ingredient.type,
+            total_attributes: ingredient.attributes.length || 0,
+            updated_at_block: blockNumber || 0,
+            updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
+            created_at_block: blockNumber || 0,
+            created_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
+            display_data: ingredient.display_data,
+            balance_ingredient_attribute_name: ingredient.balance_ingredient_attribute_name,
+            balance_ingredient_cost: ingredient.balance_ingredient_cost,
+            ft_ingredient_quantity_price: ingredient.ft_ingredient_quantity_price,
+            ft_ingredient_quantity_symbol: ingredient.ft_ingredient_quantity_symbol
+        });
+
+        let attributeIndex = 0;
+        for (const attribute of ingredient.attributes) {
+            ingredientAttributesDbRows.push({
+                assets_contract: args.atomicassets_account,
+                contract,
+                blend_id: blendId,
+                ingredient_collection_name: ingredient.collection_name,
+                ingredient_index: ingredient.index,
+                attribute_index: attributeIndex,
+                attribute_name: attribute.attribute_name,
+                allowed_values: encodeDatabaseArray(attribute.allowed_values),
+            });
+            attributeIndex++;
+        }
+
+        let typedAttributeIndex = 0;
+        for (const typedAttribute of ingredient.typed_attributes) {
+            ingredientTypedAttributesDbRows.push({
+                contract,
+                blend_id: blendId,
+                ingredient_collection_name: ingredient.collection_name,
+                ingredient_index: ingredient.index,
+                typed_attribute_index: typedAttributeIndex,
+
+                attribute_name: typedAttribute.attribute_name,
+                attribute_type: typedAttribute.attribute_type,
+                // variant type, and variant value
+                allowed_values_type: typedAttribute.allowed_values[0],
+                allowed_values: encodeDatabaseJson(typedAttribute.allowed_values[1])
+            });
+            typedAttributeIndex++;
+        }
+    }
+    return {ingredientDbRows, ingredientAttributesDbRows, ingredientTypedAttributesDbRows};
 }
 
 function getRollsDbRows(blendId: number, rollsArray: any[], args: BlendsArgs, blockNumber: number, blockTimeStamp: string, contract: string): any {
@@ -619,9 +819,8 @@ function getRollsDbRows(blendId: number, rollsArray: any[], args: BlendsArgs, bl
     };
 }
 
-function getSuperBlendIngredients(row: SuperBlendTableRow): Ingredient[] {
-    const blend_collection = row.collection_name;
-    return row.ingredients.map(([type, payload], index) => {
+function getSuperBlendIngredients(ingredients: any[], blend_collection: string): Ingredient[] {
+    return ingredients.map(([type, payload], index) => {
         const [effectType = '', effectPayload = {}] = payload.effect || [];
         const effect = {
             payload: effectPayload,

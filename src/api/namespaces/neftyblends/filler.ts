@@ -1,7 +1,8 @@
 import {DB} from '../../server';
-import {FillerHook} from '../atomicassets/filler';
-import {formatTemplate, formatSchema, formatCollection} from '../atomicassets/format';
+import {AssetFiller, FillerHook} from '../atomicassets/filler';
+import {formatTemplate, formatSchema, formatCollection, formatAsset} from '../atomicassets/format';
 import {BlendResultType} from '../../../filler/handlers/blends';
+import {renderMarkdownToHtml} from '../utils';
 
 export class TemplateFiller {
     private templates: Promise<{[key: string]: any}> | null;
@@ -166,10 +167,13 @@ export class CollectionFiller {
     }
 }
 
-export async function fillBlends(db: DB, assetContract: string, blends: any[]): Promise<any[]> {
+export async function fillBlends(db: DB, assetContract: string, blends: any[], renderMarkdown: boolean): Promise<any[]> {
     const templateIds: string[] = [];
     const schemaIds: any[] = [];
     const collectionNames: any[] = [];
+
+
+
     for (const blend of blends) {
         for (const ingredient of blend.ingredients) {
             const templateId = ingredient.template?.template_id;
@@ -186,15 +190,29 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                 collectionNames.push(collection.collection_name);
             }
         }
-        for (const roll of blend.rolls) {
-            for (const outcome of roll.outcomes) {
-                for (const result of outcome.results) {
-                    const templateId = result.payload?.template_id;
-                    if (templateId) {
-                        templateIds.push(templateId);
+        if (blend.rolls) {
+            for (const roll of blend.rolls) {
+                for (const outcome of roll.outcomes) {
+                    for (const result of outcome.results) {
+                        const templateId = result.payload?.template_id;
+                        if (templateId) {
+                            templateIds.push(templateId);
+                        }
                     }
                 }
             }
+        }
+        if (renderMarkdown) {
+            let displayData: Record<string, any> = {};
+            try {
+                displayData = JSON.parse(blend.display_data);
+                if (displayData.description) {
+                    displayData.description = renderMarkdownToHtml(displayData.description);
+                }
+            } catch (e) {
+                // Ignore
+            }
+            blend.display_data = displayData;
         }
     }
 
@@ -215,7 +233,10 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
             if (templateId) {
                 filledIngredients.push({
                     ...ingredient,
-                    template: (await templateFiller.fill(templateId)),
+                    template: {
+                        ...ingredient.template,
+                        ...(await templateFiller.fill(templateId))
+                    },
                 });
             } else if (schemaName) {
                 const collectionName = schema?.collection_name;
@@ -233,47 +254,49 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
                 filledIngredients.push(ingredient);
             }
         }
-        for (const roll of blend.rolls) {
-            const filledOutcomes = [];
-            for (const outcome of roll.outcomes) {
-                const filledResults = [];
-                for (const result of outcome.results) {
-                    if (result.type === BlendResultType.ON_DEMAND_NFT_RESULT) {
-                        const templateId = result.payload?.template_id;
-                        if (templateId) {
+        if (blend.rolls) {
+            for (const roll of blend.rolls) {
+                const filledOutcomes = [];
+                for (const outcome of roll.outcomes) {
+                    const filledResults = [];
+                    for (const result of outcome.results) {
+                        if (result.type === BlendResultType.ON_DEMAND_NFT_RESULT) {
+                            const templateId = result.payload?.template_id;
+                            if (templateId) {
+                                filledResults.push({
+                                    type: result.type,
+                                    template: (await templateFiller.fill(templateId)),
+                                });
+                            }
+                        } else if (result.type === BlendResultType.ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES) {
+                            const templateId = result.payload?.template_id;
+                            if (templateId) {
+                                const mutable_data = result.payload?.mutable_data;
+                                filledResults.push({
+                                    type: result.type,
+                                    template: {
+                                        ...(await templateFiller.fill(templateId))
+                                    },
+                                    mutable_data,
+                                });
+                            }
+                        } else if (result.type === BlendResultType.POOL_NFT_RESULT) {
                             filledResults.push({
                                 type: result.type,
-                                template: (await templateFiller.fill(templateId)),
+                                pool: result.payload,
                             });
                         }
-                    } else if (result.type === BlendResultType.ON_DEMAND_NFT_RESULT_WITH_ATTRIBUTES) {
-                        const templateId = result.payload?.template_id;
-                        if (templateId) {
-                            const mutable_data = result.payload?.mutable_data;
-                            filledResults.push({
-                                type: result.type,
-                                template: {
-                                    ...(await templateFiller.fill(templateId))
-                                },
-                                mutable_data,
-                            });
-                        }
-                    } else if (result.type === BlendResultType.POOL_NFT_RESULT) {
-                        filledResults.push({
-                            type: result.type,
-                            pool: result.payload,
-                        });
                     }
+                    filledOutcomes.push({
+                        ...outcome,
+                        results: filledResults,
+                    });
                 }
-                filledOutcomes.push({
-                    ...outcome,
-                    results: filledResults,
+                filledRolls.push({
+                    ...roll,
+                    outcomes: filledOutcomes,
                 });
             }
-            filledRolls.push({
-                ...roll,
-                outcomes: filledOutcomes,
-            });
         }
         filledBlends.push({
             ...blend,
@@ -283,4 +306,56 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[]): 
     }
 
     return filledBlends;
+}
+
+export async function fillClaims(db: DB, assetContract: string, claims: any[]): Promise<any[]> {
+    const templateIds: string[] = [];
+    const assetIds: any[] = [];
+    for (let i = 0; i < claims.length; i++) {
+        const claim = claims[i];
+        for (let j = 0; j < claim.results.length; j++) {
+            const result = claim.results[j];
+            const [claimType, value] = result.claim;
+            if (claimType === 'POOL_NFT_CLAIM') {
+                assetIds.push(value.asset_id);
+            } else if (claimType === 'ON_DEMAND_NFT_CLAIM') {
+                templateIds.push(value.template_id);
+            }
+        }
+        assetIds.push(...claim.transferred_assets);
+        assetIds.push(...claim.own_assets);
+    }
+
+    const templateFiller = new TemplateFiller(db, assetContract, templateIds, formatTemplate, 'atomicassets_templates_master');
+    const assetFiller = new AssetFiller(db, assetContract, assetIds, formatAsset, 'atomicassets_assets_master');
+    const filledClaims = [];
+
+    for (let i = 0; i < claims.length; i++) {
+        const claim = claims[i];
+        const filledResults = [];
+        for (let j = 0; j < claim.results.length; j++) {
+            const result = claim.results[j];
+            const [claimType, value] = result.claim;
+            if (claimType === 'POOL_NFT_CLAIM') {
+                filledResults.push({
+                    asset: (await assetFiller.fill([value.asset_id]))[0],
+                });
+            }
+            if (claimType === 'ON_DEMAND_NFT_CLAIM') {
+                templateIds.push(value.template_id);
+                filledResults.push({
+                    template: (await templateFiller.fill(value.template_id)),
+                });
+            }
+        }
+
+        filledClaims.push({
+            ...claim,
+            results: filledResults,
+            transferred_assets: (await assetFiller.fill(claim.transferred_assets)),
+            own_assets: (await assetFiller.fill(claim.own_assets)),
+        });
+    }
+
+    return filledClaims;
 }

@@ -10,6 +10,8 @@ const {client, txit} = initAtomicMarketTest();
 describe('AtomicMarket Stats API', () => {
     describe('getTemplateStatsAction', () => {
         txit('gets the templates sales and volume', async () => {
+            await client.createContractReader();
+
             await client.createToken({token_symbol: 'TOKEN1'});
             const {template_id} = await client.createTemplate();
             const {template_id: templateId2} = await client.createTemplate();
@@ -19,7 +21,8 @@ describe('AtomicMarket Stats API', () => {
             await client.createFullSale({
                 final_price: 1,
                 listing_price: 1, listing_symbol: 'TOKEN1',
-                settlement_symbol: 'TOKEN1', state: SaleApiState.SOLD
+                settlement_symbol: 'TOKEN1', state: SaleApiState.SOLD,
+                taker_marketplace: 'X',
             }, {template_id});
 
             await client.createFullSale({
@@ -27,13 +30,13 @@ describe('AtomicMarket Stats API', () => {
                 listing_price: 1,
                 listing_symbol: 'TOKEN1',
                 settlement_symbol: 'TOKEN1',
-                state: SaleApiState.SOLD
+                state: SaleApiState.SOLD,
+                taker_marketplace: 'X',
             }, {template_id});
 
-            await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+            await client.refreshStatsMarket();
 
             const response = await getTemplateStatsAction({symbol: 'TOKEN1'}, context);
-
 
             expect(response.results.length).to.equal(2);
             expect(response.results.find((r: any) => r.template.template_id === template_id)).to.deep.contains({
@@ -49,6 +52,8 @@ describe('AtomicMarket Stats API', () => {
 
         context('with template_id filter', () => {
             txit('gets the templates sales and volume even if they dont have sales', async () => {
+                await client.createContractReader();
+
                 await client.createToken({token_symbol: 'TOKEN1'});
                 const context = getTestContext(client);
                 // Included
@@ -56,7 +61,7 @@ describe('AtomicMarket Stats API', () => {
                 // Not included
                 await client.createTemplate();
 
-                await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+                await client.refreshStatsMarket();
 
                 const response = await getTemplateStatsAction({symbol: 'TOKEN1', template_id: template_id}, context);
 
@@ -71,6 +76,8 @@ describe('AtomicMarket Stats API', () => {
 
         context('with schema_name filter', () => {
             txit('gets the templates sales and volume even if they dont have sales', async () => {
+                await client.createContractReader();
+
                 await client.createToken({token_symbol: 'TOKEN1'});
                 const context = getTestContext(client);
                 // Included
@@ -79,7 +86,7 @@ describe('AtomicMarket Stats API', () => {
                 // Not included
                 await client.createTemplate();
 
-                await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+                await client.refreshStatsMarket();
 
                 const response = await getTemplateStatsAction({symbol: 'TOKEN1', schema_name}, context);
 
@@ -94,6 +101,8 @@ describe('AtomicMarket Stats API', () => {
 
         context('with collection_name filter', () => {
             txit('gets the templates sales and volume even if they dont have sales', async () => {
+                await client.createContractReader();
+
                 await client.createToken({token_symbol: 'TOKEN1'});
                 const context = getTestContext(client);
                 // Included
@@ -102,7 +111,7 @@ describe('AtomicMarket Stats API', () => {
                 // Not included
                 await client.createTemplate();
 
-                await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+                await client.refreshStatsMarket();
 
                 const response = await getTemplateStatsAction({symbol: 'TOKEN1', collection_name}, context);
 
@@ -117,6 +126,8 @@ describe('AtomicMarket Stats API', () => {
 
         context('with search filter', () => {
             txit('gets the templates sales and volume even if they dont have sales', async () => {
+                await client.createContractReader();
+
                 await client.createToken({token_symbol: 'TOKEN1'});
                 const context = getTestContext(client);
                 // Included
@@ -124,7 +135,7 @@ describe('AtomicMarket Stats API', () => {
                 // Not included
                 await client.createTemplate();
 
-                await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+                await client.refreshStatsMarket();
 
                 const response = await getTemplateStatsAction({symbol: 'TOKEN1', search: 'test'}, context);
 
@@ -139,6 +150,8 @@ describe('AtomicMarket Stats API', () => {
 
         context('with time after and before filter', () => {
             txit('gets the templates sales and volume even if they dont have sales in the period defined', async () => {
+                await client.createContractReader();
+
                 await client.createToken({token_symbol: 'TOKEN1'});
                 // Included
                 const {template_id} = await client.createTemplate();
@@ -155,6 +168,7 @@ describe('AtomicMarket Stats API', () => {
                     listing_price: 1, listing_symbol: 'TOKEN1',
                     settlement_symbol: 'TOKEN1', state: SaleApiState.SOLD,
                     updated_at_time: now,
+                    taker_marketplace: 'X',
                 }, {template_id});
 
 
@@ -167,6 +181,7 @@ describe('AtomicMarket Stats API', () => {
                     settlement_symbol: 'TOKEN1',
                     state: SaleApiState.SOLD,
                     updated_at_time: now - 20,
+                    taker_marketplace: 'X',
                 }, {template_id: template_id2});
 
                 // Not included
@@ -177,9 +192,10 @@ describe('AtomicMarket Stats API', () => {
                     settlement_symbol: 'TOKEN1',
                     state: SaleApiState.SOLD,
                     updated_at_time: now + 20,
+                    taker_marketplace: 'X',
                 }, {template_id: template_id2});
 
-                await client.query('REFRESH MATERIALIZED VIEW "atomicmarket_stats_prices"');
+                await client.refreshStatsMarket();
 
                 const response = await getTemplateStatsAction({
                     symbol: 'TOKEN1',

@@ -1,5 +1,14 @@
 import * as express from 'express';
 import QueryBuilder from '../builder';
+import {Remarkable} from 'remarkable';
+import {linkify} from 'remarkable/linkify';
+import * as sanitizeHtml from 'sanitize-html';
+
+const md = new Remarkable({
+    html: true,
+    xhtmlOut: true,
+    breaks: true,
+}).use(linkify);
 
 export type SortColumn = {column: string, nullable?: boolean, numericIndex?: boolean};
 export type SortColumnMapping = {[key: string]: SortColumn};
@@ -141,4 +150,27 @@ export function buildBoundaryFilter(
     if (dateColumn && args.after) {
         query.addCondition(dateColumn + ' > ' + query.addVariable(args.after) + '::BIGINT');
     }
+}
+
+export function renderMarkdownToHtml(markdown: string): string {
+    return sanitizeHtml(md.render(markdown), {
+        allowedTags: [
+            'img',
+            'p',
+            'h1',
+            'h2',
+            'h3',
+            'h4',
+            'h5',
+            'h6',
+            'br',
+            'ol',
+            'ul',
+            'li',
+            'em',
+            'a',
+            'strong',
+            'blockquote',
+        ],
+    });
 }
