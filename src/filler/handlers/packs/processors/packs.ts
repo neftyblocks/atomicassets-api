@@ -68,6 +68,7 @@ const packsTableListener = (core: PacksHandler, contract: string) => async (db: 
             unlock_time: delta.value.unlock_time * 1000,
             use_count: delta.value.use_count || 0,
             display_data: delta.value.display_data,
+            pack_template_id: delta.value.pack_template_id,
             updated_at_block: block.block_num,
             updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
         }, {
