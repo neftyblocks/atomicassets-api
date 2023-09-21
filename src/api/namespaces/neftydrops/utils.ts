@@ -68,7 +68,7 @@ export function buildTemplateFilter(
         if (args.is_locked) {
             query.addCondition('("drop_asset".use_pool = FALSE AND '+options.templateTable + '.max_supply > 0 AND ' + options.templateTable + '.max_supply = ' + options.templateTable + '.issued_supply)');
         } else {
-            query.addCondition('("drop_asset".use_pool = FALSE AND ('+options.templateTable + '.max_supply = 0 OR ' + options.templateTable + '.max_supply > ' + options.templateTable + '.issued_supply))');
+            query.addCondition('("drop_asset".use_pool = TRUE OR ('+options.templateTable + '.max_supply = 0 OR ' + options.templateTable + '.max_supply > ' + options.templateTable + '.issued_supply))');
         }
     }
 }
