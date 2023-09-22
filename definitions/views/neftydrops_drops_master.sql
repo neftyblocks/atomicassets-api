@@ -79,7 +79,8 @@ ON (drops_contract, drop_id)
     ndrop.current_claimed,
     ndrop.price_recipient,
     ndrop.allow_credit_card_payments,
-    ndrop.referral_fee
+    ndrop.referral_fee,
+    ndrop.referral_whitelist_id
 FROM
     neftydrops_drops ndrop LEFT JOIN neftydrops_symbol_pairs pair
 ON (

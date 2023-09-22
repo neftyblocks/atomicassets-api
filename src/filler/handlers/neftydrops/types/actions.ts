@@ -21,6 +21,7 @@ export type LogCreateDropActionData = {
     is_hidden?: boolean
     allow_credit_card_payments?: boolean
     referral_fee?: number
+    referral_whitelist_id?: number
 };
 
 export type SetDropAuthActionData = {
@@ -64,6 +65,7 @@ export type SetDropReferralFeeActionData = {
     authorized_account: string,
     drop_id: number,
     referral_fee: number
+    referral_whitelist_id?: number
 };
 
 export type SetDropPriceActionData = {

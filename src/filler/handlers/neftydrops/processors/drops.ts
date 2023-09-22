@@ -82,6 +82,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           start_time: trace.act.data.start_time * 1000,
           end_time: trace.act.data.end_time * 1000,
           referral_fee: trace.act.data.referral_fee,
+          referral_whitelist_id: trace.act.data.referral_whitelist_id,
           display_data: trace.act.data.display_data,
           is_hidden: trace.act.data.is_hidden || false,
           allow_credit_card_payments: trace.act.data.allow_credit_card_payments || false,
@@ -211,6 +212,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<SetDropReferralFeeActionData>): Promise<void> => {
           await db.update('neftydrops_drops', {
               referral_fee: trace.act.data.referral_fee,
+              referral_whitelist_id: trace.act.data.referral_whitelist_id,
               updated_at_block: block.block_num,
               updated_at_time: eosioTimestampToDate(block.timestamp).getTime()
           }, {
