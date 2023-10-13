@@ -10,6 +10,37 @@ import {hasAssetFilter, hasDataFilters} from '../../atomicassets/utils';
 import {fillAssets} from '../../atomicassets/filler';
 import {formatAsset} from '../../atomicassets/format';
 
+export async function getBlendCategories(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
+    const args = filterQueryArgs(params, {
+        page: {type: 'int', min: 1, default: 1},
+        limit: {type: 'int', min: 1, max: 1000, default: 100},
+        sort: {type: 'string', allowedValues: ['category'], default: 'category'},
+        order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
+
+        collection_name: {type: 'string', default: ''},
+    });
+
+    const query = new QueryBuilder('SELECT category, COUNT(*) as count  FROM neftyblends_blends');
+
+    if (args.collection_name) {
+        query.equal('collection_name', args.collection_name);
+    }
+
+    query.addCondition('category IS NOT NULL AND trim(category) <> \'\'');
+
+    query.append('GROUP BY category');
+
+    const sortMapping: {[key: string]: {column: string, nullable: boolean}}  = {
+        category: {column: 'category', nullable: false},
+    };
+
+    query.append(`ORDER BY ${sortMapping[args.sort].column} ${args.order} ${sortMapping[args.sort].nullable ? 'NULLS LAST' : ''}`);
+    query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+
+    const result = await ctx.db.query(query.buildString(), query.buildValues());
+    return result.rows.map((row) => ({ category: row.category, count: parseInt(row.count, 10) }));
+}
+
 export async function getIngredientOwnershipBlendFilter(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
     const args = filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
@@ -37,7 +68,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
     // view
     if(args.ingredient_owner === ''){
         queryString = `
-            SELECT 
+            SELECT
                 blend_detail.*
             FROM
         `;
@@ -58,7 +89,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         // bodge so we can always append `WHERE` to the string, even if no conditions
         // were sent in `args`.
         queryString += `
-            WHERE 
+            WHERE
                 TRUE`
         ;
         if(args.contract !== ''){
@@ -103,18 +134,18 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         }
 
         queryString=`
-        SELECT 
+        SELECT
             blend_detail.*,
             blend_filter_sub.fulfilled
         FROM
         (
-            SELECT 
-                asset_matches_sub.contract, 
-                asset_matches_sub.blend_id, 
+            SELECT
+                asset_matches_sub.contract,
+                asset_matches_sub.blend_id,
                 asset_matches_sub.ingredients_count AS "required",
                 sum(asset_matches_sub.fulfilled) AS "fulfilled"
             FROM(
-              SELECT 
+              SELECT
                     b.contract,
                     b.blend_id,
                     b.ingredients_count,
@@ -123,18 +154,18 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                     count(DISTINCT a.asset_id) AS "owned",
                     least(i.amount, count(DISTINCT a.asset_id) + count(DISTINCT i.ingredient_index) FILTER (WHERE i.ingredient_type = 'FT_INGREDIENT')) AS fulfilled
                 FROM
-                    neftyblends_blends b 
+                    neftyblends_blends b
                     JOIN neftyblends_blend_ingredients i ON
                         b.contract = i.contract AND b.blend_id = i.blend_id AND i.ingredient_type != 'TOKEN_INGREDIENT'
-                    LEFT JOIN atomicassets_assets a ON 
+                    LEFT JOIN atomicassets_assets a ON
                         ((i.ingredient_type = 'TEMPLATE_INGREDIENT' AND a.template_id = i.template_id) OR
                         (i.ingredient_type = 'SCHEMA_INGREDIENT' AND a.schema_name = i.schema_name AND a.collection_name = i.ingredient_collection_name) OR
                         (i.ingredient_type = 'COLLECTION_INGREDIENT' AND a.collection_name = i.ingredient_collection_name) OR
                         (i.ingredient_type = 'ATTRIBUTE_INGREDIENT'
-                            AND a.schema_name = i.schema_name AND a.collection_name = i.ingredient_collection_name 
+                            AND a.schema_name = i.schema_name AND a.collection_name = i.ingredient_collection_name
                             AND is_ingredient_attribute_match(a.template_id, b.blend_id, i.ingredient_index, i.total_attributes)) OR
                         (
-                            i.ingredient_type = 'BALANCE_INGREDIENT' AND 
+                            i.ingredient_type = 'BALANCE_INGREDIENT' AND
                             a.template_id = i.template_id AND
                             (
                                 (a.mutable_data->>i.balance_ingredient_attribute_name)::numeric >= i.balance_ingredient_cost

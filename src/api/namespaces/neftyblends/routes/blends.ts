@@ -10,7 +10,9 @@ import {
     getIngredientOwnershipBlendFilter,
     getBlendDetails,
     getBlendClaimsAction,
-    getBlendClaimsCountAction, getBlendIngredientAssets
+    getBlendClaimsCountAction,
+    getBlendIngredientAssets,
+    getBlendCategories
 } from '../handlers/blends';
 
 export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, router: express.Router): any {
@@ -19,6 +21,11 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
         '/v1/blends',
         caching(),
         returnAsJSON(getIngredientOwnershipBlendFilter, core)
+    );
+    router.all(
+        '/v1/blends/categories',
+        caching(),
+        returnAsJSON(getBlendCategories, core)
     );
     router.all(
         '/v1/blends/:contract/:blend_id',
@@ -123,6 +130,39 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                                 type: 'string',
                                 enum: ['blend_id', 'created_at_time'],
                                 default: 'blend_id'
+                            }
+                        },
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'array',
+                        items: {'$ref': '#/components/schemas/BlendDetails'}
+                    })
+                }
+            },
+            '/v1/blends/categories': {
+                get: {
+                    tags: ['neftyblends'],
+                    summary: 'Get the categories assigned to blends',
+                    description:
+                        'Returns all the categories assigned to blends. They can be filtered by collection.',
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'query',
+                            description: 'Collection name of blends',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        ...paginationParameters,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['category'],
+                                default: 'category'
                             }
                         },
                     ],
