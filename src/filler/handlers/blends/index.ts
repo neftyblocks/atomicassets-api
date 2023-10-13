@@ -117,6 +117,14 @@ export default class BlendsHandler extends ContractHandler {
                 await client.query(fs.readFileSync('./definitions/functions/' + fn + '.sql', {encoding: 'utf8'}));
             }
         }
+
+        if (version === '1.3.45') {
+            const functionsToUpdate = ['neftyblends_attribute_match'];
+            for (const fn of functionsToUpdate) {
+                logger.info(`Update function ${fn}`);
+                await client.query(fs.readFileSync('./definitions/functions/' + fn + '.sql', {encoding: 'utf8'}));
+            }
+        }
     }
 
     constructor(filler: Filler, args: {[key: string]: any}) {

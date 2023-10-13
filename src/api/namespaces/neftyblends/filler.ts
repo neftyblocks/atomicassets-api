@@ -168,9 +168,9 @@ export class CollectionFiller {
 }
 
 export async function fillBlends(db: DB, assetContract: string, blends: any[], renderMarkdown: boolean): Promise<any[]> {
-    const templateIds: string[] = [];
+    let templateIds: string[] = [];
     const schemaIds: any[] = [];
-    const collectionNames: any[] = [];
+    let collectionNames: any[] = [];
 
 
 
@@ -215,6 +215,9 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[], r
             blend.display_data = displayData;
         }
     }
+
+    templateIds = [...new Set(templateIds)];
+    collectionNames = [...new Set(collectionNames)];
 
     const templateFiller = new TemplateFiller(db, assetContract, templateIds, formatTemplate, 'atomicassets_templates_master');
     const schemaFiller = new SchemaFiller(db, assetContract, schemaIds, formatSchema, 'atomicassets_schemas');

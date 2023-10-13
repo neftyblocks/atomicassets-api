@@ -27,7 +27,6 @@ export async function getBlendCategories(params: RequestValues, ctx: NeftyBlends
     }
 
     query.addCondition('category IS NOT NULL AND trim(category) <> \'\'');
-
     query.append('GROUP BY category');
 
     const sortMapping: {[key: string]: {column: string, nullable: boolean}}  = {
@@ -54,7 +53,6 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         ingredient_match: {type: 'string', allowedValues: ['all', 'missing_x', 'any'], default: 'any'},
         missing_ingredients: {type: 'int', min: 1, default: 1},
         available_only: {type: 'bool', default: false},
-        display_empty_rolls: {type: 'bool', default: false},
         visibility: {type: 'string', allowedValues: ['all', 'visible', 'hidden'], default: 'all'},
         category: {type: 'string', default: ''},
         render_markdown: {type: 'bool', default: false},
@@ -67,75 +65,49 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
     // execute the blend the query is a lot simpler, basically just blend_details
     // view
     if(args.ingredient_owner === ''){
-        queryString = `
-            SELECT
-                blend_detail.*
-            FROM
-        `;
-        // If we have collection_name we use the function because it is a lot
-        // faster
+        const query = new QueryBuilder('SELECT blend_detail.contract, blend_detail.blend_id FROM neftyblends_blends blend_detail');
         if(args.collection_name !== ''){
-            queryValues.push(args.collection_name);
-            queryString += `
-                neftyblends_blend_details_func($${++queryVarCounter}) blend_detail
-            `;
-        }
-        else{
-            queryString += `
-                neftyblends_blend_details_master blend_detail
-            `;
+            query.equal('blend_detail.collection_name', args.collection_name);
         }
 
-        // bodge so we can always append `WHERE` to the string, even if no conditions
-        // were sent in `args`.
-        queryString += `
-            WHERE
-                TRUE`
-        ;
         if(args.contract !== ''){
-            queryValues.push(args.contract);
-            queryString += `
-                AND blend_detail.contract = $${++queryVarCounter}`
-            ;
+            query.equal('blend_detail.contract', args.contract);
         }
         if(args.available_only){
-            queryString += `
-                AND (
-                    (blend_detail.start_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) >= blend_detail.start_time) AND
-                    (blend_detail.end_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) <= blend_detail.end_time) AND
-                    (blend_detail.max = 0 OR blend_detail.max > blend_detail.use_count)
-                )`
-            ;
-        }
-
-        if (!args.display_empty_rolls) {
-            queryString += ' AND jsonb_array_length(blend_detail.rolls) > 0';
+            query.addCondition(`
+                (blend_detail.start_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) >= blend_detail.start_time) AND
+                (blend_detail.end_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) <= blend_detail.end_time) AND
+                (blend_detail.max = 0 OR blend_detail.max > blend_detail.use_count)
+            `);
         }
 
         if (args.visibility === 'visible') {
-            queryString += `
-                AND blend_detail.is_hidden = FALSE
-            `;
+            query.equal('blend_detail.is_hidden', 'FALSE');
         } else if (args.visibility === 'hidden') {
-            queryString += `
-                AND blend_detail.is_hidden = TRUE
-            `;
+            query.equal('blend_detail.is_hidden', 'TRUE');
         }
         if (args.category !== '') {
-            queryValues.push(args.category);
-            queryString += `
-                AND blend_detail.category = $${++queryVarCounter}
-            `;
+            query.equal('blend_detail.category', args.category);
         }
+
+        query.addCondition('EXISTS (SELECT 1 FROM neftyblends_blend_rolls r WHERE (r.contract, r.blend_id) = (blend_detail.contract, blend_detail.blend_id))');
+
+        query.append('ORDER BY blend_detail.' + args.sort + ' ' + args.order);
+        query.append('LIMIT ' + query.addVariable(args.limit));
+        query.append('OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+
+        queryString = query.buildString();
+        queryValues.push(...query.buildValues());
     }
     else{
-        if(args.collection_name === ''){
+        if(args.collection_name === '') {
             throw new ApiError('Param: \'collection_name\' is required when param \'ingredient_owner\' is sent', 400);
         }
 
         queryString=`
         SELECT
-            blend_detail.*,
+            blend_filter_sub.contract,
+            blend_filter_sub.blend_id,
             blend_filter_sub.fulfilled
         FROM
         (
@@ -172,54 +144,46 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                             )
                         )) AND a.owner = ${'$' + (++queryVarCounter)} WHERE`
             ;
+
         // add `WHERE` conditions in filter subquery:
-        {
-            queryValues.push(args.ingredient_owner);
+        queryValues.push(args.ingredient_owner);
 
-            // blends in collection
-            queryValues.push(args.collection_name);
+        // blends in collection
+        queryValues.push(args.collection_name);
+        queryString += `
+            b.collection_name = $${++queryVarCounter}`
+        ;
+
+        if(args.contract !== ''){
+            queryValues.push(args.contract);
             queryString += `
-                b.collection_name = $${++queryVarCounter}`
+                AND b.contract = $${++queryVarCounter}`
             ;
-
-            if(args.contract !== ''){
-                queryValues.push(args.contract);
-                queryString += `
-                    AND b.contract = $${++queryVarCounter}`
-                ;
-            }
-            if(args.available_only){
-                queryString += `
-                    AND (
-                        (b.start_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) >= b.start_time) AND
-                        (b.end_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) <= b.end_time) AND
-                        (b.max = 0 OR b.max > b.use_count)
-                    )`
-                ;
-            }
-            if (args.visibility === 'visible') {
-                queryString += `
-                    AND b.is_hidden = FALSE
-                `;
-            } else if (args.visibility === 'hidden') {
-                queryString += `
-                    AND b.is_hidden = TRUE
-                `;
-            }
-            if (args.category !== '') {
-                queryValues.push(args.category);
-                queryString += `
-                AND b.category = $${++queryVarCounter}
-            `;
-            }
-            // sixpmblends contract does not work with filters because it
-            // the filters assume we only check template.immutable_data to determine
-            // if an asset satisfies the requirements of an ingredient, that is
-            // not the case for sixpm
-            // queryString += `
-            //     AND b.contract <> '${ctx.coreArgs.sixpmblender_account}'
-            // `;
         }
+        if(args.available_only){
+            queryString += `
+                AND (
+                    (b.start_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) >= b.start_time) AND
+                    (b.end_time = 0 OR (cast(extract(epoch from now()) as bigint) * 1000) <= b.end_time) AND
+                    (b.max = 0 OR b.max > b.use_count)
+                )`
+            ;
+        }
+        if (args.visibility === 'visible') {
+            queryString += `
+                AND b.is_hidden = FALSE
+            `;
+        } else if (args.visibility === 'hidden') {
+            queryString += `
+                AND b.is_hidden = TRUE
+            `;
+        }
+        if (args.category !== '') {
+            queryValues.push(args.category);
+            queryString += ` AND b.category = $${++queryVarCounter}`;
+        }
+
+        queryString += ' AND EXISTS (SELECT 1 FROM neftyblends_blend_rolls r WHERE (r.contract, r.blend_id) = (b.contract, b.blend_id))';
 
         queryString += `
                 GROUP BY
@@ -249,38 +213,43 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             `;
         }
 
-        queryValues.push(args.collection_name);
         queryString += `
-        ) as blend_filter_sub 
-        JOIN neftyblends_blend_details_func($${++queryVarCounter}) as blend_detail ON
-            blend_filter_sub.contract = blend_detail.contract AND
-            blend_filter_sub.blend_id = blend_detail.blend_id
-        `;
+        ) as blend_filter_sub`;
 
-        if (!args.display_empty_rolls) {
-            queryString += ' WHERE jsonb_array_length(blend_detail.rolls) > 0';
-        }
-    }
-
-    // This should not lead to sql injection as long as `filterQueryArgs` enforces
-    // the allowed values in `sort` and `order`
-    queryString += `
+        queryString += `
     ORDER BY
-        blend_detail.${args.sort} ${args.order}`;
+        blend_filter_sub.${args.sort} ${args.order}`;
 
-    queryValues.push(args.limit);
-    queryString += `
+        queryValues.push(args.limit);
+        queryString += `
     LIMIT $${++queryVarCounter}`;
 
-    queryValues.push((args.page - 1) * args.limit);
-    queryString += `
+        queryValues.push((args.page - 1) * args.limit);
+        queryString += `
     OFFSET $${++queryVarCounter};`;
+    }
 
-    const result = await ctx.db.query(queryString, queryValues);
+    const ids = await ctx.db.query(queryString, queryValues);
+    if (ids.rows.length === 0) {
+        return [];
+    }
+
+    const result = await ctx.db.query('' +
+        'SELECT * FROM neftyblends_blend_details_master ' +
+        'WHERE (contract, blend_id) ' +
+        'IN (' + ids.rows.map((row: any) => `('${row.contract}', ${row.blend_id})`).join(',') + ')'
+    );
+
+    const blendLookup: {[key: string]: any} = {};
+    result.rows.reduce((prev, current) => {
+        prev[`${current.contract}-${current.blend_id}`] = current;
+        return prev;
+    }, blendLookup);
+
     return await fillBlends(
         ctx.db,
         ctx.coreArgs.atomicassets_account,
-        result.rows,
+        ids.rows.map((row: any) => blendLookup[`${row.contract}-${row.blend_id}`]),
         args.render_markdown
     );
 }
