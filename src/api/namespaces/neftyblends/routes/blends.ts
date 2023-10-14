@@ -23,6 +23,11 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
         returnAsJSON(getIngredientOwnershipBlendFilter, core)
     );
     router.all(
+        '/v1/blends/_count',
+        caching(),
+        returnAsJSON(getIngredientOwnershipBlendFilter, core)
+    );
+    router.all(
         '/v1/blends/categories',
         caching(),
         returnAsJSON(getBlendCategories, core)
@@ -119,6 +124,13 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                             description: 'Render the display data as html',
                             required: false,
                             schema: {type: 'boolean', default: false}
+                        },
+                        {
+                            name: 'search',
+                            in: 'query',
+                            description: 'Search for input in the results',
+                            required: false,
+                            schema: {type: 'string'}
                         },
                         ...paginationParameters,
                         {

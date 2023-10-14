@@ -42,6 +42,7 @@ export async function getBlendCategories(params: RequestValues, ctx: NeftyBlends
 
 export async function getIngredientOwnershipBlendFilter(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
     const args = filterQueryArgs(params, {
+        search: {type: 'string', min: 1},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
         sort: {type: 'string', allowedValues: ['blend_id', 'created_at_time'], default: 'blend_id'},
@@ -56,6 +57,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         visibility: {type: 'string', allowedValues: ['all', 'visible', 'hidden'], default: 'all'},
         category: {type: 'string', default: ''},
         render_markdown: {type: 'bool', default: false},
+        count: {type: 'bool'}
     });
 
     let queryVarCounter:number = 0;
@@ -90,14 +92,21 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             query.equal('blend_detail.category', args.category);
         }
 
-        query.addCondition('EXISTS (SELECT 1 FROM neftyblends_blend_rolls r WHERE (r.contract, r.blend_id) = (blend_detail.contract, blend_detail.blend_id))');
+        if (args.search) {
+            query.addCondition(
+                `EXISTS (
+                    SELECT 1 FROM neftyblends_blend_roll_outcome_results res
+                    INNER JOIN atomicassets_templates template ON template.template_id = (res.payload->>'template_id')::bigint AND ${query.addVariable(args.search)} <% (template.immutable_data->>'name')
+                    WHERE res.contract = blend_detail.contract AND res.blend_id = blend_detail.blend_id AND res.payload->>'template_id' IS NOT NULL
+                )`
+            );
+        }
 
-        query.append('ORDER BY blend_detail.' + args.sort + ' ' + args.order);
-        query.append('LIMIT ' + query.addVariable(args.limit));
-        query.append('OFFSET ' + query.addVariable((args.page - 1) * args.limit));
+        query.addCondition('EXISTS (SELECT 1 FROM neftyblends_blend_rolls r WHERE r.contract = blend_detail.contract AND r.blend_id = blend_detail.blend_id)');
 
         queryString = query.buildString();
         queryValues.push(...query.buildValues());
+        queryVarCounter = queryValues.length;
     }
     else{
         if(args.collection_name === '') {
@@ -106,9 +115,9 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
 
         queryString=`
         SELECT
-            blend_filter_sub.contract,
-            blend_filter_sub.blend_id,
-            blend_filter_sub.fulfilled
+            blend_detail.contract,
+            blend_detail.blend_id,
+            blend_detail.fulfilled
         FROM
         (
             SELECT
@@ -183,6 +192,15 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             queryString += ` AND b.category = $${++queryVarCounter}`;
         }
 
+        if (args.search) {
+            queryValues.push(args.search);
+            queryString += ` AND EXISTS (
+                SELECT 1 FROM neftyblends_blend_roll_outcome_results res
+                INNER JOIN atomicassets_templates template ON template.template_id = (res.payload->>'template_id')::bigint AND $${++queryVarCounter} <% (template.immutable_data->>'name')
+                WHERE res.contract = b.contract AND res.blend_id = b.blend_id AND res.payload->>'template_id' IS NOT NULL
+            )`;
+        }
+
         queryString += ' AND EXISTS (SELECT 1 FROM neftyblends_blend_rolls r WHERE (r.contract, r.blend_id) = (b.contract, b.blend_id))';
 
         queryString += `
@@ -214,20 +232,25 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         }
 
         queryString += `
-        ) as blend_filter_sub`;
-
-        queryString += `
-    ORDER BY
-        blend_filter_sub.${args.sort} ${args.order}`;
-
-        queryValues.push(args.limit);
-        queryString += `
-    LIMIT $${++queryVarCounter}`;
-
-        queryValues.push((args.page - 1) * args.limit);
-        queryString += `
-    OFFSET $${++queryVarCounter};`;
+        ) as blend_detail`;
     }
+
+    if (args.count) {
+        const countQuery = await ctx.db.query(
+            'SELECT COUNT(*) counter FROM (' + queryString + ') x',
+            queryValues
+        );
+
+        return countQuery.rows[0].counter;
+    }
+
+    queryString += ` ORDER BY blend_detail.${args.sort} ${args.order}`;
+
+    queryValues.push(args.limit);
+    queryString += ` LIMIT $${++queryVarCounter}`;
+
+    queryValues.push((args.page - 1) * args.limit);
+    queryString += ` OFFSET $${++queryVarCounter};`;
 
     const ids = await ctx.db.query(queryString, queryValues);
     if (ids.rows.length === 0) {
@@ -252,6 +275,10 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         ids.rows.map((row: any) => blendLookup[`${row.contract}-${row.blend_id}`]),
         args.render_markdown
     );
+}
+
+export async function getIngredientOwnershipBlendFilterCount(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
+    return getIngredientOwnershipBlendFilter({...params, count: 'true'}, ctx);
 }
 
 export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
