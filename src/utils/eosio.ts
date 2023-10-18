@@ -204,3 +204,21 @@ export function getActionAbiType(abi: Abi, contract: string, action: string): st
 
     throw new Error('Type for action not found ' + contract + ':' + action);
 }
+
+export function stringToDisplayData(value: string): {
+    name: string,
+    description: string
+} {
+    const defaultData = {
+        name: '',
+        description: ''
+    };
+    if (!value) {
+        return defaultData;
+    }
+    try {
+        return JSON.parse(value);
+    } catch (e) {
+        return defaultData;
+    }
+}

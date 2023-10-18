@@ -45,6 +45,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         search: {type: 'string', min: 1},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
+        sort_available_first: {type: 'bool', default: false},
         sort: {type: 'string', allowedValues: ['blend_id', 'created_at_time'], default: 'blend_id'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'desc'},
 
@@ -94,11 +95,11 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
 
         if (args.search) {
             query.addCondition(
-                `EXISTS (
+                `(${query.addVariable(args.search)} <% blend_detail.name OR EXISTS (
                     SELECT 1 FROM neftyblends_blend_roll_outcome_results res
                     INNER JOIN atomicassets_templates template ON template.template_id = (res.payload->>'template_id')::bigint AND ${query.addVariable(args.search)} <% (template.immutable_data->>'name')
                     WHERE res.contract = blend_detail.contract AND res.blend_id = blend_detail.blend_id AND res.payload->>'template_id' IS NOT NULL
-                )`
+                ))`
             );
         }
 
@@ -117,18 +118,24 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
         SELECT
             blend_detail.contract,
             blend_detail.blend_id,
-            blend_detail.fulfilled
+            blend_detail.fulfilled,
+            blend_detail.end_time,
+            blend_detail.is_available
         FROM
         (
             SELECT
                 asset_matches_sub.contract,
                 asset_matches_sub.blend_id,
+                asset_matches_sub.end_time,
+                asset_matches_sub.is_available,
                 asset_matches_sub.ingredients_count AS "required",
                 sum(asset_matches_sub.fulfilled) AS "fulfilled"
             FROM(
               SELECT
                     b.contract,
                     b.blend_id,
+                    b.end_time,
+                    b.is_available,
                     b.ingredients_count,
                     i.ingredient_index,
                     i.amount AS "required",
@@ -214,7 +221,9 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
             GROUP BY
                 asset_matches_sub.contract, 
                 asset_matches_sub.blend_id,
-                asset_matches_sub.ingredients_count
+                asset_matches_sub.ingredients_count,
+                asset_matches_sub.end_time,
+                asset_matches_sub.is_available
             HAVING 
         `;
         if (args.ingredient_match === 'all') {
@@ -243,8 +252,7 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
 
         return countQuery.rows[0].counter;
     }
-
-    queryString += ` ORDER BY blend_detail.${args.sort} ${args.order}`;
+    queryString += ` ORDER BY ${(args.sort_available_first === true ? '(CASE WHEN blend_detail.end_time < ' + Date.now() + ' AND blend_detail.end_time != 0 THEN 0 WHEN blend_detail.is_available THEN 2 ELSE 1 END)::INTEGER DESC NULLS LAST, ' : '')} (CASE WHEN blend_detail.contract = 'blenderizerx' THEN 0 ELSE 1 END)::INTEGER DESC NULLS LAST, blend_detail.${args.sort} ${args.order}`;
 
     queryValues.push(args.limit);
     queryString += ` LIMIT $${++queryVarCounter}`;

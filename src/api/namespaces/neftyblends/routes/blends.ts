@@ -12,7 +12,7 @@ import {
     getBlendClaimsAction,
     getBlendClaimsCountAction,
     getBlendIngredientAssets,
-    getBlendCategories
+    getBlendCategories, getIngredientOwnershipBlendFilterCount
 } from '../handlers/blends';
 
 export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, router: express.Router): any {
@@ -25,7 +25,7 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
     router.all(
         '/v1/blends/_count',
         caching(),
-        returnAsJSON(getIngredientOwnershipBlendFilter, core)
+        returnAsJSON(getIngredientOwnershipBlendFilterCount, core)
     );
     router.all(
         '/v1/blends/categories',
@@ -131,6 +131,13 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                             description: 'Search for input in the results',
                             required: false,
                             schema: {type: 'string'}
+                        },
+                        {
+                            name: 'sort_available_first',
+                            in: 'query',
+                            description: 'Displays available blends first (Not sold out)',
+                            required: false,
+                            schema: {type: 'boolean'}
                         },
                         ...paginationParameters,
                         {

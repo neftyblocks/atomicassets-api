@@ -2,7 +2,7 @@ import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
 import { EosioActionTrace, EosioContractRow, EosioTransaction } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
-import { eosioTimestampToDate } from '../../../../utils/eosio';
+import {eosioTimestampToDate, stringToDisplayData} from '../../../../utils/eosio';
 import CollectionsListHandler, {
     BlendIngredientType, BlendsArgs,
     BlendsUpdatePriority, BlendUpgradeRequirementType,
@@ -201,11 +201,14 @@ const superBlendsTableListener = (core: CollectionsListHandler, contract: string
             );
         }
     } else {
+        const displayData = stringToDisplayData(delta.value.display_data);
+
         await db.update('neftyblends_blends', {
             start_time: delta.value.start_time * 1000,
             end_time: delta.value.end_time * 1000,
             max: delta.value.max,
             use_count: delta.value.use_count,
+            name: displayData.name || '',
             display_data: delta.value.display_data,
             updated_at_block: block.block_num,
             updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
@@ -627,6 +630,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
         ingredientTypedAttributesDbRows
     } = getIngredientsDbRows(blend.blend_id, ingredients, args, blockNumber, blockTimeStamp, contract);
 
+    const displayData = stringToDisplayData(blend.display_data);
     return {
         blendDbRow: {
             assets_contract: args.atomicassets_account,
@@ -637,6 +641,7 @@ function getBlendDbRows(blend: SuperBlendTableRow, args: BlendsArgs, blockNumber
             end_time: blend.end_time * 1000,
             max: blend.max,
             use_count: blend.use_count,
+            name: displayData.name || '',
             display_data: blend.display_data,
             ingredients_count: ingredientDbRows.map(({amount}) => amount).reduce((sum,amount) => sum + amount, 0),
             updated_at_block: blockNumber || 0,
