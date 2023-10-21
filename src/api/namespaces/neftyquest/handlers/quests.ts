@@ -6,7 +6,7 @@ import { filterQueryArgs } from '../../validation';
 import {formatLeaderboard, formatQuest} from '../format';
 
 export async function getQuestsAction(params: RequestValues, ctx: NeftyQuestContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 5000, default: 100},
         before: {type: 'string'},
@@ -35,7 +35,7 @@ export async function getQuestsAction(params: RequestValues, ctx: NeftyQuestCont
 
     query.equal('contract', ctx.coreArgs.neftyquest_account);
 
-    buildBoundaryFilter(
+    await buildBoundaryFilter(
         params, query, 'quest.quest_id', 'int',
         dateColumn
     );
@@ -80,7 +80,7 @@ export async function getQuestAction(params: RequestValues, ctx: NeftyQuestConte
 }
 
 export async function getLeaderboardAction(params: RequestValues, ctx: NeftyQuestContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 5000, default: 100},
         account_name: {type: 'string'},

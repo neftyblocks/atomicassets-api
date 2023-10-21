@@ -114,8 +114,7 @@ export async function fillPacks(db: DB, assetContract: string, packs: any[]): Pr
     const collectionFiller = new CollectionFiller(db, assetContract, collectionNames, formatCollection, 'atomicassets_collections_master');
 
     return await Promise.all(packs.map(async (pack) => {
-        const packTemplate = pack.pack_template_id.toString() !== '-1' ? await templateFiller.fillTemplate(pack.pack_template_id.toString()) : null;
-        pack.pack_template = packTemplate;
+        pack.pack_template = pack.pack_template_id.toString() !== '-1' ? await templateFiller.fillTemplate(pack.pack_template_id.toString()) : null;
         pack.collection = await collectionFiller.fill(pack.collection_name);
         return pack;
     }));

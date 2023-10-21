@@ -1,6 +1,10 @@
 import * as express from 'express';
 
-import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {
+    getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
+    paginationParameters,
+} from '../../../docs';
 import { AtomicAssetsNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { baseAssetFilterParameters, greylistFilterParameters, hideOffersParameters } from '../openapi';
@@ -42,7 +46,7 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                         ...baseAssetFilterParameters,
                         ...hideOffersParameters,
                         ...greylistFilterParameters,
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('owner'),
                         ...paginationParameters
                     ],
                     responses: getOpenAPI3Responses([200, 500], {
@@ -87,12 +91,24 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                                         }
                                     }
                                 },
+                                schemas: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            schema: {'$ref': '#/components/schemas/Schema'},
+                                            assets: {type: 'string'}
+                                        }
+                                    }
+                                },
                                 templates: {
                                     type: 'array',
                                     items: {
                                         type: 'object',
                                         properties: {
+                                            collection_name: {type: 'string'},
                                             template_id: {type: 'string'},
+                                            template: {'$ref': '#/components/schemas/Template'},
                                             assets: {type: 'string'}
                                         }
                                     }

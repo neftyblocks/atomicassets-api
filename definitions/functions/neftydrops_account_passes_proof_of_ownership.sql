@@ -36,12 +36,12 @@ BEGIN
                     ("filter".filter_kind = 'TEMPLATE_HOLDINGS' AND asset.template_id = cast("filter".template_holdings->>'template_id' as bigint))
                 )
             where "filter".drop_id=_drop_id
-            group by 
+            group by
                 "filter".drop_id,
                 "filter".filter_index,
                 "filter".total_filter_count,
                 "filter".nft_amount
-            having 
+            having
                 ("filter".comparison_operator=0 AND count(distinct asset.asset_id) =  "filter".nft_amount) OR
                 ("filter".comparison_operator=1 AND count(distinct asset.asset_id) != "filter".nft_amount) OR
                 ("filter".comparison_operator=2 AND count(distinct asset.asset_id) >  "filter".nft_amount) OR
@@ -56,7 +56,7 @@ BEGIN
         HAVING
             (logical_operator=0 AND count(1) >= total_filter_count) OR
             (logical_operator=1)
-    )
+    );
 
 END;
 $$;

@@ -158,6 +158,21 @@ export const primaryBoundaryParameters = [
     }
 ];
 
+export function getPrimaryBoundaryParams(primaryKey: string): any[] {
+    return [
+        {
+            name: primaryKey,
+            in: 'query',
+            description: 'seperate multiple ids with ","',
+            required: false,
+            schema: {
+                type: 'string'
+            }
+        },
+        ...primaryBoundaryParameters,
+    ];
+}
+
 export const dateBoundaryParameters = [
     {
         name: 'before',

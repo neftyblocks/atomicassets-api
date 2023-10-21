@@ -1,11 +1,10 @@
-import {FilterValues} from '../utils';
 import {
     buildDataConditions,
     hasDataFilters
 } from '../atomicassets/utils';
 import QueryBuilder from '../../builder';
 import {DropApiState} from './index';
-import {filterQueryArgs} from '../validation';
+import {filterQueryArgs, FilterValues} from '../validation';
 
 export function hasTemplateFilter(values: FilterValues, blacklist: string[] = []): boolean {
     const keys = Object.keys(values);
@@ -22,13 +21,13 @@ export function hasTemplateFilter(values: FilterValues, blacklist: string[] = []
     return false;
 }
 
-export function buildTemplateFilter(
+export async function buildTemplateFilter(
     values: FilterValues, query: QueryBuilder,
     options: {templateTable?: string, allowDataFilter?: boolean} = {}
-): void {
+): Promise<void> {
     options = Object.assign({allowDataFilter: true}, options);
 
-    const args = filterQueryArgs(values, {
+    const args = await filterQueryArgs(values, {
         template_id: {type: 'string', min: 1},
         schema_name: {type: 'string', min: 1},
         is_transferable: {type: 'bool'},
@@ -73,8 +72,8 @@ export function buildTemplateFilter(
     }
 }
 
-export function buildListingFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildListingFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         collection_name: {type: 'string', min: 1},
     });
 
@@ -83,8 +82,8 @@ export function buildListingFilter(values: FilterValues, query: QueryBuilder): v
     }
 }
 
-export function buildDropFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildDropFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         state: {type: 'string', min: 0},
         hidden: {type: 'bool', default: false},
         secure: {type: 'bool'},
@@ -100,7 +99,7 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
         collection_name: {type: 'string', min: 1},
     });
 
-    buildListingFilter(values, query);
+    await buildListingFilter(values, query);
 
     if (args.max_assets) {
         query.addCondition(
@@ -187,7 +186,7 @@ export function buildDropFilter(values: FilterValues, query: QueryBuilder): void
         );
 
         assetQuery.addCondition('drop_asset.drop_id = ndrop.drop_id');
-        buildTemplateFilter(values, assetQuery, {templateTable: '"template"', allowDataFilter: true});
+        await buildTemplateFilter(values, assetQuery, {templateTable: '"template"', allowDataFilter: true});
 
         query.addCondition('EXISTS(' + assetQuery.buildString() + ')');
         query.setVars(assetQuery.buildValues());

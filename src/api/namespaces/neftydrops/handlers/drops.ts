@@ -9,7 +9,7 @@ import {formatClaim, formatDrop} from '../format';
 import {ApiError} from '../../../error';
 
 export async function getDropsAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
         collection_name: {type: 'string', min: 1},
@@ -35,10 +35,10 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
                     LEFT JOIN neftydrops_drop_prices price ON (price.drops_contract = ndrop.drops_contract AND price.drop_id = ndrop.drop_id)
             `);
 
-    buildDropFilter(params, query);
+    await buildDropFilter(params, query);
 
     if (!args.collection_name) {
-        buildGreylistFilter(params, query, {collectionName: 'ndrop.collection_name'});
+        await buildGreylistFilter(params, query, {collectionName: 'ndrop.collection_name'});
     }
 
     let dateColumn = 'ndrop.created_at_time';
@@ -52,7 +52,7 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         dateColumn = 'stats.created_at_time';
     }
 
-    buildBoundaryFilter(
+    await buildBoundaryFilter(
         params, query, 'ndrop.drop_id', 'int',
         dateColumn
     );
@@ -117,7 +117,7 @@ export async function getDropsCountAction(params: RequestValues, ctx: NeftyDrops
 }
 
 export async function getDropsByCollection(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
         drop_limit: {type: 'int', min: 1, max: 50, default: 5},
@@ -139,10 +139,10 @@ export async function getDropsByCollection(params: RequestValues, ctx: NeftyDrop
 
     const query = new QueryBuilder('');
 
-    buildDropFilter(params, query);
+    await buildDropFilter(params, query);
 
     if (!args.collection_name) {
-        buildGreylistFilter(params, query, {collectionName: 'ndrop.collection_name'});
+        await buildGreylistFilter(params, query, {collectionName: 'ndrop.collection_name'});
     }
 
     let dateColumn = 'ndrop.created_at_time';
@@ -154,7 +154,7 @@ export async function getDropsByCollection(params: RequestValues, ctx: NeftyDrop
         dateColumn = 'ndrop.end_time';
     }
 
-    buildBoundaryFilter(
+    await buildBoundaryFilter(
         params, query, 'ndrop.drop_id', 'int',
         dateColumn
     );
@@ -234,7 +234,7 @@ export async function getDropsByCollection(params: RequestValues, ctx: NeftyDrop
 }
 
 export async function getDropAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         render_markdown: {type: 'bool', default: false},
     });
 
@@ -258,7 +258,7 @@ export async function getDropAction(params: RequestValues, ctx: NeftyDropsContex
 }
 
 export async function getDropClaimsAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
         sort: {
@@ -319,7 +319,7 @@ export async function getDropClaimsCountAction(params: RequestValues, ctx: Nefty
 }
 
 export async function getDropsClaimableAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         drops: {type: 'string', default: ''},
         account: {type: 'string', default: ''},
         keys: {type: 'string', default: ''}

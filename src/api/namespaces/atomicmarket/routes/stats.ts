@@ -3,7 +3,12 @@ import * as express from 'express';
 import { AtomicMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
 import { atomicassetsComponents, greylistFilterParameters } from '../../atomicassets/openapi';
-import { dateBoundaryParameters, getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {
+    dateBoundaryParameters,
+    getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
+    paginationParameters
+} from '../../../docs';
 import {
     getAccountStatsAction,
     getAllAccountStatsAction,
@@ -75,6 +80,16 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
         }
     };
 
+    const SchemaV2Result = {
+        type: 'object',
+        properties: {
+            schema_name: {type: 'string'},
+            sales: {type: 'string'},
+            volume: {type: 'string'},
+            schema: atomicassetsComponents.Schema
+        }
+    };
+
     const TemplateResult = {
         type: 'object',
         properties: {
@@ -113,7 +128,7 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('collection_name'),
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         ...greylistFilterParameters,
@@ -185,7 +200,15 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...primaryBoundaryParameters,
+                        {
+                            name: 'collection_name',
+                            in: 'query',
+                            description: 'Collection Name',
+                            required: false,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
                         ...dateBoundaryParameters,
                         ...greylistFilterParameters,
                         ...paginationParameters,
@@ -267,7 +290,6 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
-                        ...primaryBoundaryParameters,
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         {
@@ -287,6 +309,52 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         properties: {
                             symbol: SymbolResult,
                             results: {type: 'array', items: SchemaResult}
+                        }
+                    })
+                }
+            },
+            '/v2/stats/schemas/{collection_name}': {
+                get: {
+                    tags: ['stats'],
+                    summary: 'Get market schemas sorted by volume or listings',
+                    parameters: [
+                        {
+                            name: 'collection_name',
+                            in: 'path',
+                            description: 'Collection Name',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        {
+                            name: 'symbol',
+                            in: 'query',
+                            description: 'Token Symbol',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
+                        ...dateBoundaryParameters,
+                        ...paginationParameters,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['volume', 'sales'],
+                                default: 'volume'
+                            }
+                        }
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'object',
+                        properties: {
+                            symbol: SymbolResult,
+                            results: {type: 'array', items: SchemaV2Result}
                         }
                     })
                 }
@@ -341,7 +409,17 @@ export function statsEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                                 type: 'string'
                             }
                         },
+                        {
+                            name: 'hide_unlisted_templates',
+                            in: 'query',
+                            description: 'Hide templates without any listed sale',
+                            required: false,
+                            schema: {
+                                type: 'boolean',
+                            }
+                        },
                         ...dateBoundaryParameters,
+                        ...getPrimaryBoundaryParams('template_id'),
                         ...paginationParameters,
                         {
                             name: 'sort',

@@ -9,8 +9,8 @@ import {
     actionGreylistParameters,
     dateBoundaryParameters,
     getOpenAPI3Responses,
-    paginationParameters,
-    primaryBoundaryParameters
+    getPrimaryBoundaryParams,
+    paginationParameters
 } from '../../../docs';
 import { listingFilterParameters } from '../openapi';
 import {
@@ -74,10 +74,19 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                             required: false,
                             schema: {type: 'string'}
                         },
+                        {
+                            name: 'hide_templates_by_accounts',
+                            in: 'query',
+                            description: 'Hide templates that are owned by specific accounts',
+                            required: false,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
                         ...listingFilterParameters,
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('sale_id'),
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         {
@@ -130,7 +139,6 @@ export function salesEndpoints(core: AtomicMarketNamespace, server: HTTPServer, 
                         },
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,
-                        ...primaryBoundaryParameters,
                         ...paginationParameters,
                         {
                             name: 'sort',

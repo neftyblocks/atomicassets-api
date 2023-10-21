@@ -7,7 +7,7 @@ import {buildGreylistFilter} from '../../atomicassets/utils';
 import {formatPack} from '../format';
 
 export async function getPacksAction(params: RequestValues, ctx: NeftyPacksContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
         collection_name: {type: 'string', min: 1},
@@ -30,7 +30,7 @@ export async function getPacksAction(params: RequestValues, ctx: NeftyPacksConte
     const query = new QueryBuilder('SELECT * FROM neftypacks_packs packs');
 
     if (!args.collection_name) {
-        buildGreylistFilter(params, query, {collectionName: 'packs.collection_name'});
+        await buildGreylistFilter(params, query, {collectionName: 'packs.collection_name'});
     }
 
     if (args.contract) {
