@@ -62,7 +62,7 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         if (!symbol) {
             throw new ApiError('Param: \'symbol\' is required when sorting by volume', 400);
         }
-        query.appendToBase(`LEFT JOIN neftydrops_claims stats ON (stats.drops_contract = ndrop.drops_contract AND stats.drop_id = ndrop.drop_id AND stats.settlement_symbol = ${query.addVariable(symbol)})`);
+        query.appendToBase(`LEFT JOIN neftydrops_stats stats ON (stats.drop_id = ndrop.drop_id AND stats.symbol = ${query.addVariable(symbol)})`);
         query.append('GROUP BY ndrop.drop_id');
     }
 
@@ -82,7 +82,7 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         start_time: {column: 'ndrop.start_time', nullable: false},
         end_time: {column: 'ndrop.end_time', nullable: false},
         price: {column: 'price.price', nullable: true},
-        volume: {column: 'SUM(stats.total_price)', nullable: true}
+        volume: {column: 'SUM(stats.price)', nullable: true}
     };
 
     query.append('ORDER BY ' + (args.sort_available_first === true ? '(CASE WHEN end_time < ' + Date.now() + ' AND end_time != 0 THEN 0 WHEN is_available THEN 2 ELSE 1 END)::INTEGER DESC NULLS LAST, ' : '') + sortMapping[args.sort].column + ' ' + args.order + ' ' + (sortMapping[args.sort].nullable ? 'NULLS LAST' : ''));
