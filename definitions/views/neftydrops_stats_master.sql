@@ -18,6 +18,7 @@ SELECT claim.drops_contract,
            WHEN claim.core_symbol IS NOT NULL THEN claim.core_amount
            ELSE claim.total_price
            END               price,
-       claim.created_at_time "time"
+       claim.created_at_time "time",
+       claim.drop_id        drop_id
 FROM neftydrops_claims claim
 WHERE claim.final_price IS NOT NULL

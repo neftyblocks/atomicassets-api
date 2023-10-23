@@ -49,7 +49,7 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
     } else if (args.sort === 'end_time') {
         dateColumn = 'ndrop.end_time';
     } else if (args.sort === 'volume') {
-        dateColumn = 'stats.time';
+        dateColumn = 'stats."time"';
     }
 
     buildBoundaryFilter(
