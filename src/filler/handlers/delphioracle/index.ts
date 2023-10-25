@@ -13,7 +13,8 @@ import DataProcessor from '../../processor';
 export const DELPHIORACLE_BASE_PRIORITY = 0;
 
 export type DelphiOracleArgs = {
-    delphioracle_account: string
+    delphioracle_account: string,
+    price_history_pairs?: string[]
 };
 
 type PairsTableRow = {
@@ -153,6 +154,8 @@ export default class DelphiOracleHandler extends ContractHandler {
                     lastUpdated[delta.scope] = 0;
                 }
 
+                lastUpdated[delta.scope] = block.block_num;
+
                 if (lastUpdated[delta.scope] + 30 < block.block_num) {
                     await db.update('delphioracle_pairs', {
                         median: delta.value.median,
@@ -164,6 +167,17 @@ export default class DelphiOracleHandler extends ContractHandler {
                     }, ['contract', 'delphi_pair_name']);
 
                     lastUpdated[delta.scope] = block.block_num;
+                }
+
+                // Price history
+                if (this.args.price_history_pairs && this.args.price_history_pairs.indexOf(delta.scope) >= 0) {
+                    await db.insert('delphioracle_prices', {
+                        contract: this.args.delphioracle_account,
+                        delphi_pair_name: delta.scope,
+                        median: delta.value.median,
+                        time: eosioTimestampToDate(block.timestamp).getTime(),
+                        block: block.block_num
+                    }, []);
                 }
 
             }, DELPHIORACLE_BASE_PRIORITY + 20, {headOnly: true})
