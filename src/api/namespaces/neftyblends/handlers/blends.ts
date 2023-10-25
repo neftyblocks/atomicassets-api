@@ -11,7 +11,7 @@ import {fillAssets} from '../../atomicassets/filler';
 import {formatAsset} from '../../atomicassets/format';
 
 export async function getBlendCategories(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
         sort: {type: 'string', allowedValues: ['category'], default: 'category'},
@@ -41,7 +41,7 @@ export async function getBlendCategories(params: RequestValues, ctx: NeftyBlends
 }
 
 export async function getIngredientOwnershipBlendFilter(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         search: {type: 'string', min: 1},
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
@@ -290,7 +290,7 @@ export async function getIngredientOwnershipBlendFilterCount(params: RequestValu
 }
 
 export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         render_markdown: {type: 'bool', default: false},
     });
 
@@ -316,7 +316,7 @@ export async function getBlendDetails(params: RequestValues, ctx: NeftyBlendsCon
 }
 
 export async function getBlendClaimsAction(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 100, default: 100},
         tx_id: {type: 'string', default: ''},
@@ -373,7 +373,7 @@ export async function getBlendClaimsCountAction(params: RequestValues, ctx: Neft
 }
 
 export async function getBlendIngredientAssets(params: RequestValues, ctx: NeftyBlendsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 1000, default: 100},
         sort: {

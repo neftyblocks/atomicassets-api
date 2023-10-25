@@ -7,8 +7,8 @@ import {
     actionGreylistParameters,
     dateBoundaryParameters,
     getOpenAPI3Responses,
-    paginationParameters,
-    primaryBoundaryParameters
+    getPrimaryBoundaryParams,
+    paginationParameters
 } from '../../../docs';
 import {
     atomicDataFilter,
@@ -74,7 +74,7 @@ export class AssetApi {
                             ...completeAssetFilterParameters,
                             ...hideOffersParameters,
                             ...greylistFilterParameters,
-                            ...primaryBoundaryParameters,
+                            ...getPrimaryBoundaryParams('asset_id'),
                             ...dateBoundaryParameters,
                             ...paginationParameters,
                             {
@@ -97,7 +97,7 @@ export class AssetApi {
     }
 
     getAssetAction = async (params: RequestValues, ctx: AtomicAssetsContext): Promise<any> => {
-        const {asset_id} = await filterQueryArgs({asset_id: ctx.pathParams.asset_id}, {asset_id: {type: 'id'}});
+        const {asset_id} = await filterQueryArgs(ctx.pathParams, {asset_id: {type: 'id'}});
 
         const assets = await fillAssets(
             ctx.db, ctx.coreArgs.atomicassets_account,

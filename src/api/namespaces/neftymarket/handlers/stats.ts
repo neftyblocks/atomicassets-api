@@ -8,7 +8,7 @@ import {DB} from '../../../server';
 import {filterQueryArgs} from '../../validation';
 
 export async function getAllCollectionStatsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         match: {type: 'string', min: 1},
         search: {type: 'string', min: 1},
@@ -149,7 +149,7 @@ export async function getCollectionStatsAction(params: RequestValues, ctx: Nefty
 }
 
 export async function getAllAccountStatsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
 
@@ -194,7 +194,7 @@ export async function getAllAccountStatsAction(params: RequestValues, ctx: Nefty
 }
 
 export async function getAccountStatsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
 
@@ -225,7 +225,7 @@ export async function getAccountStatsAction(params: RequestValues, ctx: NeftyMar
 }
 
 export async function getSchemaStatsByCollectionAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
 
         before: {type: 'int', min: 1},
@@ -286,7 +286,7 @@ export async function getSchemaStatsByCollectionAction(params: RequestValues, ct
 }
 
 export async function getTemplateStatsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
 
         collection_name: {type: 'string[]', min: 1},
@@ -329,8 +329,8 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: NeftyMa
 
     query.addCondition('template.contract = $1');
 
-    buildGreylistFilter(params, query, { collectionName: '"template".collection_name' });
-    buildBoundaryFilter(params, query, '"template".template_id', 'int', null);
+    await buildGreylistFilter(params, query, { collectionName: '"template".collection_name' });
+    await buildBoundaryFilter(params, query, '"template".template_id', 'int', null);
     buildDataConditions(params, query, {templateTable: '"template"'});
 
     if (args.collection_name.length > 0) {
@@ -380,7 +380,7 @@ export async function getTemplateStatsAction(params: RequestValues, ctx: NeftyMa
 }
 
 export async function getMarketStatsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
 
@@ -414,7 +414,7 @@ export async function getMarketStatsAction(params: RequestValues, ctx: NeftyMark
 }
 
 export async function getStatsGraphAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
 

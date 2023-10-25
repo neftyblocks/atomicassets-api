@@ -2,7 +2,7 @@ import * as express from 'express';
 
 import { NeftyMarketNamespace } from '../index';
 import { HTTPServer } from '../../../server';
-import { getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters } from '../../../docs';
+import {getOpenAPI3Responses, paginationParameters, primaryBoundaryParameters} from '../../../docs';
 import {
     extendedAssetFilterParameters,
     baseAssetFilterParameters,

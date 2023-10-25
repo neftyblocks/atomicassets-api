@@ -7,7 +7,7 @@ import {filterQueryArgs, FiltersDefinition} from '../../validation';
 
 export async function getSellersAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
     const group_by = 'seller';
-    const args = filterQueryArgs(params, marketFilterQueryArgs({
+    const args = await filterQueryArgs(params, marketFilterQueryArgs({
         type: 'string',
         allowedValues: [group_by, 'sold_wax'],
         default: group_by
@@ -51,7 +51,7 @@ export async function getSellersCountAction(params: RequestValues, ctx: NeftyDro
 
 export async function getBuyersAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
     const group_by = 'buyer';
-    const args = filterQueryArgs(params, marketFilterQueryArgs({
+    const args = await filterQueryArgs(params, marketFilterQueryArgs({
         type: 'string',
         allowedValues: [group_by, 'spent_wax'],
         default: group_by
@@ -95,7 +95,7 @@ export async function getBuyersCountAction(params: RequestValues, ctx: NeftyDrop
 
 export async function getCollectionsAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
     const group_by = 'collection_name';
-    const args = filterQueryArgs(params, marketFilterQueryArgs({
+    const args = await filterQueryArgs(params, marketFilterQueryArgs({
         type: 'string',
         allowedValues: [group_by, 'sold_wax'],
         default: group_by
@@ -147,7 +147,7 @@ export async function getCollectionsCountAction(params: RequestValues, ctx: Neft
 // distributed and the total number of distinct beneficiaries
 // (total_nefty_reward / number_of_distinct_beneficiaries)
 export async function getTradingVolumeAndAverage(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         before: {type: 'int', min: 1, default: 0},
         after: {type: 'int', min: 1, default: 0},
         total_nefty_reward: {type: 'float', min: 1, default: 10000}

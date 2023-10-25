@@ -4,8 +4,7 @@ import {DropApiState, NeftyDropsNamespace} from '../index';
 import { HTTPServer } from '../../../server';
 import {
     dateBoundaryParameters, getOpenAPI3Responses,
-    paginationParameters,
-    primaryBoundaryParameters
+    paginationParameters, primaryBoundaryParameters,
 } from '../../../docs';
 import {dropDataFilter, dropsFilterParameters} from '../openapi';
 import {

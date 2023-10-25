@@ -8,8 +8,8 @@ import {
     actionGreylistParameters,
     dateBoundaryParameters,
     getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
     paginationParameters,
-    primaryBoundaryParameters
 } from '../../../docs';
 import { extendedAssetFilterParameters, atomicDataFilter, baseAssetFilterParameters } from '../../atomicassets/openapi';
 import { listingFilterParameters } from '../openapi';
@@ -78,10 +78,19 @@ export function auctionsEndpoints(core: AtomicMarketNamespace, server: HTTPServe
                             required: false,
                             schema: {type: 'boolean'}
                         },
+                        {
+                            name: 'hide_templates_by_accounts',
+                            in: 'query',
+                            description: 'Hide templates that are owned by specific accounts',
+                            required: false,
+                            schema: {
+                                type: 'string'
+                            }
+                        },
                         ...listingFilterParameters,
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('auction_id'),
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         {

@@ -11,12 +11,12 @@ describe('utils tests', () => {
 
         queue.pause();
 
-        queue.add(async () => {
+        await queue.add(async () => {
             await sleep(1000);
             console.log('1');
         }, {priority: 50});
 
-        queue.add(async () => {
+        await queue.add(async () => {
             await sleep(1000);
             console.log('2');
         }, {priority: 100});
@@ -34,12 +34,12 @@ describe('utils tests', () => {
 
         console.log('done 1');
 
-        queue.add(async () => {
+        await queue.add(async () => {
             await sleep(1000);
             console.log('3');
         });
 
-        queue.add(async () => {
+        await queue.add(async () => {
             await sleep(1000);
             console.log('4');
         });
@@ -49,7 +49,7 @@ describe('utils tests', () => {
         await sleep(2000);
 
         console.log('done 2');
-        
-        
+
+
     }).timeout(20000);
 });
