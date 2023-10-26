@@ -6,7 +6,7 @@ import QueryBuilder from '../../../builder';
 import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter } from '../utils';
 import {filterQueryArgs} from '../../validation';
 
-export {getAccountAction} from './accounts/getAccountAction';
+export {getAccountActionV1 as getAccountAction} from './accounts/getAccountAction';
 
 // TODO: Separate the logic of building query to reuse it on getAccountsCountAction
 /**

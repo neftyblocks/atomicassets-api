@@ -3,7 +3,7 @@ import {AtomicAssetsContext} from '../../index';
 import {QueryResult} from 'pg';
 import QueryBuilder from '../../../../builder';
 import {buildGreylistFilter, buildHideOffersFilter} from '../../utils';
-import {ICollection, ITemplate} from 'atomicassets/build/API/Explorer/Objects';
+import {IAccountStats, ICollection, ITemplate} from 'atomicassets/build/API/Explorer/Objects';
 import {formatCollection, formatSchema, formatTemplate} from '../../format';
 import {ISchema} from 'atomicassets/build/Schema';
 import { arrayUnique } from '../../../../../utils';
@@ -117,6 +117,31 @@ export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsC
     };
 }
 
+export async function getAccountActionV1(params: RequestValues, ctx: AtomicAssetsContext): Promise<IAccountStats> {
+    const collectionCount = await getAssetCountByCollection(params, ctx);
+    const templateCount = await getAssetCountByTemplate(params, ctx);
+    const collections = await ctx.db.query(
+        'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY ($2)',
+        [ctx.coreArgs.atomicassets_account, collectionCount.rows.map(row => row.collection_name)]
+    );
+
+    const collectionMapper = collections.rows.reduce<Record<string, ICollection>>(
+        (accumulator, current) => {
+            accumulator[current.collection_name] = formatCollection(current);
+            return accumulator;
+        },
+        {},
+    );
+    return {
+        collections: collectionCount.rows.map(row => ({
+            collection: collectionMapper[row.collection_name],
+            assets: row.assets
+        })),
+        templates: templateCount.rows,
+        assets: collectionCount.rows.reduce((prev, current) => prev + parseInt(current.assets, 10), 0).toString(),
+    };
+}
+
 async function getAssetCountByTemplate(params: RequestValues, ctx: AtomicAssetsContext): Promise<QueryResult<{
     collection_name: string;
     assets: string;
@@ -139,3 +164,24 @@ async function getAssetCountByTemplate(params: RequestValues, ctx: AtomicAssetsC
     return ctx.db.query(templateQuery.buildString(), templateQuery.buildValues());
 }
 
+async function getAssetCountByCollection(params: RequestValues, ctx: AtomicAssetsContext): Promise<QueryResult<{
+    collection_name: string;
+    assets: string;
+}>> {
+    const collectionQuery = new QueryBuilder(
+        'SELECT collection_name, COUNT(*) as assets ' +
+        'FROM atomicassets_assets asset'
+    );
+
+    collectionQuery.equal('contract', ctx.coreArgs.atomicassets_account);
+    collectionQuery.equal('owner', ctx.pathParams.account);
+
+    // prevent index usage (atomicassets_assets_collection_schema_active) that results in a very slow query for large accounts
+    await buildGreylistFilter(params, collectionQuery, {collectionName: `asset.collection_name || ''`});
+    await buildHideOffersFilter(params, collectionQuery, 'asset');
+
+    collectionQuery.group(['contract', 'collection_name']);
+    collectionQuery.append('ORDER BY assets DESC');
+
+    return ctx.db.query(collectionQuery.buildString(), collectionQuery.buildValues());
+}
