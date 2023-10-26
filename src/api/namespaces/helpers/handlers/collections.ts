@@ -1,9 +1,10 @@
-import {filterQueryArgs, RequestValues} from '../../utils';
+import { RequestValues} from '../../utils';
 import {NeftyMarketContext} from '../index';
 import QueryBuilder from '../../../builder';
+import {filterQueryArgs} from '../../validation';
 
 export async function getCollectionsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         list: {type: 'string', values: ['whitelist', 'blacklist', 'verified', 'nsfw', 'scam']},
         sort: {type: 'string', values: ['collection_name', 'list'], default: 'collection_name'},
         order: {type: 'string', values: ['asc', 'desc'], default: 'asc'},

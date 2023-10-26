@@ -7,7 +7,7 @@ import {filterQueryArgs} from '../../validation';
 import QueryBuilder from '../../../builder';
 
 export async function getMarketAssetsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         symbol: {type: 'string', default: ctx.coreArgs.default_symbol},
     });
 

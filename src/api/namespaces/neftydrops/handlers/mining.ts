@@ -20,7 +20,7 @@ const sort_claimer = {
 };
 
 export async function getCollectionsAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, miningFilterQueryArgs(sort_collection));
+    const args = await filterQueryArgs(params, miningFilterQueryArgs(sort_collection));
     const group_by = 'collection_name';
 
     if (args.count) {
@@ -55,7 +55,7 @@ export async function getCollectionsCountAction(params: RequestValues, ctx: Neft
 }
 
 export async function getClaimersAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, miningFilterQueryArgs(sort_claimer));
+    const args = await filterQueryArgs(params, miningFilterQueryArgs(sort_claimer));
     const group_by = 'claimer';
 
     if (args.count) {

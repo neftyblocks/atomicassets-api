@@ -9,7 +9,7 @@ import { DB } from '../../../server';
 import { filterQueryArgs } from '../../validation';
 
 export async function getStatsCollectionsAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
         match: {type: 'string', min: 1},
         search: {type: 'string', min: 1},
@@ -124,7 +124,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
 }
 
 export async function getStatsCollectionAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1},
     });
 
@@ -147,7 +147,7 @@ export async function getStatsCollectionAction(params: RequestValues, ctx: Nefty
 }
 
 export async function getStatsAccountsAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
 
@@ -191,7 +191,7 @@ export async function getStatsAccountsAction(params: RequestValues, ctx: NeftyDr
 }
 
 export async function getStatsAccountAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
 
@@ -222,7 +222,7 @@ export async function getStatsAccountAction(params: RequestValues, ctx: NeftyDro
 }
 
 export async function getStatsGraphAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         collection_whitelist: {type: 'string', min: 1, default: ''},
         collection_blacklist: {type: 'string', min: 1, default: ''},
 
@@ -260,7 +260,7 @@ export async function getStatsGraphAction(params: RequestValues, ctx: NeftyDrops
 }
 
 export async function getStatsSalesAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         symbol: {type: 'string', min: 1}
     });
 
@@ -275,7 +275,7 @@ export async function getStatsSalesAction(params: RequestValues, ctx: NeftyDrops
     query.equal('drops_contract', ctx.coreArgs.neftydrops_account);
     query.equal('symbol', args.symbol);
 
-    buildGreylistFilter(params, query, {collectionName: 'collection_name'});
+    await buildGreylistFilter(params, query, {collectionName: 'collection_name'});
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
 

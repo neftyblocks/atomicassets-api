@@ -30,7 +30,7 @@ const nameToColour = (str: string): string => {
 };
 
 export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext): Promise<{ filePath?: string; contentType: string | boolean; headers: Record<string, string>, stream?: ReadableStream }> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         only_background: {type: 'bool', default: false},
         only_body: {type: 'bool', default: false},
         width: {type: 'int', default: 300},
@@ -81,7 +81,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
         } else {
             const exist = fs.existsSync(photoDirectory);
             if (exist) {
-                fs.rmdirSync(photoDirectory, {recursive: true});
+                fs.rmSync(photoDirectory, {recursive: true, force: true});
             }
             fs.mkdirSync(photoDirectory, { recursive: true });
 
@@ -174,7 +174,7 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
     } else {
         const exist = fs.existsSync(avatarDirectory);
         if (exist) {
-            fs.rmdirSync(avatarDirectory, { recursive: true });
+            fs.rmSync(avatarDirectory, { recursive: true, force: true });
         }
         fs.mkdirSync(avatarDirectory, { recursive: true });
 

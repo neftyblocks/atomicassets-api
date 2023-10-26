@@ -1,24 +1,20 @@
 import {
   ProofOfOwnership,
   ProofOfOwnershipFiltersRow,
-  CollectionFilter,
-  TemplateFilter,
-  SchemaFilter,
-  TokenFilter,
 } from '../../../filler/handlers/security/types/tables';
 import {
   encodeDatabaseJson,
 } from '../../../filler/utils';
 
 export function getProofOfOwnershipFiltersRows(proofOfOwnership: ProofOfOwnership): ProofOfOwnershipFiltersRow[] {
-  let rows:ProofOfOwnershipFiltersRow[] = [];
-  
+  const rows:ProofOfOwnershipFiltersRow[] = [];
+
   const {drop_id, group: {logical_operator, filters}} = proofOfOwnership;
 
   for (let i = 0; i < filters.length; i++) {
     const [type, details] = filters[i];
 
-    let newRow: ProofOfOwnershipFiltersRow = {
+    const newRow: ProofOfOwnershipFiltersRow = {
       drop_id,
       filter_index: i,
       logical_operator,
@@ -30,7 +26,7 @@ export function getProofOfOwnershipFiltersRows(proofOfOwnership: ProofOfOwnershi
       template_holdings: null,
       schema_holdings: null,
       token_holding: null,
-    }
+    };
 
     switch(type) {
       case 'COLLECTION_HOLDINGS':
@@ -40,7 +36,7 @@ export function getProofOfOwnershipFiltersRows(proofOfOwnership: ProofOfOwnershi
         break;
       }
       case 'TEMPLATE_HOLDINGS':
-      { 
+      {
         newRow.nft_amount = details.amount;
         newRow.template_holdings = encodeDatabaseJson(details);
         break;

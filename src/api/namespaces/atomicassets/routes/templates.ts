@@ -6,8 +6,8 @@ import {
     actionGreylistParameters,
     dateBoundaryParameters,
     getOpenAPI3Responses,
+    getPrimaryBoundaryParams,
     paginationParameters,
-    primaryBoundaryParameters
 } from '../../../docs';
 import { atomicDataFilter, greylistFilterParameters } from '../openapi';
 import {
@@ -23,11 +23,12 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
     router.all('/v1/templates', caching(), returnAsJSON(getTemplatesAction, core));
     router.all('/v1/templates/_count', caching(), returnAsJSON(getTemplatesCountAction, core));
 
-    router.all('/v1/templates/:collection_name/:template_id', caching({ignoreQueryString: true}), returnAsJSON(getTemplateAction, core));
-
-    router.all('/v1/templates/:collection_name/:template_id/stats', caching({ignoreQueryString: true}), returnAsJSON(getTemplateStatsAction, core));
+    router.all(['/v1/templates/:template_id/stats', '/v1/templates/:collection_name/:template_id/stats'],
+        caching({ignoreQueryString: true}), returnAsJSON(getTemplateStatsAction, core));
 
     router.all('/v1/templates/:collection_name/:template_id/logs', caching(), returnAsJSON(getTemplateLogsAction, core));
+
+    router.all('/v1/templates/:collection_name/:template_id', caching({ignoreQueryString: true}), returnAsJSON(getTemplateAction, core));
 
     return {
         tag: {
@@ -119,7 +120,7 @@ export function templatesEndpoints(core: AtomicAssetsNamespace, server: HTTPServ
                             schema: {type: 'string'}
                         },
                         ...greylistFilterParameters,
-                        ...primaryBoundaryParameters,
+                        ...getPrimaryBoundaryParams('template_id'),
                         ...dateBoundaryParameters,
                         ...paginationParameters,
                         {

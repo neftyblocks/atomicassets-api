@@ -1,5 +1,6 @@
 import * as express from 'express';
 import QueryBuilder from '../builder';
+import {filterQueryArgs, FiltersDefinition, FilterValues} from './validation';
 import {Remarkable} from 'remarkable';
 import {linkify} from 'remarkable/linkify';
 import * as sanitizeHtml from 'sanitize-html';
@@ -29,110 +30,28 @@ export function mergeRequestData(req: express.Request): RequestValues {
     return {...req.query, ...req.body};
 }
 
-export type FilterValues = RequestValues;
-export type FilteredValues = {[key: string]: any};
-
-export function filterQueryArgs(values: FilterValues, filter: FilterDefinition, keyType: string = null): FilteredValues {
-    const keys: string[] = Object.keys(filter);
-    const result: RequestValues = {};
-
-    for (const key of keys) {
-        let data;
-        if (keyType) {
-            data = values[keyType] ? values[keyType][key] : undefined;
-        } else {
-            data = values[key]?.toString();
-        }
-
-        if (typeof data !== 'string') {
-            result[key] = filter[key].default;
-
-            continue;
-        }
-
-        if (filter[key].type.match(/^string(\[])?$/)) {
-            if (typeof filter[key].min === 'number' && data.length < filter[key].min) {
-                result[key] = filter[key].default;
-
-                continue;
-            }
-
-            if (typeof filter[key].max === 'number' && data.length > filter[key].max) {
-                result[key] = filter[key].default;
-
-                continue;
-            }
-
-            if (Array.isArray(filter[key].values) && !filter[key].values.includes(data)) {
-                result[key] = filter[key].default;
-
-                continue;
-            }
-
-            if (filter[key].type === 'string[]') {
-                result[key] = data.split(',');
-            } else {
-                result[key] = data;
-            }
-        } else if (filter[key].type === 'int' || filter[key].type === 'float') {
-            const n = parseFloat(data);
-
-            if (isNaN(n) || (!Number.isInteger(n) && filter[key].type === 'int')) {
-                result[key] = filter[key].default;
-
-                continue;
-            }
-
-            if (typeof filter[key].min === 'number' && n < filter[key].min) {
-                result[key] = filter[key].min;
-
-                continue;
-            }
-
-            if (typeof filter[key].max === 'number' && n > filter[key].max) {
-                result[key] = filter[key].max;
-
-                continue;
-            }
-
-            if (Array.isArray(filter[key].values) && filter[key].values.indexOf(n) === -1) {
-                result[key] = filter[key].default;
-
-                continue;
-            }
-
-            result[key] = n;
-        } else if (filter[key].type === 'bool') {
-            if (typeof data === 'undefined') {
-                result[key] = filter[key].default;
-            }
-
-            if (data === 'true' || data === '1') {
-                result[key] = true;
-            } else if (data === 'false' || data === '0') {
-                result[key] = false;
-            }
-        }
-    }
-
-    return result;
-}
-
-export function buildBoundaryFilter(
+export async function buildBoundaryFilter(
     values: FilterValues, query: QueryBuilder,
     primaryColumn: string, primaryType: 'string' | 'int',
     dateColumn: string | null
-): void {
-    const args = filterQueryArgs(values, {
+): Promise<void> {
+    const filters: FiltersDefinition = {
         lower_bound: {type: primaryType, min: 1},
         upper_bound: {type: primaryType, min: 1},
         before: {type: 'int', min: 1},
         after: {type: 'int', min: 1},
-        ids: {type: 'string', min: 1}
-    });
+        ids: {type: 'list[string]'},
+    };
+    let primaryColumnName;
 
-    if (primaryColumn && args.ids) {
-        query.equalMany(primaryColumn, args.ids.split(','));
+    if (primaryColumn) {
+        primaryColumnName = primaryColumn.split('.')[1] || primaryColumn;
+        filters[primaryColumnName] = {type: 'list[string]'};
+    }
+    const args = await filterQueryArgs(values, filters);
+
+    if (primaryColumn && (args.ids.length || args[primaryColumnName].length)) {
+        query.equalMany(primaryColumn, [...args.ids, ...args[primaryColumnName]]);
     }
 
     if (primaryColumn && args.lower_bound) {

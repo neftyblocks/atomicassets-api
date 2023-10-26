@@ -7,7 +7,7 @@ import QueryBuilder from '../../../builder';
 import {filterQueryArgs} from '../../validation';
 
 export async function getMarketAssetsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         symbol: {type: 'string', default: ctx.coreArgs.default_symbol},
     });
 

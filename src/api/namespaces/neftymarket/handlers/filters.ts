@@ -5,7 +5,7 @@ import QueryBuilder from '../../../builder';
 import { filterQueryArgs } from '../../validation';
 
 export async function getAttributeFiltersAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
-    const args = filterQueryArgs(params, {
+    const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
         limit: {type: 'int', min: 1, max: 10000, default: 1000},
         sort: {type: 'string', allowedValues: ['key', 'value'], default: 'key'},

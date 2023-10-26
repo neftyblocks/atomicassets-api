@@ -3,15 +3,140 @@ import {AtomicAssetsContext} from '../../index';
 import {QueryResult} from 'pg';
 import QueryBuilder from '../../../../builder';
 import {buildGreylistFilter, buildHideOffersFilter} from '../../utils';
-import {IAccountStats, ICollection} from 'atomicassets/build/API/Explorer/Objects';
-import {formatCollection} from '../../format';
+import {IAccountStats, ICollection, ITemplate} from 'atomicassets/build/API/Explorer/Objects';
+import {formatCollection, formatSchema, formatTemplate} from '../../format';
+import {ISchema} from 'atomicassets/build/Schema';
+import { arrayUnique } from '../../../../../utils';
 
 /**
  * Retrieves the account stats lie collection and assets count and templates
  */
-export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<IAccountStats> {
-    const collectionCount = await getAssetCountByCollection(params, ctx);
+export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsContext): Promise<{
+    collections: Array<{
+        collection: ICollection;
+        assets: string;
+    }>;
+    schemas: Array<{
+        schema: ISchema;
+        assets: string;
+    }>;
+    templates: Array<{
+        template: ITemplate;
+        collection_name: string;
+        template_id: string;
+        assets: string;
+    }>;
+    assets: string;
+}> {
     const templateCount = await getAssetCountByTemplate(params, ctx);
+
+    if (templateCount.rows.length === 0) {
+        return {
+            collections: [],
+            schemas: [],
+            templates: [],
+            assets: '0'
+        };
+    }
+
+    const uniqueCollections = arrayUnique(templateCount.rows.map((row: any) => row.collection_name));
+
+    const collections = await ctx.db.query(`SELECT json_object_agg(collection_name, row_to_json(c)) collection_lookup
+        FROM (SELECT *, created_at_block::text, created_at_time::text FROM atomicassets_collections_master) c WHERE contract = $1 AND collection_name = ANY ($2)`,
+        [ctx.coreArgs.atomicassets_account, uniqueCollections]
+    );
+    const collectionLookup: { [key: string]: any } = collections.rows[0].collection_lookup || {};
+
+
+    const uniqueSchemas = arrayUnique(templateCount.rows.map((row: any) => [row.collection_name, row.schema_name]), (a, b) => a[0] == b[0] && a[1] == b[1]);
+
+    let nbVariables = 1;
+    const valuePlaceholders = uniqueSchemas.map(() => `($${++nbVariables}::text, $${++nbVariables}::text)`).join(',');
+
+    const schemas = await ctx.db.query(
+        `SELECT json_object_agg(collection_name || ':' || schema_name, row_to_json(s)) schema_lookup
+        FROM (SELECT *, created_at_block::text, created_at_time::text FROM atomicassets_schemas_master WHERE contract = $1 AND (collection_name, schema_name) IN (${valuePlaceholders})) s`,
+        [ctx.coreArgs.atomicassets_account, ...uniqueSchemas.flat()]
+    );
+    const schemaLookup: { [key: string]: any } = schemas.rows[0].schema_lookup || {};
+
+    const templates = await ctx.db.query(
+        `SELECT json_object_agg(template_id, row_to_json(t)) template_lookup
+        FROM (SELECT *, issued_supply::text, max_supply::text, created_at_block::text, created_at_time::text FROM atomicassets_templates_master WHERE contract = $1 AND template_id = ANY ($2)) t`,
+        [ctx.coreArgs.atomicassets_account, templateCount.rows.filter(row => !!row.template_id).map((row: any) => row.template_id)]
+    );
+    const templateLookup: { [key: string]: any } = templates.rows[0].template_lookup || {};
+
+    const result = templateCount.rows.reduce((acc, item) => {
+        const nftCount = Number(item.assets);
+        if (!acc.collections[item.collection_name]) {
+            acc.collections[item.collection_name] = {
+                collection: formatCollection(collectionLookup[item.collection_name]),
+                assets: 0,
+            };
+        }
+        if (!acc.schemas[`${item.collection_name}:${item.schema_name}`]) {
+            acc.schemas[`${item.collection_name}:${item.schema_name}`] = {
+                schema: formatSchema(schemaLookup[`${item.collection_name}:${item.schema_name}`]),
+                assets: 0,
+            };
+        }
+        if (item.template_id) {
+            if (!acc.templates[item.template_id]) {
+                acc.templates[item.template_id] = {
+                    template: {
+                        ...formatTemplate(templateLookup[item.template_id]),
+                        template_id: item.template_id,
+                    },
+                    assets: 0,
+                };
+            }
+            acc.templates[item.template_id].assets += nftCount;
+        }
+        acc.collections[item.collection_name].assets += nftCount;
+        acc.schemas[`${item.collection_name}:${item.schema_name}`].assets += nftCount;
+        acc.assets += nftCount;
+        return acc;
+    }, {
+        collections: {} as Record<string, { collection: ICollection; assets: number }>,
+        schemas: {} as Record<string, { schema: ISchema; assets: number }>,
+        templates: {} as Record<string, { template: ITemplate; assets: number }>,
+        assets: 0,
+    });
+
+    return {
+        collections: Object.values(result.collections).map(({collection, assets}) => ({ collection, assets: assets.toString() })),
+        templates: Object.values(result.templates).map(({template, assets}) => ({
+            template,
+            template_id: template.template_id,
+            collection_name: template.collection.collection_name,
+            assets: assets.toString(),
+        })),
+        schemas: Object.values(result.schemas).map(({schema, assets}) => ({ schema, assets: assets.toString() })),
+        assets: result.assets.toString(),
+    };
+}
+
+export async function getAccountActionV1(params: RequestValues, ctx: AtomicAssetsContext): Promise<IAccountStats> {
+    const templateCount = await getAssetCountByTemplate(params, ctx);
+    if (templateCount.rows.length === 0) {
+        return {
+            collections: [],
+            templates: [],
+            assets: '0'
+        };
+    }
+
+    const collectionCountMap = templateCount.rows.reduce<Record<string, number>>((accumulator, current) => {
+        accumulator[current.collection_name] = (accumulator[current.collection_name] || 0) + parseInt(current.assets, 10);
+        return accumulator;
+    }, {});
+    const collectionCount = {
+        rows: Object.entries(collectionCountMap).map(([collection_name, assets]) => ({
+            collection_name,
+            assets: assets.toString()
+        })).sort((a, b) => parseInt(b.assets, 10) - parseInt(a.assets, 10))
+    };
 
     const collections = await ctx.db.query(
         'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY ($2)',
@@ -25,7 +150,6 @@ export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsC
         },
         {},
     );
-
     return {
         collections: collectionCount.rows.map(row => ({
             collection: collectionMapper[row.collection_name],
@@ -36,45 +160,24 @@ export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsC
     };
 }
 
-function getAssetCountByCollection(params: RequestValues, ctx: AtomicAssetsContext): Promise<QueryResult<{
+async function getAssetCountByTemplate(params: RequestValues, ctx: AtomicAssetsContext): Promise<QueryResult<{
     collection_name: string;
     assets: string;
-}>> {
-    const collectionQuery = new QueryBuilder(
-        'SELECT collection_name, COUNT(*) as assets ' +
-        'FROM atomicassets_assets asset'
-    );
-
-    collectionQuery.equal('contract', ctx.coreArgs.atomicassets_account);
-    collectionQuery.equal('owner', ctx.pathParams.account);
-
-    buildGreylistFilter(params, collectionQuery, {collectionName: 'asset.collection_name'});
-    buildHideOffersFilter(params, collectionQuery, 'asset');
-
-    collectionQuery.group(['contract', 'collection_name']);
-    collectionQuery.append('ORDER BY assets DESC');
-
-    return ctx.db.query(collectionQuery.buildString(), collectionQuery.buildValues());
-}
-
-function getAssetCountByTemplate(params: RequestValues, ctx: AtomicAssetsContext): Promise<QueryResult<{
-    collection_name: string;
-    assets: string;
+    schema_name: string;
     template_id: null | string;
 }>> {
     const templateQuery = new QueryBuilder(
-        'SELECT collection_name, template_id, COUNT(*) as assets ' +
+        'SELECT collection_name, schema_name, template_id, COUNT(*) as assets ' +
         'FROM atomicassets_assets asset'
     );
     templateQuery.equal('contract', ctx.coreArgs.atomicassets_account);
     templateQuery.equal('owner', ctx.pathParams.account);
 
-    buildGreylistFilter(params, templateQuery, {collectionName: 'asset.collection_name'});
-    buildHideOffersFilter(params, templateQuery, 'asset');
+    await buildGreylistFilter(params, templateQuery, {collectionName: 'asset.collection_name'});
+    await buildHideOffersFilter(params, templateQuery, 'asset');
 
-    templateQuery.group(['contract', 'collection_name', 'template_id']);
+    templateQuery.group(['contract', 'collection_name', 'schema_name', 'template_id']);
     templateQuery.append('ORDER BY assets DESC');
 
     return ctx.db.query(templateQuery.buildString(), templateQuery.buildValues());
 }
-

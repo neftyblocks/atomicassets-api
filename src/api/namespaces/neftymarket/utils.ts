@@ -20,8 +20,8 @@ export function hasListingFilter(values: FilterValues, blacklist: string[] = [])
     return false;
 }
 
-export function buildListingFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildListingFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         show_seller_contracts: {type: 'bool', default: true},
         contract_whitelist: {type: 'string', min: 1, default: ''},
 
@@ -90,8 +90,8 @@ export function buildListingFilter(values: FilterValues, query: QueryBuilder): v
 
 
 
-export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): void {
-    const args = filterQueryArgs(values, {
+export async function buildAuctionFilter(values: FilterValues, query: QueryBuilder): Promise<void> {
+    const args = await filterQueryArgs(values, {
         state: {type: 'string', min: 1},
         type: {type: 'string', min: 1},
 
@@ -112,7 +112,7 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         template_blacklist: {type: 'int[]', min: 1},
     });
 
-    buildListingFilter(values, query);
+    await buildListingFilter(values, query);
 
     if (args.template_blacklist.length || hasAssetFilter(values, ['collection_name']) || hasDataFilters(values)) {
         const assetQuery = new QueryBuilder(
@@ -128,7 +128,7 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
             assetQuery.notMany('"asset"."template_id"', args.template_blacklist, true);
         }
 
-        buildAssetFilter(values, assetQuery, {
+        await buildAssetFilter(values, assetQuery, {
             assetTable: '"asset"',
             templateTable: '"template"',
             allowDataFilter: true
@@ -190,17 +190,17 @@ export function buildAuctionFilter(values: FilterValues, query: QueryBuilder): v
         query.equal('listing.token_symbol', args.symbol);
 
         if (args.min_price) {
-            const englishAuctionCondition = 
+            const englishAuctionCondition =
                 `listing.auction_type = ${AuctionType.ENGLISH.valueOf()} AND ` + 'listing.price >= 1.0 * ' + query.addVariable(args.min_price) + ' * POWER(10, "token".token_precision)';
-            const dutchAuctionCondition = 
+            const dutchAuctionCondition =
                 `listing.auction_type = ${AuctionType.DUTCH.valueOf()} AND ` + 'price.buy_now_price >= 1.0 * ' + query.addVariable(args.min_price) + ' * POWER(10, "token".token_precision)';
             query.addCondition(`((${englishAuctionCondition}) OR (${dutchAuctionCondition}))`);
         }
 
         if (args.max_price) {
-            const englishAuctionCondition = 
+            const englishAuctionCondition =
                 `listing.auction_type = ${AuctionType.ENGLISH.valueOf()} AND ` + 'listing.price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, "token".token_precision)';
-            const dutchAuctionCondition = 
+            const dutchAuctionCondition =
                 `listing.auction_type = ${AuctionType.DUTCH.valueOf()} AND ` + 'price.buy_now_price <= 1.0 * ' + query.addVariable(args.max_price) + ' * POWER(10, "token".token_precision)';
             query.addCondition(`((${englishAuctionCondition}) OR (${dutchAuctionCondition}))`);
         }
