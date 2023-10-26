@@ -118,8 +118,26 @@ export async function getAccountAction(params: RequestValues, ctx: AtomicAssetsC
 }
 
 export async function getAccountActionV1(params: RequestValues, ctx: AtomicAssetsContext): Promise<IAccountStats> {
-    const collectionCount = await getAssetCountByCollection(params, ctx);
     const templateCount = await getAssetCountByTemplate(params, ctx);
+    if (templateCount.rows.length === 0) {
+        return {
+            collections: [],
+            templates: [],
+            assets: '0'
+        };
+    }
+
+    const collectionCountMap = templateCount.rows.reduce<Record<string, number>>((accumulator, current) => {
+        accumulator[current.collection_name] = (accumulator[current.collection_name] || 0) + parseInt(current.assets, 10);
+        return accumulator;
+    }, {});
+    const collectionCount = {
+        rows: Object.entries(collectionCountMap).map(([collection_name, assets]) => ({
+            collection_name,
+            assets: assets.toString()
+        })).sort((a, b) => parseInt(b.assets, 10) - parseInt(a.assets, 10))
+    };
+
     const collections = await ctx.db.query(
         'SELECT * FROM atomicassets_collections_master WHERE contract = $1 AND collection_name = ANY ($2)',
         [ctx.coreArgs.atomicassets_account, collectionCount.rows.map(row => row.collection_name)]
@@ -162,26 +180,4 @@ async function getAssetCountByTemplate(params: RequestValues, ctx: AtomicAssetsC
     templateQuery.append('ORDER BY assets DESC');
 
     return ctx.db.query(templateQuery.buildString(), templateQuery.buildValues());
-}
-
-async function getAssetCountByCollection(params: RequestValues, ctx: AtomicAssetsContext): Promise<QueryResult<{
-    collection_name: string;
-    assets: string;
-}>> {
-    const collectionQuery = new QueryBuilder(
-        'SELECT collection_name, COUNT(*) as assets ' +
-        'FROM atomicassets_assets asset'
-    );
-
-    collectionQuery.equal('contract', ctx.coreArgs.atomicassets_account);
-    collectionQuery.equal('owner', ctx.pathParams.account);
-
-    // prevent index usage (atomicassets_assets_collection_schema_active) that results in a very slow query for large accounts
-    await buildGreylistFilter(params, collectionQuery, {collectionName: `asset.collection_name || ''`});
-    await buildHideOffersFilter(params, collectionQuery, 'asset');
-
-    collectionQuery.group(['contract', 'collection_name']);
-    collectionQuery.append('ORDER BY assets DESC');
-
-    return ctx.db.query(collectionQuery.buildString(), collectionQuery.buildValues());
 }
