@@ -20,4 +20,5 @@ CREATE INDEX neftydrops_claims_drop_id_symbol ON neftydrops_claims (drop_id, sym
 CREATE INDEX neftydrops_claims_price ON neftydrops_claims USING btree (price);
 CREATE INDEX neftydrops_claims_collection_name ON neftydrops_claims USING btree (collection_name);
 
+DROP MATERIALIZED VIEW IF EXISTS neftydrops_stats;
 DROP VIEW IF EXISTS neftydrops_stats_master;
