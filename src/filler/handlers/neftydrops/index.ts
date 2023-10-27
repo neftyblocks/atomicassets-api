@@ -44,7 +44,7 @@ const views = [
     'neftydrops_claims_master',
     'neftydrops_attribute_filters_master'
 ];
-const materializedViews = ['neftydrops_stats', 'neftydrops_drop_prices', 'neftydrops_attribute_filters'];
+const materializedViews = ['neftydrops_drop_prices', 'neftydrops_attribute_filters'];
 
 const functions = [
     'neftydrops_is_account_within_use_limits',
@@ -112,7 +112,10 @@ export default class NeftyDropsHandler extends ContractHandler {
 
         if (version === '1.3.47') {
             viewsToUpdate = ['neftydrops_stats_master'];
-            materializedToUpdate = ['neftydrops_stats'];
+        }
+
+        if (version === '1.3.51') {
+            viewsToUpdate = ['neftydrops_stats_master'];
         }
 
         for (const view of viewsToUpdate) {

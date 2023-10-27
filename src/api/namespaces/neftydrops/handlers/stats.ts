@@ -241,7 +241,7 @@ export async function getStatsGraphAction(params: RequestValues, ctx: NeftyDrops
     }
 
     let queryString = `SELECT div("time", 24 * 3600 * 1000) "time_block", COUNT(*) sales, SUM(price) volume 
-                FROM neftydrops_stats
+                FROM neftydrops_stats_master
                 WHERE market_contract = $1 AND symbol = $2
                     ${buildRangeCondition('"time"', args.after, args.before)}
                     ${getGreylistCondition('collection_name', 3, 4)}
@@ -270,7 +270,7 @@ export async function getStatsSalesAction(params: RequestValues, ctx: NeftyDrops
         throw new ApiError('Symbol not found');
     }
 
-    const query = new QueryBuilder('SELECT SUM(price) volume, COUNT(*) sales FROM neftydrops_stats');
+    const query = new QueryBuilder('SELECT SUM(price) volume, COUNT(*) sales FROM neftydrops_stats_master');
 
     query.equal('drops_contract', ctx.coreArgs.neftydrops_account);
     query.equal('symbol', args.symbol);
@@ -293,7 +293,7 @@ function buildCollectionStatsQuery(after?: number, before?: number): string {
         FROM
             atomicassets_collections_master collection
             LEFT JOIN (
-                SELECT assets_contract contract, collection_name, SUM(price) volume, COUNT(*) sales FROM neftydrops_stats
+                SELECT assets_contract contract, collection_name, SUM(price) volume, COUNT(*) sales FROM neftydrops_stats_master
                 WHERE symbol = $2 ${buildRangeCondition('"time"', after, before)}
                 GROUP BY assets_contract, collection_name
             ) t1 ON (collection.contract = t1.contract AND collection.collection_name = t1.collection_name)
@@ -307,7 +307,7 @@ function buildAccountStatsQuery(after?: number, before?: number): string {
         FROM (
             (
                 SELECT buyer account, SUM(price) buy_volume_inner, 0 sell_volume_inner
-                FROM neftydrops_stats
+                FROM neftydrops_stats_master
                 WHERE drops_contract = $1 AND symbol = $2
                     ${buildRangeCondition('"time"', after, before)}
                     ${getGreylistCondition('collection_name', 3, 4)}

@@ -62,7 +62,7 @@ export async function getDropsAction(params: RequestValues, ctx: NeftyDropsConte
         if (!symbol) {
             throw new ApiError('Param: \'symbol\' is required when sorting by volume', 400);
         }
-        query.appendToBase(`LEFT JOIN neftydrops_stats stats ON (stats.drop_id = ndrop.drop_id AND stats.symbol = ${query.addVariable(symbol)})`);
+        query.appendToBase(`LEFT JOIN neftydrops_stats_master stats ON (stats.drop_id = ndrop.drop_id AND stats.symbol = ${query.addVariable(symbol)})`);
         query.append('GROUP BY ndrop.drop_id');
     }
 
