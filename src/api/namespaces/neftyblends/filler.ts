@@ -172,8 +172,6 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[], r
     const schemaIds: any[] = [];
     let collectionNames: any[] = [];
 
-
-
     for (const blend of blends) {
         for (const ingredient of blend.ingredients) {
             const templateId = ingredient.template?.template_id;
@@ -288,6 +286,18 @@ export async function fillBlends(db: DB, assetContract: string, blends: any[], r
                                 type: result.type,
                                 pool: result.payload,
                             });
+                        } else if (result.type === BlendResultType.FT_RESULT) {
+                            const [amountString, symbolCode] = result.payload.amount.quantity.split(' ');
+                            const [digits, decimals] = amountString.split('.');
+                            filledResults.push({
+                                type: result.type,
+                                token: {
+                                    'token_contract': result.payload.amount.contract,
+                                    'token_symbol': symbolCode,
+                                    'token_precision': decimals?.length || 0,
+                                    'amount': digits + (decimals || '')
+                                },
+                            });
                         }
                     }
                     filledOutcomes.push({
@@ -348,6 +358,18 @@ export async function fillClaims(db: DB, assetContract: string, claims: any[]): 
                 templateIds.push(value.template_id);
                 filledResults.push({
                     template: (await templateFiller.fill(value.template_id)),
+                });
+            }
+            if (claimType === 'FT_CLAIM') {
+                const [amountString, symbolCode] = value.amount.quantity.split(' ');
+                const [digits, decimals] = amountString.split('.');
+                filledResults.push({
+                    token: {
+                        'token_contract': value.amount.contract,
+                        'token_symbol': symbolCode,
+                        'token_precision': decimals?.length || 0,
+                        'amount': digits + (decimals || '')
+                    },
                 });
             }
         }
