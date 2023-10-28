@@ -9,6 +9,7 @@ import logger from '../../../utils/winston';
 import { eosioTimestampToDate } from '../../../utils/eosio';
 import Filler from '../../filler';
 import DataProcessor from '../../processor';
+import {preventInt64Overflow} from '../../../utils/binary';
 
 export const DELPHIORACLE_BASE_PRIORITY = 0;
 
@@ -171,16 +172,17 @@ export default class DelphiOracleHandler extends ContractHandler {
 
                 // Price history
                 if (this.args.price_history_pairs && this.args.price_history_pairs.indexOf(delta.scope) >= 0) {
-                    await db.insert('delphioracle_prices', {
+                    await db.replace('delphioracle_prices', {
+                        producer: delta.value.owner,
                         contract: this.args.delphioracle_account,
                         delphi_pair_name: delta.scope,
                         median: delta.value.median,
                         time: eosioTimestampToDate(block.timestamp).getTime(),
                         block: block.block_num
-                    }, []);
+                    }, ['producer', 'block']);
                 }
 
-            }, DELPHIORACLE_BASE_PRIORITY + 20, {headOnly: true})
+            }, DELPHIORACLE_BASE_PRIORITY + 20, {headOnly: false})
         );
 
         destructors.push(
