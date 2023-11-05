@@ -46,7 +46,9 @@ export default class PacksHandler extends ContractHandler {
     }
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
-
+        if (version === '1.3.52') {
+            await PacksHandler.setup(client);
+        }
     }
 
     constructor(filler: Filler, args: {[key: string]: any}) {

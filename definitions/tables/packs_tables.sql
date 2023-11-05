@@ -4,6 +4,7 @@ CREATE TABLE neftypacks_packs
     contract         character varying(12) NOT NULL,
     collection_name  character varying(13) NOT NULL,
     pack_id          bigint                NOT NULL,
+    recipe_id        bigint                NOT NULL,
     unlock_time      bigint                NOT NULL,
     use_count        bigint                NOT NULL,
     pack_template_id bigint                NOT NULL,

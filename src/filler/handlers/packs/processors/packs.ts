@@ -37,9 +37,11 @@ const fillPacks = async (args: PacksArgs, connection: ConnectionManager, contrac
 };
 
 export async function initPacks(args: PacksArgs, connection: ConnectionManager): Promise<void> {
-    await fillPacks(args, connection, args.nefty_packs_account);
-    if (args.atomic_packs_account.trim()) {
-        await fillPacks(args, connection, args.atomic_packs_account.trim());
+    const neftyContract = args.nefty_packs_account.trim();
+    const atomicContract = args.atomic_packs_account.trim();
+    await fillPacks(args, connection, neftyContract);
+    if (atomicContract) {
+        await fillPacks(args, connection, atomicContract);
     }
 }
 
@@ -109,6 +111,7 @@ function getPackDbRows(pack: PacksTableRow, args: PacksArgs, blockNumber: number
             pack_id: pack.pack_id,
             pack_template_id: pack.pack_template_id,
             unlock_time: pack.unlock_time * 1000,
+            recipe_id: pack.recipe_id || -1,
             use_count: pack.use_count || 0,
             display_data: pack.display_data,
             updated_at_block: blockNumber || 0,
