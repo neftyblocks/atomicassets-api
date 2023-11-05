@@ -79,7 +79,7 @@ export async function getPackAction(params: RequestValues, ctx: NeftyPacksContex
 
     const query = await ctx.db.query(
         'SELECT * FROM neftypacks_packs WHERE contract = $1 AND pack_id = $2',
-        [ctx.pathParams.contract, ctx.pathParams.drop_id]
+        [ctx.pathParams.contract, ctx.pathParams.pack_id]
     );
 
     if (query.rowCount === 0) {
