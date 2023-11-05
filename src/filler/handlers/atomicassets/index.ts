@@ -112,7 +112,7 @@ export default class AtomicAssetsHandler extends ContractHandler {
             await client.query(fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {encoding: 'utf8'}));
         }
 
-        if (version === '1.3.52') {
+        if (version === '1.3.53') {
             await client.query(fs.readFileSync('./definitions/views/atomicassets_assets_master.sql', {encoding: 'utf8'}));
             await client.query(fs.readFileSync('./definitions/views/atomicassets_templates_master.sql', {encoding: 'utf8'}));
         }
