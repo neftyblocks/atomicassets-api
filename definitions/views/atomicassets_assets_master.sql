@@ -37,6 +37,7 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
             'is_burnable', "template".burnable,
             'issued_supply', "template".issued_supply::text,
             'immutable_data', "template".immutable_data,
+            'packs', pack_details.packs,
             'created_at_time', "template".created_at_time::text,
             'created_at_block', "template".created_at_block::text
         ) END AS "template",
@@ -71,3 +72,12 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         )
         JOIN atomicassets_collections collection ON (collection.contract = asset.contract AND collection.collection_name = asset.collection_name)
         JOIN atomicassets_schemas "schema" ON ("schema".contract = asset.contract AND "schema".collection_name = asset.collection_name AND "schema".schema_name = asset.schema_name)
+        LEFT JOIN (
+            SELECT
+                pack_template_id,
+                array_agg(json_build_object('contract', contract, 'pack_id', pack_id)) AS packs
+            FROM
+                neftypacks_packs
+            GROUP BY
+                pack_template_id
+        ) pack_details ON pack_details.pack_template_id = "template".template_id

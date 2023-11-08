@@ -155,20 +155,16 @@ export default class DelphiOracleHandler extends ContractHandler {
                     lastUpdated[delta.scope] = 0;
                 }
 
+                await db.update('delphioracle_pairs', {
+                    median: delta.value.median,
+                    updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+                    updated_at_block: block.block_num
+                }, {
+                    str: 'contract = $1 AND delphi_pair_name = $2',
+                    values: [this.args.delphioracle_account, delta.scope]
+                }, ['contract', 'delphi_pair_name']);
+
                 lastUpdated[delta.scope] = block.block_num;
-
-                if (lastUpdated[delta.scope] + 30 < block.block_num) {
-                    await db.update('delphioracle_pairs', {
-                        median: delta.value.median,
-                        updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-                        updated_at_block: block.block_num
-                    }, {
-                        str: 'contract = $1 AND delphi_pair_name = $2',
-                        values: [this.args.delphioracle_account, delta.scope]
-                    }, ['contract', 'delphi_pair_name']);
-
-                    lastUpdated[delta.scope] = block.block_num;
-                }
 
                 // Price history
                 if (this.args.price_history_pairs && this.args.price_history_pairs.indexOf(delta.scope) >= 0) {

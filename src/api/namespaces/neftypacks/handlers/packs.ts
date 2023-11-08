@@ -5,6 +5,7 @@ import {filterQueryArgs} from '../../validation';
 import {fillPacks} from '../filler';
 import {buildGreylistFilter} from '../../atomicassets/utils';
 import {formatPack} from '../format';
+import {ApiError} from '../../../error';
 
 export async function getPacksAction(params: RequestValues, ctx: NeftyPacksContext): Promise<any> {
     const args = await filterQueryArgs(params, {
@@ -68,4 +69,24 @@ export async function getPacksAction(params: RequestValues, ctx: NeftyPacksConte
 
 export async function getPacksCountAction(params: RequestValues, ctx: NeftyPacksContext): Promise<any> {
     return getPacksAction({...params, count: 'true'}, ctx);
+}
+
+export async function getPackAction(params: RequestValues, ctx: NeftyPacksContext): Promise<any> {
+    const args = await filterQueryArgs(params, {
+        render_markdown: {type: 'bool', default: false},
+        hide_description: {type: 'bool', default: false},
+    });
+
+    const query = await ctx.db.query(
+        'SELECT * FROM neftypacks_packs WHERE contract = $1 AND pack_id = $2',
+        [ctx.pathParams.contract, ctx.pathParams.pack_id]
+    );
+
+    if (query.rowCount === 0) {
+        throw new ApiError('Pack not found', 416);
+    } else {
+        const packs = (await fillPacks(ctx.db, ctx.coreArgs.atomicassets_account, query.rows))
+            .map((row) => formatPack(row, args.hide_description, args.render_markdown));
+        return packs[0];
+    }
 }
