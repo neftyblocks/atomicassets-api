@@ -20,6 +20,7 @@ export async function buildAssetQueryCondition(
         hide_templates_by_accounts: {type: 'list[name]'},
 
         only_duplicate_templates: {type: 'bool'},
+        only_packs: {type: 'bool'},
         has_backed_tokens: {type: 'bool'},
 
         template_mint: {type: 'int', min: 1},
@@ -57,6 +58,15 @@ export async function buildAssetQueryCondition(
             'SELECT * FROM atomicassets_assets inner_asset ' +
             'WHERE inner_asset.contract = asset.contract AND inner_asset.template_id = ' + options.assetTable + '.template_id ' +
             'AND inner_asset.asset_id < ' + options.assetTable + '.asset_id AND inner_asset.owner = ' + options.assetTable + '.owner' +
+            ') AND ' + options.assetTable + '.template_id IS NOT NULL'
+        );
+    }
+
+    if (args.only_packs) {
+        query.addCondition(
+            'EXISTS (' +
+            'SELECT * FROM neftypacks_packs pack ' +
+            'WHERE pack.pack_template_id = ' + options.assetTable + '.template_id ' +
             ') AND ' + options.assetTable + '.template_id IS NOT NULL'
         );
     }

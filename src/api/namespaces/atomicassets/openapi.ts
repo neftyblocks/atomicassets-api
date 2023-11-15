@@ -419,6 +419,15 @@ export const completeAssetFilterParameters = [
         }
     },
     {
+        name: 'only_packs',
+        in: 'query',
+        description: 'Show only assets that have a pack association',
+        required: false,
+        schema: {
+            type: 'boolean'
+        }
+    },
+    {
         name: 'has_backed_tokens',
         in: 'query',
         description: 'Show only assets that are backed by a token',
