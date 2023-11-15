@@ -135,7 +135,7 @@ export default class StateReceiver {
             irreversible_only: this.config.irreversible_only || false,
             have_positions: await this.database.getLastReaderBlocks(),
             fetch_block: true,
-            fetch_traces: true,
+            fetch_traces: false,
             fetch_deltas: true
         }, ['contract_row']);
     }
