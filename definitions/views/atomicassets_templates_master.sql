@@ -24,19 +24,9 @@ CREATE OR REPLACE VIEW atomicassets_templates_master AS
             'created_at_block', "schema".created_at_block::text,
             'created_at_time', "schema".created_at_time::text
         ) "schema",
-        pack_details.packs,
         "template".immutable_data,
         "template".created_at_time, "template".created_at_block
     FROM
         atomicassets_templates "template"
         JOIN atomicassets_collections collection ON (collection.contract = "template".contract AND collection.collection_name = "template".collection_name)
         JOIN atomicassets_schemas "schema" ON ("schema".contract = "template".contract AND "schema".collection_name = "template".collection_name AND "schema".schema_name = "template".schema_name)
-        LEFT JOIN (
-            SELECT
-                pack_template_id,
-                array_agg(json_build_object('contract', contract, 'pack_id', pack_id)) AS packs
-            FROM
-                neftypacks_packs
-            GROUP BY
-                pack_template_id
-        ) pack_details ON pack_details.pack_template_id = "template".template_id

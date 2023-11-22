@@ -9,6 +9,7 @@ import {filterQueryArgs} from '../../validation';
 export async function getMarketAssetsAction(params: RequestValues, ctx: NeftyMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
         symbol: {type: 'string', default: ctx.coreArgs.default_symbol},
+        fetch_packs: {type: 'bool', default: false},
     });
 
     const result = await getRawAssetsAction(params, ctx, {
@@ -36,7 +37,7 @@ export async function getMarketAssetsAction(params: RequestValues, ctx: NeftyMar
         ctx.db, ctx.coreArgs.atomicassets_account,
         result,
         formatListingAsset, 'neftymarket_assets_master',
-        buildAssetFillerHook({fetchPrices: true, fetchNeftyAuctions: true})
+        buildAssetFillerHook({fetchPrices: true, fetchNeftyAuctions: true, fetchPacks: args.fetch_packs})
     );
 }
 

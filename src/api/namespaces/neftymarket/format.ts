@@ -40,10 +40,11 @@ export function formatListingAsset(row: any): any {
 }
 
 export function buildAssetFillerHook(
-    options: {fetchPrices?: boolean, fetchNeftyAuctions?: boolean}
+    options: {fetchPrices?: boolean, fetchNeftyAuctions?: boolean, fetchPacks?: boolean}
 ): FillerHook {
     return async (db: DB, contract: string, rows: any[]): Promise<any[]> => {
         const assetIDs = rows.map(asset => asset.asset_id);
+        const templateIDs = rows.map(asset => asset.template_id).filter((templateID: any) => templateID !== null);
 
         const queries = await Promise.all([
             options.fetchPrices && db.query(
@@ -66,10 +67,16 @@ export function buildAssetFillerHook(
                 'auction.state = ' + AuctionState.LISTED.valueOf() + ' AND auction.end_time > ' + Date.now() + '::BIGINT ',
                 [contract, assetIDs]
             ),
+            options.fetchPacks && db.query(
+                'SELECT pack.contract, pack.pack_id, pack.pack_template_id ' +
+                'FROM neftypacks_packs pack ' +
+                'WHERE pack.pack_template_id = ANY($1)',
+                [templateIDs]
+            ),
         ]);
 
         const assetData: {[key: string]: {sales: any[], auctions: any[]}} = {};
-        const templateData: {[key: string]: {prices: any[]}} = {};
+        const templateData: {[key: string]: {prices: any[], packs: any[]}} = {};
 
         for (const row of rows) {
             assetData[row.asset_id] = {sales: [], auctions: []};
@@ -80,7 +87,7 @@ export function buildAssetFillerHook(
                 continue;
             }
 
-            templateData[row.template.template_id] = {prices: []};
+            templateData[row.template.template_id] = {prices: [], packs: []};
         }
 
         if (queries[0]) {
@@ -106,6 +113,12 @@ export function buildAssetFillerHook(
         if (queries[1]) {
             for (const row of queries[1].rows) {
                 assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
+            }
+        }
+
+        if (queries[2]) {
+            for (const row of queries[2].rows) {
+                templateData[row.pack_template_id].packs.push({contract: row.contract, pack_id: row.pack_id});
             }
         }
 

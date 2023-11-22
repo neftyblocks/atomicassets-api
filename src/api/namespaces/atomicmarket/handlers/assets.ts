@@ -9,6 +9,7 @@ import QueryBuilder from '../../../builder';
 export async function getMarketAssetsAction(params: RequestValues, ctx: AtomicMarketContext): Promise<any> {
     const args = await filterQueryArgs(params, {
         symbol: {type: 'string', default: ctx.coreArgs.default_symbol},
+        fetch_packs: {type: 'bool', default: false},
     });
 
     const result = await getRawAssetsAction(params, ctx, {
@@ -36,7 +37,13 @@ export async function getMarketAssetsAction(params: RequestValues, ctx: AtomicMa
         ctx.db, ctx.coreArgs.atomicassets_account,
         result,
         formatListingAsset, 'atomicmarket_assets_master',
-        buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: ctx.coreArgs.include_nefty_auctions})
+        buildAssetFillerHook({
+            fetchSales: true,
+            fetchAuctions: true,
+            fetchPrices: true,
+            fetchNeftyAuctions: ctx.coreArgs.include_nefty_auctions,
+            fetchPacks: args.fetch_packs
+        })
     );
 }
 
