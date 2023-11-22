@@ -186,6 +186,7 @@ CREATE INDEX atomicassets_assets_asset_id ON atomicassets_assets USING btree (as
 CREATE INDEX atomicassets_assets_collection_name_btree ON atomicassets_assets USING btree (collection_name);
 CREATE INDEX atomicassets_assets_template_id_asset_id ON atomicassets_assets (template_id, asset_id);
 CREATE INDEX atomicassets_assets_schema_name ON atomicassets_assets USING btree (schema_name);
+CREATE INDEX atomicassets_assets_owner_gin ON atomicassets_assets USING gin (owner gin_trgm_ops);
 CREATE INDEX atomicassets_assets_owner_btree ON atomicassets_assets USING btree (owner);
 CREATE INDEX atomicassets_assets_mutable_data ON atomicassets_assets USING gin (mutable_data);
 CREATE INDEX atomicassets_assets_immutable_data ON atomicassets_assets USING gin (immutable_data);

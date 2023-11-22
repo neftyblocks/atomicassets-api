@@ -67,6 +67,60 @@ export async function getAccountsCountAction(params: RequestValues, ctx: AtomicA
     return getAccountsAction({...params, count: 'true'}, ctx);
 }
 
+export async function getAccountsActionV2(
+    params: RequestValues,
+    ctx: AtomicAssetsContext,
+): Promise<any> {
+    const maxLimit = ctx.coreArgs.limits?.accounts || 5000;
+    const args = await filterQueryArgs(params, {
+        page: {type: 'int', min: 1, default: 1},
+        limit: {type: 'int', min: 1, max: maxLimit, default: Math.min(maxLimit, 100)},
+
+        match_owner: {type: 'name'},
+
+        count: {type: 'bool'}
+    });
+
+    const query = new QueryBuilder(
+        'SELECT owner account FROM atomicassets_assets asset '
+    );
+
+    query.equal('asset.contract', ctx.coreArgs.atomicassets_account).notNull('asset.owner');
+
+    if (args.match_owner) {
+        query.addCondition('asset.owner like ' + query.addVariable('%'+args.match_owner.toLowerCase()+'%'));
+    }
+
+    await buildAssetFilter(params, query,  {assetTable: 'asset', templateTable: 'template', allowDataFilter: true});
+    await buildGreylistFilter(params, query, {collectionName: 'asset.collection_name'});
+
+    await buildHideOffersFilter(params, query, 'asset');
+    await buildBoundaryFilter(params, query, 'owner', 'string', null);
+
+    query.group(['asset.owner']);
+
+    if (query.buildString().includes('template.')) {
+        query.appendToBase('LEFT JOIN atomicassets_templates template ON asset.contract = template.contract AND asset.template_id = template.template_id');
+    }
+
+    if (args.count) {
+        const countQuery = await ctx.db.query('SELECT COUNT(*) counter FROM (' + query.buildString() + ') x', query.buildValues());
+
+        return countQuery.rows[0].counter;
+    }
+
+    query.append('ORDER BY account ASC');
+    query.paginate(args.page, args.limit);
+
+    const result = await ctx.db.query(query.buildString(), query.buildValues());
+
+    return result.rows;
+}
+
+export async function getAccountsCountActionV2(params: RequestValues, ctx: AtomicAssetsContext): Promise<any> {
+    return getAccountsActionV2({...params, count: 'true'}, ctx);
+}
+
 /**
  * Retrieves the template and schema count for the given account and collection name
  */

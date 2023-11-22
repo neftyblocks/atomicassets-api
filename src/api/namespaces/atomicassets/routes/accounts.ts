@@ -11,8 +11,8 @@ import { baseAssetFilterParameters, greylistFilterParameters, hideOffersParamete
 import {
     getAccountAction,
     getAccountCollectionAction,
-    getAccountsAction,
-    getAccountsCountAction
+    getAccountsAction, getAccountsActionV2,
+    getAccountsCountAction, getAccountsCountActionV2
 } from '../handlers/accounts';
 
 export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServer, router: express.Router): any {
@@ -20,6 +20,9 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
 
     router.all('/v1/accounts', caching(), returnAsJSON(getAccountsAction, core));
     router.all('/v1/accounts/_count', caching(), returnAsJSON(getAccountsCountAction, core));
+
+    router.all('/v2/accounts', caching(), returnAsJSON(getAccountsActionV2, core));
+    router.all('/v2/accounts/_count', caching(), returnAsJSON(getAccountsCountActionV2, core));
 
     router.all('/v1/accounts/:account', caching(), returnAsJSON(getAccountAction, core));
 
@@ -32,6 +35,36 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
         },
         paths: {
             '/v1/accounts': {
+                get: {
+                    tags: ['accounts'],
+                    summary: 'Get accounts which own atomicassets NFTs with asset count',
+                    parameters: [
+                        {
+                            name: 'match_owner',
+                            in: 'query',
+                            description: 'Search for partial account name',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        ...baseAssetFilterParameters,
+                        ...hideOffersParameters,
+                        ...greylistFilterParameters,
+                        ...getPrimaryBoundaryParams('owner'),
+                        ...paginationParameters
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                account: {type: 'string'},
+                                assets: {type: 'string'}
+                            }
+                        }
+                    })
+                }
+            },
+            '/v2/accounts': {
                 get: {
                     tags: ['accounts'],
                     summary: 'Get accounts which own atomicassets NFTs',
@@ -55,7 +88,6 @@ export function accountsEndpoints(core: AtomicAssetsNamespace, server: HTTPServe
                             type: 'object',
                             properties: {
                                 account: {type: 'string'},
-                                assets: {type: 'string'}
                             }
                         }
                     })
