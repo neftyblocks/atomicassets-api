@@ -55,6 +55,61 @@ export class AssetsFiller {
     }
 }
 
+export class PacksFiller {
+    private packs: Promise<{[key: string]: any}> | null;
+
+    constructor(
+        readonly db: DB,
+        readonly templateIds: string[],
+    ) {
+        this.packs = null;
+    }
+
+    async fillTemplate(templateId: string): Promise<any[]> {
+        this.query();
+
+        const data = await this.packs;
+
+        return data[String(templateId)] || [];
+    }
+
+    query(): void {
+        if (this.packs !== null) {
+            return;
+        }
+
+        this.packs = new Promise(async (resolve, reject) => {
+            if (this.templateIds.length === 0) {
+                return resolve({});
+            }
+
+            try {
+                const query = await this.db.query(
+                    'SELECT contract, pack_id, pack_template_id FROM neftypacks_packs WHERE pack_template_id = ANY ($1)',
+                    [this.templateIds]
+                );
+
+                const rows = query.rows;
+                const result: {[key: string]: any} = {};
+
+                for (const row of rows) {
+                    if (!result[String(row.pack_template_id)]) {
+                        result[String(row.pack_template_id)] = [];
+                    }
+                    result[String(row.pack_template_id)].push({
+                        contract: row.contract,
+                        pack_id: row.pack_id
+                    });
+                }
+
+                return resolve(result);
+            } catch (e) {
+                return reject(e);
+            }
+        });
+    }
+}
+
 export async function fillDrops(db: DB, assetContract: string, drops: any[]): Promise<any[]> {
     const templateIds: string[] = [];
 
@@ -64,12 +119,14 @@ export async function fillDrops(db: DB, assetContract: string, drops: any[]): Pr
     }
 
     const filler = new AssetsFiller(db, assetContract, templateIds, formatAsset, 'atomicassets_templates_master');
+    const packsFiller = new PacksFiller(db, templateIds);
 
     return await Promise.all(drops.map(async (drop) => {
         drop.assets = await (Promise.all(drop.assets.map(async (asset: any) => {
             const result: any = {};
             if (asset.template_id > -1) {
                 result.template = await filler.fillTemplate(asset.template_id);
+                result.template.packs = await packsFiller.fillTemplate(asset.template_id);
             } else if (asset.bank_name) {
                 result.bank_name = asset.bank_name;
             }

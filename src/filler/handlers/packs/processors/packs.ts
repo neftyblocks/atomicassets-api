@@ -1,5 +1,5 @@
 import { ContractDBTransaction } from '../../../database';
-import { EosioContractRow } from '../../../../types/eosio';
+import {EosioActionTrace, EosioContractRow, EosioTransaction} from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import ConnectionManager from '../../../../connections/manager';
@@ -10,6 +10,7 @@ import {
 } from '../../../utils';
 import PacksHandler, {PacksArgs, PacksUpdatePriority} from '../index';
 import DataProcessor from '../../../processor';
+import {LogAtomicPackResult} from '../types/actions';
 
 const fillPacks = async (args: PacksArgs, connection: ConnectionManager, contract: string): Promise<void> => {
     const packsCount = await connection.database.query(
@@ -42,6 +43,17 @@ export async function initPacks(args: PacksArgs, connection: ConnectionManager):
     await fillPacks(args, connection, neftyContract);
     if (atomicContract) {
         await fillPacks(args, connection, atomicContract);
+
+        await connection.database.query('UPDATE neftypacks_packs p ' +
+            'SET use_count = usage.count ' +
+            'FROM (' +
+            'SELECT p.pack_id, p.contract, COUNT(*) count FROM neftypacks_packs p ' +
+            'INNER JOIN atomicassets_assets a ON burned_by_account = p.contract AND a.template_id = p.pack_template_id ' +
+            'WHERE p.contract = $1 AND p.pack_template_id != -1 ' +
+            'GROUP BY p.pack_id, p.contract ' +
+            ') usage ' +
+            'WHERE p.pack_id = usage.pack_id AND p.contract = usage.contract;', [atomicContract]
+        );
     }
 }
 
@@ -96,6 +108,17 @@ export function packsProcessor(core: PacksHandler, processor: DataProcessor): ()
             atomicContract, 'packs',
             packsTableListener(core, atomicContract),
             PacksUpdatePriority.TABLE_PACKS.valueOf()
+        ));
+
+        destructors.push(processor.onActionTrace(
+            atomicContract, 'logresult',
+            async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogAtomicPackResult>): Promise<void> => {
+                await db.query('UPDATE neftypacks_packs ' +
+                    'SET use_count = use_count + 1, updated_at_block = $1, updated_at_time = $2 ' +
+                    'WHERE contract = $3 AND pack_id = $4',
+                    [block.block_num, eosioTimestampToDate(block.timestamp).getTime(), atomicContract, trace.act.data.pack_id]
+                );
+            }, PacksUpdatePriority.LOGS.valueOf()
         ));
     }
 

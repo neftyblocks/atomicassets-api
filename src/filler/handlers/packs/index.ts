@@ -18,6 +18,7 @@ export type PacksArgs = {
 
 export enum PacksUpdatePriority {
     TABLE_PACKS = PACKS_BASE_PRIORITY + 10,
+    LOGS = PACKS_BASE_PRIORITY + 20,
 }
 
 export default class PacksHandler extends ContractHandler {
