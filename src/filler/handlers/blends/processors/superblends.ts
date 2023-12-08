@@ -457,6 +457,18 @@ export function superBlendsProcessor(core: CollectionsListHandler, processor: Da
             superBlendsValuerollsTableListener(core, tagContract),
             BlendsUpdatePriority.TABLE_VALUEROLL.valueOf()
         ));
+
+        destructors.push(processor.onActionTrace(
+            tagContract, 'logclaim',
+            logClaimListener(core, tagContract),
+            BlendsUpdatePriority.LOG_CLAIM.valueOf()
+        ));
+
+        destructors.push(processor.onActionTrace(
+            tagContract, 'logresult',
+            logClaimResultListener(core, tagContract),
+            BlendsUpdatePriority.LOG_RESULT.valueOf()
+        ));
     }
 
     return (): any => destructors.map(fn => fn());
