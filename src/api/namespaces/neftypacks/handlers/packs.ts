@@ -10,7 +10,7 @@ import {ApiError} from '../../../error';
 export async function getPacksAction(params: RequestValues, ctx: NeftyPacksContext): Promise<any> {
     const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
-        limit: {type: 'int', min: 1, max: 100, default: 100},
+        limit: {type: 'int', min: 1, max: 1000, default: 100},
         collection_name: {type: 'string', min: 1},
         render_markdown: {type: 'bool', default: false},
         hide_description: {type: 'bool', default: false},
