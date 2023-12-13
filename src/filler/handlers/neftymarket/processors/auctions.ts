@@ -67,7 +67,7 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
     destructors.push(processor.onContractRow(
         contract, 'auctions',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AuctionsTableRow>): Promise<void> => {
-            const end_time = delta.present ? delta.value.end_time * 1000 : Date.now();
+            const end_time = delta.present || delta.value.end_time ? delta.value.end_time * 1000 : Date.now();
             await db.update('neftymarket_auctions', {
                 end_time: end_time,
                 updated_at_block: block.block_num,
