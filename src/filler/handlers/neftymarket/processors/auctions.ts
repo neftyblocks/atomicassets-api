@@ -67,7 +67,7 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
     destructors.push(processor.onContractRow(
         contract, 'auctions',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<AuctionsTableRow>): Promise<void> => {
-            const end_time = delta.present || delta.value.end_time ? delta.value.end_time * 1000 : Date.now();
+            const end_time = delta.value.end_time * 1000;
             await db.update('neftymarket_auctions', {
                 end_time: end_time,
                 updated_at_block: block.block_num,
@@ -150,17 +150,23 @@ export function auctionProcessor(core: NeftyMarketHandler, processor: DataProces
       const newState = dutchAuction || buyNowPricePaid ? AuctionState.SOLD.valueOf()
         : state || AuctionState.LISTED.valueOf();
 
-      await db.update('neftymarket_auctions', {
-        buyer: trace.act.data.bidder,
-        price: bidAmount,
-        token_symbol: trace.act.data.bid_amount.split(' ')[1],
-        taker_marketplace: trace.act.data.marketplace || '',
-        updated_at_block: block.block_num,
-        updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-        claimed_by_buyer: dutchAuction || buyNowPricePaid,
-        claimed_by_seller: dutchAuction || buyNowPricePaid,
-        state: newState,
-      }, {
+      const updateValues: Record<string, any> = {
+          buyer: trace.act.data.bidder,
+          price: bidAmount,
+          token_symbol: trace.act.data.bid_amount.split(' ')[1],
+          taker_marketplace: trace.act.data.marketplace || '',
+          updated_at_block: block.block_num,
+          updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+          claimed_by_buyer: dutchAuction || buyNowPricePaid,
+          claimed_by_seller: dutchAuction || buyNowPricePaid,
+          state: newState,
+      };
+
+      if (buyNowPricePaid || dutchAuction) {
+        updateValues.end_time = eosioTimestampToDate(block.timestamp).getTime();
+      }
+
+      await db.update('neftymarket_auctions', updateValues, {
         str: 'market_contract = $1 AND auction_id = $2',
         values: [contract, trace.act.data.auction_id]
       }, ['market_contract', 'auction_id']);
