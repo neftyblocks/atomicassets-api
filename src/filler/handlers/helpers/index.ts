@@ -18,6 +18,7 @@ export type CollectionsListArgs = {
 
 export enum HelpersUpdatePriority {
     TABLE_FEATURES = HELPERS_BASE_PRIORITY + 10,
+    TABLE_COLLECTIONS = HELPERS_BASE_PRIORITY + 10,
 }
 
 export default class HelpersHandler extends ContractHandler {

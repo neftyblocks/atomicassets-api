@@ -5,7 +5,7 @@ import { ShipBlock } from '../../../../types/ship';
 import { eosioTimestampToDate } from '../../../../utils/eosio';
 import CollectionsListHandler, {CollectionsListArgs, HelpersUpdatePriority} from '../index';
 import ConnectionManager from '../../../../connections/manager';
-import {AccListTableRow, FeaturesTableRow} from '../types/tables';
+import {AccListTableRow, ColThemeData, FeaturesTableRow} from '../types/tables';
 import {bulkInsert} from '../../../utils';
 import logger from '../../../../utils/winston';
 
@@ -134,6 +134,46 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                 }
             }
         }, HelpersUpdatePriority.TABLE_FEATURES.valueOf()
+    ));
+
+    destructors.push(processor.onContractRow(
+        neftyContract, 'colthemedata',
+        async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<ColThemeData>): Promise<void> => {
+
+            if (!delta.present) {
+                await db.delete('helpers_collection_tags', {
+                    str: 'collection_name = $1',
+                    values: [delta.value.collection]
+                });
+            } else if (delta.value.tags) {
+                const tagsQuery = await db.query('SELECT tag FROM helpers_collection_tags WHERE collection_name = $1',
+                    [delta.value.tags]
+                );
+
+                const currentTags = tagsQuery.rows.map(({ tag }) => tag);
+                const addedTags = getDifference(delta.value.tags, currentTags);
+                const deletedTags = getDifference(currentTags, delta.value.tags);
+
+                if (deletedTags.length > 0) {
+                    await db.delete('helpers_collection_tags', {
+                        str: 'collection_name = $1 AND collection_name = ANY($2)',
+                        values: [delta.value.collection, deletedTags]
+                    });
+                }
+
+                if (addedTags.length > 0) {
+                    await db.insert('helpers_collection_tags', addedTags.map(tag => {
+                        return {
+                            collection_name: delta.value.collection,
+                            tag,
+                            updated_at_block: block.block_num,
+                            updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+                        };
+                    }), ['collection_name', 'tag']);
+                }
+            }
+
+        }, HelpersUpdatePriority.TABLE_COLLECTIONS.valueOf()
     ));
 
     if (atomicContract) {
