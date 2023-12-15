@@ -156,7 +156,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
 
                 if (deletedTags.length > 0) {
                     await db.delete('helpers_collection_tags', {
-                        str: 'collection_name = $1 AND collection_name = ANY($2)',
+                        str: 'collection_name = $1 AND tag = ANY($2)',
                         values: [delta.value.collection, deletedTags]
                     });
                 }
