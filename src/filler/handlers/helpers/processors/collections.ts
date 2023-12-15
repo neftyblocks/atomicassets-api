@@ -147,7 +147,7 @@ export function collectionsProcessor(core: CollectionsListHandler, processor: Da
                 });
             } else if (delta.value.tags) {
                 const tagsQuery = await db.query('SELECT tag FROM helpers_collection_tags WHERE collection_name = $1',
-                    [delta.value.tags]
+                    [delta.value.collection]
                 );
 
                 const currentTags = tagsQuery.rows.map(({ tag }) => tag);
