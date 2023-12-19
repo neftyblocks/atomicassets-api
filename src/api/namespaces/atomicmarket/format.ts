@@ -192,18 +192,21 @@ export function buildAssetFillerHook(
             templateData[row.template.template_id] = {prices: [], template_buyoffers: [], packs: []};
         }
 
+        // Sales
         if (queries[0]) {
             for (const row of queries[0].rows) {
                 assetData[row.asset_id].sales.push({market_contract: row.market_contract, sale_id: row.sale_id});
             }
         }
 
+        // Auctions
         if (queries[1]) {
             for (const row of queries[1].rows) {
                 assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
             }
         }
 
+        // Template buy offers
         if (queries[2]) {
             for (const row of queries[2].rows) {
                 templateData[row.template_id].template_buyoffers.push({
@@ -214,6 +217,7 @@ export function buildAssetFillerHook(
             }
         }
 
+        // Prices
         if (queries[3]) {
             for (const row of queries[3].rows) {
                 templateData[row.template_id].prices.push({
@@ -234,13 +238,15 @@ export function buildAssetFillerHook(
             }
         }
 
-        if (queries[3]) {
+        // Nefty auctions
+        if (queries[4]) {
             for (const row of queries[3].rows) {
                 assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
             }
         }
 
-        if (queries[4]) {
+        // Packs
+        if (queries[5]) {
             for (const row of queries[4].rows) {
                 templateData[row.pack_template_id].packs.push({contract: row.contract, pack_id: row.pack_id});
             }
