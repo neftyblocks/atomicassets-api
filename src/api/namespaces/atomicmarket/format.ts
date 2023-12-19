@@ -173,7 +173,7 @@ export function buildAssetFillerHook(
                 'SELECT pack.contract, pack.pack_id, pack.pack_template_id ' +
                 'FROM neftypacks_packs pack ' +
                 'WHERE pack.pack_template_id = ANY($1)',
-                [templateIDs]
+                [[...templateIDs]]
             ),
         ]);
 
