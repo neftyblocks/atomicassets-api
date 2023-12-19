@@ -18,7 +18,8 @@ import ApiNotificationReceiver from '../../notification';
 import { buyoffersEndpoints, buyofferSockets } from './routes/buyoffers';
 import { assetsEndpoints } from './routes/assets';
 import { ActionHandlerContext } from '../../actionhandler';
-import {ILimits} from '../../../types/config';
+import { ILimits } from '../../../types/config';
+import { templateBuyoffersEndpoints } from './routes/template-buyoffers';
 
 export interface AtomicMarketNamespaceArgs {
     connected_reader: string;
@@ -61,6 +62,12 @@ export enum BuyofferApiState {
     CANCELED = 2,
     ACCEPTED = 3,
     INVALID = 4
+}
+
+export enum TemplateBuyofferApiState {
+    LISTED = 0,
+    CANCELED = 1,
+    SOLD = 2
 }
 
 export type AtomicMarketContext = ActionHandlerContext<AtomicMarketNamespaceArgs>;
@@ -110,6 +117,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
         endpointsDocs.push(salesEndpoints(this, server, router));
         endpointsDocs.push(auctionsEndpoints(this, server, router));
         endpointsDocs.push(buyoffersEndpoints(this, server, router));
+        endpointsDocs.push(templateBuyoffersEndpoints(this, server, router));
         endpointsDocs.push(marketplacesEndpoints(this, server, router));
         endpointsDocs.push(pricesEndpoints(this, server, router));
         endpointsDocs.push(statsEndpoints(this, server, router));
@@ -118,19 +126,40 @@ export class AtomicMarketNamespace extends ApiNamespace {
         const assetApi = new AssetApi(
             this, server, 'ListingAsset',
             'atomicassets_assets_master',
-            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: this.args.include_nefty_auctions, fetchPacks: true})
+            formatListingAsset, buildAssetFillerHook({
+                fetchSales: true,
+                fetchAuctions: true,
+                fetchTemplateBuyoffers: true,
+                fetchPrices: true,
+                fetchNeftyAuctions: this.args.include_nefty_auctions,
+                fetchPacks: true
+            }),
         );
         const transferApi = new TransferApi(
             this, server, 'ListingTransfer',
             'atomicassets_transfers_master', formatTransfer,
             'atomicassets_assets_master',
-            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: this.args.include_nefty_auctions, fetchPacks: true})
+            formatListingAsset, buildAssetFillerHook({
+                fetchSales: true,
+                fetchAuctions: true,
+                fetchTemplateBuyoffers: true,
+                fetchPrices: true,
+                fetchNeftyAuctions: this.args.include_nefty_auctions,
+                fetchPacks: true
+            })
         );
         const offerApi = new OfferApi(
             this, server, 'ListingOffer',
             'atomicassets_offers_master', formatOffer,
             'atomicassets_assets_master',
-            formatListingAsset, buildAssetFillerHook({fetchSales: true, fetchAuctions: true, fetchPrices: true, fetchNeftyAuctions: this.args.include_nefty_auctions, fetchPacks: true})
+            formatListingAsset, buildAssetFillerHook({
+                fetchSales: true,
+                fetchAuctions: true,
+                fetchTemplateBuyoffers: true,
+                fetchPrices: true,
+                fetchNeftyAuctions: this.args.include_nefty_auctions,
+                fetchPacks: true
+            }),
         );
 
         endpointsDocs.push(assetsEndpoints(this, server, router));
