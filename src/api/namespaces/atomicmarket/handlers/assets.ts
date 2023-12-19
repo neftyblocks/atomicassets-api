@@ -36,10 +36,11 @@ export async function getMarketAssetsAction(params: RequestValues, ctx: AtomicMa
     return await fillAssets(
         ctx.db, ctx.coreArgs.atomicassets_account,
         result,
-        formatListingAsset, 'atomicmarket_assets_master',
+        formatListingAsset, 'atomicassets_assets_master',
         buildAssetFillerHook({
             fetchSales: true,
             fetchAuctions: true,
+            fetchTemplateBuyoffers: true,
             fetchPrices: true,
             fetchNeftyAuctions: ctx.coreArgs.include_nefty_auctions,
             fetchPacks: args.fetch_packs
