@@ -135,7 +135,7 @@ export function buildAssetFillerHook(
                 [contract, assetIDs]
             ),
             options.fetchTemplateBuyoffers && db.query(
-                'SELECT t_buyoffer.market_contract, t_buyoffer.template_id, t_buyoffer.token_symbol, ' +
+                'SELECT t_buyoffer.market_contract, t_buyoffer.template_id, t_buyoffer.token_symbol, token.token_precision token_precision, token.token_contract token_contract, ' +
                 'MAX(t_buyoffer.price) price, ( ' +
                     'SELECT t_buyoffer2.buyoffer_id ' +
                     'FROM atomicmarket_template_buyoffers t_buyoffer2 ' +
@@ -143,10 +143,10 @@ export function buildAssetFillerHook(
                     'AND t_buyoffer2.token_symbol = t_buyoffer.token_symbol AND t_buyoffer2.price = MAX(t_buyoffer.price) AND state = 0 ' +
                     'LIMIT 1 ' +
                 ') buyoffer_id ' +
-                'FROM atomicmarket_template_buyoffers t_buyoffer ' +
-                'WHERE t_buyoffer.assets_contract = $1 AND t_buyoffer.template_id = ANY($2) AND ' +
+                'FROM atomicmarket_template_buyoffers t_buyoffer, atomicmarket_tokens token ' +
+                'WHERE t_buyoffer.assets_contract = $1 AND t_buyoffer.template_id = ANY($2) AND token.token_symbol = t_buyoffer.token_symbol AND ' +
                 't_buyoffer.state = ' + TemplateBuyofferState.LISTED.valueOf() + ' ' +
-                'GROUP BY market_contract, template_id, token_symbol',
+                'GROUP BY market_contract, template_id, token_symbol, token_precision, token_contract',
                 [contract, [...templateIDs]]
             ),
             options.fetchPrices && db.query(
@@ -212,8 +212,12 @@ export function buildAssetFillerHook(
                 templateData[row.template_id].template_buyoffers.push({
                     market_contract: row.market_contract,
                     buyoffer_id: row.buyoffer_id,
-                    token_symbol: row.token_symbol,
                     price: row.price,
+                    token: {
+                        token_symbol: row.token_symbol,
+                        token_precision: row.token_precision,
+                        token_contract: row.token_contract,
+                    },
                 });
             }
         }
