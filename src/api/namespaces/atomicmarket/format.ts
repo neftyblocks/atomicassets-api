@@ -213,6 +213,7 @@ export function buildAssetFillerHook(
                     market_contract: row.market_contract,
                     buyoffer_id: row.buyoffer_id,
                     token_symbol: row.token_symbol,
+                    price: row.price,
                 });
             }
         }
