@@ -163,7 +163,7 @@ export default class UpgradesHandler extends ContractHandler {
 
                     this.config = {
                         ...config,
-                        supported_tokens: []
+                        supported_tokens: config.supported_tokens,
                     };
                 } else {
                     const tokensQuery = await this.connection.database.query(
