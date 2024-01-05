@@ -272,10 +272,10 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
     const dropsTradingVolumes = dropsTradingVolumesQuery.rows;
     const templateOffersTradingVolumes = templateOffersVolumesQuery.rows;
 
-    let totalTradingVolume:number = 0;
+    let totalTradingVolume = 0;
     const beneficiaries = new Set<string>();
 
-    for(const dropTradingVolume of dropsTradingVolumes){
+    for (const dropTradingVolume of dropsTradingVolumes){
         if (dropTradingVolume.sold_wax) {
             totalTradingVolume += parseFloat(dropTradingVolume.sold_wax);
         }
@@ -285,23 +285,33 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
         beneficiaries.add(dropTradingVolume.claimer);
     }
 
-    for(const marketTradingVolume of marketTradingVolumes){
-        totalTradingVolume += parseFloat(marketTradingVolume.final_price);
-        if(marketTradingVolume.maker_marketplace === ctx.coreArgs.neftymarket_name){
-            beneficiaries.add(marketTradingVolume.seller);
-        }
-        if(marketTradingVolume.taker_marketplace === ctx.coreArgs.neftymarket_name){
+    for (const marketTradingVolume of marketTradingVolumes) {
+        const soldOnNefty = marketTradingVolume.maker_marketplace === ctx.coreArgs.neftymarket_name;
+        const boughtOnNefty = marketTradingVolume.taker_marketplace === ctx.coreArgs.neftymarket_name;
+
+        if (boughtOnNefty) {
             beneficiaries.add(marketTradingVolume.buyer);
+            totalTradingVolume += parseFloat(marketTradingVolume.final_price) / 2;
+        }
+
+        if (soldOnNefty) {
+            beneficiaries.add(marketTradingVolume.seller);
+            totalTradingVolume += parseFloat(marketTradingVolume.final_price) / 2;
         }
     }
 
-    for(const buyOffersTradingVolume of templateOffersTradingVolumes){
-        totalTradingVolume += parseFloat(buyOffersTradingVolume.price);
-        if(buyOffersTradingVolume.maker_marketplace === ctx.coreArgs.neftymarket_name){
+    for (const buyOffersTradingVolume of templateOffersTradingVolumes) {
+        const soldOnNefty = buyOffersTradingVolume.maker_marketplace === ctx.coreArgs.neftymarket_name;
+        const boughtOnNefty = buyOffersTradingVolume.taker_marketplace === ctx.coreArgs.neftymarket_name;
+
+        if (soldOnNefty) {
             beneficiaries.add(buyOffersTradingVolume.seller);
+            totalTradingVolume += parseFloat(buyOffersTradingVolume.price) / 2;
         }
-        if(buyOffersTradingVolume.taker_marketplace === ctx.coreArgs.neftymarket_name){
+
+        if (boughtOnNefty) {
             beneficiaries.add(buyOffersTradingVolume.buyer);
+            totalTradingVolume += parseFloat(buyOffersTradingVolume.price) / 2;
         }
     }
 
