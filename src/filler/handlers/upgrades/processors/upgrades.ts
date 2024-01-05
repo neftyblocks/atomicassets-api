@@ -229,7 +229,7 @@ const logClaimListener = (core: UpgradesHandler, contract: string) => async (db:
             claim_id: trace.act.data.claim_id,
             claimer: trace.act.data.claimer,
             upgrade_id: trace.act.data.upgrade_id,
-            mutations: trace.act.data.mutations,
+            mutations: encodeDatabaseJson(trace.act.data.mutations),
             txid: Buffer.from(tx.id, 'hex'),
             transferred_assets: trace.act.data.transferred_assets,
             own_assets: trace.act.data.own_assets,
