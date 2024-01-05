@@ -1,7 +1,7 @@
 import { RequestValues} from '../../utils';
 import { NeftyDropsContext } from '../index';
 import {buildRangeCondition} from '../utils';
-import {SaleState} from '../../../../filler/handlers/atomicmarket';
+import {SaleState, TemplateBuyofferState} from '../../../../filler/handlers/atomicmarket';
 import QueryBuilder from '../../../builder';
 import {filterQueryArgs, FiltersDefinition} from '../../validation';
 
@@ -24,15 +24,31 @@ export async function getSellersAction(params: RequestValues, ctx: NeftyDropsCon
     }
 
     let queryString = `
-      SELECT ${group_by}, SUM(final_price) AS sold_wax
-      FROM atomicmarket_sales
-        WHERE state = ${SaleState.SOLD} 
-          AND settlement_symbol = 'WAX'
-          AND market_contract = $1
-          AND maker_marketplace = $2
-          ${collectionFilter}
-          ${rangeCondition}
-      ${groupBy}`;
+        SELECT COALESCE(sales.${group_by}, offers.${group_by}) ${group_by}, (COALESCE(sales.sold_wax, 0) + COALESCE(offers.sold_wax, 0)) as sold_wax
+        FROM
+        (
+            SELECT ${group_by}, SUM(final_price) AS sold_wax
+              FROM atomicmarket_sales
+                WHERE state = ${SaleState.SOLD} 
+                  AND settlement_symbol = 'WAX'
+                  AND market_contract = $1
+                  AND maker_marketplace = $2
+                  ${collectionFilter}
+                  ${rangeCondition}
+                  ${groupBy}
+        ) AS sales
+        FULL OUTER JOIN
+        (
+            SELECT ${group_by}, SUM(price) AS sold_wax
+              FROM atomicmarket_template_buyoffers
+                WHERE state = ${TemplateBuyofferState.SOLD} 
+                  AND token_symbol = 'WAX'
+                  AND market_contract = $1
+                  AND maker_marketplace = $2
+                  ${collectionFilter}
+                  ${rangeCondition}
+                  ${groupBy}
+        ) AS offers ON offers.${group_by} = sales.${group_by}`;
 
     if (args.count) {
         queryString = `SELECT COUNT(*) FROM (${queryString}) AS res`;
@@ -68,15 +84,31 @@ export async function getBuyersAction(params: RequestValues, ctx: NeftyDropsCont
     }
 
     let queryString = `
-      SELECT ${group_by}, SUM(final_price) AS spent_wax
-      FROM atomicmarket_sales
-        WHERE state = ${SaleState.SOLD} 
-          AND settlement_symbol = 'WAX'
-          AND market_contract = $1
-          AND taker_marketplace = $2
-          ${collectionFilter}
-          ${rangeCondition}
-      ${groupBy}`;
+        SELECT COALESCE(sales.${group_by}, offers.${group_by}) ${group_by}, (COALESCE(sales.spent_wax, 0) + COALESCE(offers.spent_wax, 0)) as spent_wax
+        FROM
+        (
+            SELECT ${group_by}, SUM(final_price) AS spent_wax
+              FROM atomicmarket_sales
+                WHERE state = ${SaleState.SOLD} 
+                  AND settlement_symbol = 'WAX'
+                  AND market_contract = $1
+                  AND taker_marketplace = $2
+                  ${collectionFilter}
+                  ${rangeCondition}
+                  ${groupBy}
+        ) AS sales
+        FULL OUTER JOIN
+        (
+            SELECT ${group_by}, SUM(price) AS spent_wax
+              FROM atomicmarket_template_buyoffers
+                WHERE state = ${TemplateBuyofferState.SOLD} 
+                  AND token_symbol = 'WAX'
+                  AND market_contract = $1
+                  AND taker_marketplace = $2
+                  ${collectionFilter}
+                  ${rangeCondition}
+                  ${groupBy}
+        ) AS offers ON offers.${group_by} = sales.${group_by}`;
 
     if (args.count) {
         queryString = `SELECT COUNT(*) FROM (${queryString}) AS res`;
@@ -112,15 +144,31 @@ export async function getCollectionsAction(params: RequestValues, ctx: NeftyDrop
     }
 
     let queryString = `
-      SELECT ${group_by}, SUM(final_price) AS sold_wax
-      FROM atomicmarket_sales
-        WHERE state = ${SaleState.SOLD} 
-          AND settlement_symbol = 'WAX'
-          AND market_contract = $1
-          AND taker_marketplace = $2
-          ${collectionFilter}
-          ${rangeCondition}
-      ${groupBy}`;
+        SELECT COALESCE(sales.${group_by}, offers.${group_by}) ${group_by}, (COALESCE(sales.sold_wax, 0) + COALESCE(offers.sold_wax, 0)) as sold_wax
+        FROM
+        (
+            SELECT ${group_by}, SUM(final_price) AS sold_wax
+              FROM atomicmarket_sales
+                WHERE state = ${SaleState.SOLD} 
+                  AND settlement_symbol = 'WAX'
+                  AND market_contract = $1
+                  AND (maker_marketplace = $2 OR taker_marketplace = $2)
+                  ${collectionFilter}
+                  ${rangeCondition}
+                  ${groupBy}
+        ) AS sales
+        FULL OUTER JOIN
+        (
+            SELECT ${group_by}, SUM(price) AS sold_wax
+              FROM atomicmarket_template_buyoffers
+                WHERE state = ${TemplateBuyofferState.SOLD} 
+                  AND token_symbol = 'WAX'
+                  AND market_contract = $1
+                  AND (maker_marketplace = $2 OR taker_marketplace = $2)
+                  ${collectionFilter}
+                  ${rangeCondition}
+                  ${groupBy}
+        ) AS offers ON offers.${group_by} = sales.${group_by}`;
 
     if (args.count) {
         queryString = `SELECT COUNT(*) FROM (${queryString}) AS res`;
@@ -180,7 +228,6 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
             AND drops_contract = $1
             ${dropsRangeCondition}
         GROUP BY claimer;`;
-    const dropsTradingVolumes = (await ctx.db.query(dropsTradingVolumesQueryString, [ctx.coreArgs.neftydrops_account])).rows;
 
     const marketTradingVolumesQueryString = `
         SELECT 
@@ -197,7 +244,33 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
             AND (maker_marketplace = $2 OR taker_marketplace = $2)
             ${marketRangeCondition}
     `;
-    const marketTradingVolumes = (await ctx.db.query(marketTradingVolumesQueryString, [ctx.coreArgs.atomicmarket_account, ctx.coreArgs.neftymarket_name])).rows;
+
+    const templateOffersVolumesQueryString = `
+        SELECT 
+            seller, 
+            buyer,
+            maker_marketplace,
+            taker_marketplace,
+            price
+        FROM atomicmarket_template_buyoffers
+        WHERE 
+            state = ${TemplateBuyofferState.SOLD}
+            AND token_symbol = 'WAX'
+            AND market_contract = $1
+            AND (maker_marketplace = $2 OR taker_marketplace = $2)
+            ${marketRangeCondition}
+    `;
+
+
+    const [marketTradingVolumesQuery, dropsTradingVolumesQuery, templateOffersVolumesQuery] = await Promise.all([
+        ctx.db.query(marketTradingVolumesQueryString, [ctx.coreArgs.atomicmarket_account, ctx.coreArgs.neftymarket_name]),
+        ctx.db.query(dropsTradingVolumesQueryString, [ctx.coreArgs.neftydrops_account]),
+        ctx.db.query(templateOffersVolumesQueryString, [ctx.coreArgs.atomicmarket_account, ctx.coreArgs.neftymarket_name])
+    ]);
+
+    const marketTradingVolumes = marketTradingVolumesQuery.rows;
+    const dropsTradingVolumes = dropsTradingVolumesQuery.rows;
+    const templateOffersTradingVolumes = templateOffersVolumesQuery.rows;
 
     let totalTradingVolume:number = 0;
     const beneficiaries = new Set<string>();
@@ -211,6 +284,7 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
         }
         beneficiaries.add(dropTradingVolume.claimer);
     }
+
     for(const marketTradingVolume of marketTradingVolumes){
         if(marketTradingVolume.maker_marketplace === ctx.coreArgs.neftymarket_name){
             totalTradingVolume += parseFloat(marketTradingVolume.final_price);
@@ -219,6 +293,17 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
         if(marketTradingVolume.taker_marketplace === ctx.coreArgs.neftymarket_name){
             totalTradingVolume += parseFloat(marketTradingVolume.final_price);
             beneficiaries.add(marketTradingVolume.buyer);
+        }
+    }
+
+    for(const buyOffersTradingVolume of templateOffersTradingVolumes){
+        if(buyOffersTradingVolume.maker_marketplace === ctx.coreArgs.neftymarket_name){
+            totalTradingVolume += parseFloat(buyOffersTradingVolume.price);
+            beneficiaries.add(buyOffersTradingVolume.seller);
+        }
+        if(buyOffersTradingVolume.taker_marketplace === ctx.coreArgs.neftymarket_name){
+            totalTradingVolume += parseFloat(buyOffersTradingVolume.price);
+            beneficiaries.add(buyOffersTradingVolume.buyer);
         }
     }
 
