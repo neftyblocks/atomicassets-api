@@ -228,7 +228,6 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
             AND drops_contract = $1
             ${dropsRangeCondition}
         GROUP BY claimer;`;
-    const dropsTradingVolumes = (await ctx.db.query(dropsTradingVolumesQueryString, [ctx.coreArgs.neftydrops_account])).rows;
 
     const marketTradingVolumesQueryString = `
         SELECT 
@@ -245,7 +244,6 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
             AND (maker_marketplace = $2 OR taker_marketplace = $2)
             ${marketRangeCondition}
     `;
-    const marketTradingVolumes = (await ctx.db.query(marketTradingVolumesQueryString, [ctx.coreArgs.atomicmarket_account, ctx.coreArgs.neftymarket_name])).rows;
 
     const templateOffersVolumesQueryString = `
         SELECT 
@@ -262,7 +260,17 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
             AND (maker_marketplace = $2 OR taker_marketplace = $2)
             ${marketRangeCondition}
     `;
-    const templateOffersTradingVolumes = (await ctx.db.query(templateOffersVolumesQueryString, [ctx.coreArgs.atomicmarket_account, ctx.coreArgs.neftymarket_name])).rows;
+
+
+    const [marketTradingVolumesQuery, dropsTradingVolumesQuery, templateOffersVolumesQuery] = await Promise.all([
+        ctx.db.query(marketTradingVolumesQueryString, [ctx.coreArgs.atomicmarket_account, ctx.coreArgs.neftymarket_name]),
+        ctx.db.query(dropsTradingVolumesQueryString, [ctx.coreArgs.neftydrops_account]),
+        ctx.db.query(templateOffersVolumesQueryString, [ctx.coreArgs.atomicmarket_account, ctx.coreArgs.neftymarket_name])
+    ]);
+
+    const marketTradingVolumes = marketTradingVolumesQuery.rows;
+    const dropsTradingVolumes = dropsTradingVolumesQuery.rows;
+    const templateOffersTradingVolumes = templateOffersVolumesQuery.rows;
 
     let totalTradingVolume:number = 0;
     const beneficiaries = new Set<string>();
