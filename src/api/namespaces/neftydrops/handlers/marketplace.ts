@@ -286,23 +286,21 @@ export async function getTradingVolumeAndAverage(params: RequestValues, ctx: Nef
     }
 
     for(const marketTradingVolume of marketTradingVolumes){
+        totalTradingVolume += parseFloat(marketTradingVolume.final_price);
         if(marketTradingVolume.maker_marketplace === ctx.coreArgs.neftymarket_name){
-            totalTradingVolume += parseFloat(marketTradingVolume.final_price);
             beneficiaries.add(marketTradingVolume.seller);
         }
         if(marketTradingVolume.taker_marketplace === ctx.coreArgs.neftymarket_name){
-            totalTradingVolume += parseFloat(marketTradingVolume.final_price);
             beneficiaries.add(marketTradingVolume.buyer);
         }
     }
 
     for(const buyOffersTradingVolume of templateOffersTradingVolumes){
+        totalTradingVolume += parseFloat(buyOffersTradingVolume.price);
         if(buyOffersTradingVolume.maker_marketplace === ctx.coreArgs.neftymarket_name){
-            totalTradingVolume += parseFloat(buyOffersTradingVolume.price);
             beneficiaries.add(buyOffersTradingVolume.seller);
         }
         if(buyOffersTradingVolume.taker_marketplace === ctx.coreArgs.neftymarket_name){
-            totalTradingVolume += parseFloat(buyOffersTradingVolume.price);
             beneficiaries.add(buyOffersTradingVolume.buyer);
         }
     }
