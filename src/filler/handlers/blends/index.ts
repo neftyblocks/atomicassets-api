@@ -74,7 +74,6 @@ const views = [
 ];
 
 const functions = [
-    'neftyblends_blend_details_func',
     'neftyblends_attribute_match',
 ];
 
