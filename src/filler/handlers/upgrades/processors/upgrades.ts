@@ -6,6 +6,7 @@ import {eosioTimestampToDate, stringToDisplayData} from '../../../../utils/eosio
 import UpgradesListHandler, {UpgradeIngredientType, UpgradesArgs, UpgradesUpdatePriority} from '../index';
 import ConnectionManager from '../../../../connections/manager';
 import {
+    UpgradeSpec,
     UpgradeTableRow
 } from '../types/tables';
 import { Ingredient } from '../types/helpers';
@@ -438,7 +439,7 @@ function getIngredientsDbRows(upgradeId: number, ingredients: Ingredient[], args
     return {ingredientDbRows, ingredientAttributesDbRows, ingredientTypedAttributesDbRows};
 }
 
-function getUpgradeSpecsDBRows(upgradeId: number, upgradeSpecs: any[], args: UpgradesArgs, blockNumber: number, blockTimeStamp: string, contract: string): {
+function getUpgradeSpecsDBRows(upgradeId: number, upgradeSpecs: UpgradeSpec[], args: UpgradesArgs, blockNumber: number, blockTimeStamp: string, contract: string): {
     upgradeSpecsDbRows: any[],
     upgradeRequirementsDbRows: any[],
     upgradeResultsDbRows: any[]
@@ -454,6 +455,7 @@ function getUpgradeSpecsDBRows(upgradeId: number, upgradeSpecs: any[], args: Upg
                 upgrade_id: upgradeId,
                 spec_index: upgradeSpecIndex,
                 schema_name: upgradeSpec.schema_name,
+                display_data: upgradeSpec.display_data || '',
             });
 
             // upgrade_requirements

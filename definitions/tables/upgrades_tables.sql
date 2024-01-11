@@ -80,10 +80,11 @@ CREATE TABLE neftyupgrades_upgrade_ingredient_typed_attributes
 
 CREATE TABLE neftyupgrades_upgrade_specs
 (
-    contract    character varying(12) NOT NULL,
-    upgrade_id  bigint                NOT NULL,
-    spec_index  bigint                NOT NULL,
-    schema_name character varying(12) NOT NULL,
+    contract     character varying(12) NOT NULL,
+    upgrade_id   bigint                NOT NULL,
+    spec_index   bigint                NOT NULL,
+    schema_name  character varying(12) NOT NULL,
+    display_data text DEFAULT '',
     CONSTRAINT neftyupgrades_upgrade_specs_pkey PRIMARY KEY (contract, upgrade_id, spec_index)
 );
 
@@ -106,7 +107,7 @@ CREATE TABLE neftyupgrades_upgrade_specs_results
     result_index   bigint                NOT NULL,
     attribute_name character varying(12) NOT NULL,
     attribute_type character varying(50) NOT NULL,
-    operator_type integer               NOT NULL,
+    operator_type  integer               NOT NULL,
     value_type     character varying(50) NOT NULL,
     value          jsonb                 NOT NULL,
     CONSTRAINT neftyupgrades_upgrade_specs_results_pkey PRIMARY KEY (contract, upgrade_id, spec_index, result_index)
@@ -207,13 +208,6 @@ ALTER TABLE ONLY neftyupgrades_upgrade_specs_results
             ON
                 DELETE
                 RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
-
-ALTER TABLE ONLY neftyupgrades_claims
-    ADD CONSTRAINT neftyupgrades_claims_upgrade_fk FOREIGN KEY (contract, upgrade_id) REFERENCES neftyupgrades_upgrades (contract, upgrade_id) MATCH SIMPLE ON
-        UPDATE RESTRICT
-        ON
-            DELETE
-            RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 -- Indexes
 CREATE

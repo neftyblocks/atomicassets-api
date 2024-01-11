@@ -1,10 +1,12 @@
+import {Ingredient} from './helpers';
+
 export type UpgradeTableRow = {
     upgrade_id: number,
     collection_name: string,
     start_time: number,
     end_time: number,
-    ingredients: any[],
-    upgrade_specs: any[],
+    ingredients: Ingredient[],
+    upgrade_specs: UpgradeSpec[],
     max: number,
     use_count: number,
     display_data: string,
@@ -17,6 +19,7 @@ export type UpgradeSpec = {
     schema_name: string,
     upgrade_requirements: [string, any][],
     upgrade_results: UpgradeResult[],
+    display_data?: string,
 }
 
 export type UpgradeResult = {
@@ -25,7 +28,7 @@ export type UpgradeResult = {
     op: {
         type: number,
     },
-    result_value: [string, any],
+    value: [string, any],
 }
 
 export type ConfigTableRow = {
