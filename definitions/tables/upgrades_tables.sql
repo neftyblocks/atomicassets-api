@@ -59,6 +59,7 @@ CREATE TABLE neftyupgrades_upgrade_ingredient_attributes
     ingredient_index           integer               NOT NULL,
     attribute_index            integer               NOT NULL,
     attribute_name             text                  NOT NULL,
+    comparator                 integer               NOT NULL,
     allowed_values             text[]                NOT NULL,
     CONSTRAINT neftyupgrades_upgrade_ingredient_attributes_pkey PRIMARY KEY (contract, upgrade_id, ingredient_index, attribute_index)
 );

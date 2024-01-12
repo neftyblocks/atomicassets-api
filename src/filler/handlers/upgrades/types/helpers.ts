@@ -28,6 +28,6 @@ export type AttributeDefinition = {
 export type TypedAttributeDefinition = {
     attribute_name: string,
     attribute_type: string,
-    // variant
+    comparator: number,
     allowed_values: any[],
 };

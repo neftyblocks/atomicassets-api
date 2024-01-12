@@ -429,7 +429,7 @@ function getIngredientsDbRows(upgradeId: number, ingredients: Ingredient[], args
 
                 attribute_name: typedAttribute.attribute_name,
                 attribute_type: typedAttribute.attribute_type,
-                // variant type, and variant value
+                comparator: typedAttribute.comparator,
                 allowed_values_type: typedAttribute.allowed_values[0],
                 allowed_values: encodeDatabaseJson(typedAttribute.allowed_values[1])
             });
