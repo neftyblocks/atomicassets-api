@@ -255,7 +255,6 @@ export async function fillUpgrades(db: DB, assetContract: string, upgrades: any[
                 filledIngredients.push(ingredient);
             }
         }
-        console.log(JSON.stringify(upgrade.upgrade_specs, null, 2));
         if (upgrade.upgrade_specs) {
             for (const specs of upgrade.upgrade_specs) {
                 const filledRequirements = [];
@@ -267,9 +266,7 @@ export async function fillUpgrades(db: DB, assetContract: string, upgrades: any[
                         }
                         delete requirement.payload;
                     } else if (requirement.type === UpgradeRequirementType.TYPED_ATTRIBUTE_REQUIREMENT) {
-                        requirement.attribute_name = requirement.payload?.attribute_name;
-                        requirement.attribute_type = requirement.payload?.attribute_type;
-                        requirement.allowed_values = requirement.payload?.allowed_values;
+                        requirement.typed_attribute_definition = requirement.payload?.typed_attribute_definition;
                         delete requirement.payload;
                     }
 
