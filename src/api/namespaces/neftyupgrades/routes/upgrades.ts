@@ -11,9 +11,9 @@ import {
     getUpgradeDetails,
     getUpgradeClaimsAction,
     getUpgradeClaimsCountAction,
-    getUpgradeIngredientAssets,
     getUpgradeCategories, getIngredientOwnershipUpgradeFilterCount
 } from '../handlers/upgrades';
+import {getUpgradeableAssets, getUpgradeIngredientAssets} from '../handlers/assets';
 
 export function upgradesEndpoints(core: NeftyUpgradesNamespace, server: HTTPServer, router: express.Router): any {
     const { caching, returnAsJSON } = server.web;
@@ -52,6 +52,12 @@ export function upgradesEndpoints(core: NeftyUpgradesNamespace, server: HTTPServ
         '/v1/upgrades/:upgrade_id/ingredients/:index/assets',
         caching(),
         returnAsJSON(getUpgradeIngredientAssets, core)
+    );
+
+    router.all(
+        '/v1/upgrades/:upgrade_id/specs/:index/assets',
+        caching(),
+        returnAsJSON(getUpgradeableAssets, core)
     );
 
     return {
@@ -289,6 +295,58 @@ export function upgradesEndpoints(core: NeftyUpgradesNamespace, server: HTTPServ
                             schema: {
                                 type: 'string',
                                 enum: ['asset_id', 'minted', 'updated', 'transferred', 'template_mint', 'name', 'balance_attribute'],
+                                default: 'asset_id'
+                            }
+                        },
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/Asset'}})
+                }
+            },
+            '/v1/upgrades/{upgrade_id}/specs/{index}/assets': {
+                get: {
+                    tags: ['neftyupgrades'],
+                    summary: 'Get the matching assets of an upgrade spec',
+                    description: 'Get the assets that match an upgrade spec',
+                    parameters: [
+                        {
+                            name: 'upgrade_id',
+                            in: 'path',
+                            description: 'Upgrade id',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'index',
+                            in: 'path',
+                            description: 'Ingredient index',
+                            required: true,
+                            schema: {type: 'integer'}
+                        },
+                        {
+                            name: 'owner',
+                            in: 'query',
+                            description: 'Filter by owner',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            name: 'has_backed_tokens',
+                            in: 'query',
+                            description: 'Show only assets that are backed by a token',
+                            required: false,
+                            schema: {
+                                type: 'boolean'
+                            }
+                        },
+                        ...paginationParameters,
+                        {
+                            name: 'sort',
+                            in: 'query',
+                            description: 'Column to sort',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                                enum: ['asset_id', 'minted', 'updated', 'transferred', 'template_mint', 'name'],
                                 default: 'asset_id'
                             }
                         },

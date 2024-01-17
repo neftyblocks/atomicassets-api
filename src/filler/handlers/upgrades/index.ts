@@ -38,6 +38,10 @@ export enum UpgradeOperator {
     ADD_ASSIGN = 1,
 }
 
+export enum UpgradeRequirementComparator {
+    EQUALS = 0,
+}
+
 export enum ResultValueType {
     IMMEDIATE_VALUE = 'IMMEDIATE_VALUE',
 }
