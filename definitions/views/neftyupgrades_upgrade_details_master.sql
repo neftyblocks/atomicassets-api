@@ -73,7 +73,7 @@ SELECT upgrade.upgrade_id,
                'schema_name', upg_spec_sub.schema_name,
                'upgrade_requirements', upg_spec_sub.upgrade_requirements,
                'upgrade_results', upg_spec_sub.upgrade_results
-                 )) FILTER (where upg_spec_sub.spec_index is not null)      as upgrade_specs,
+                 )) FILTER (where upg_spec_sub.spec_index is not null)              as upgrade_specs,
        upgrade.category
 FROM neftyupgrades_upgrades upgrade
          LEFT JOIN neftyupgrades_upgrade_ingredients "ingredient" ON
@@ -115,43 +115,37 @@ FROM neftyupgrades_upgrades upgrade
                           upg_spec.upgrade_id,
                           upg_spec.spec_index,
                           upg_spec.schema_name,
-                          jsonb_agg(jsonb_build_object(
-                                  'type', upg_req_sub.requirement_type,
-                                  'payload', upg_req_sub.requirement_payload
-                                    )) FILTER (where upg_req_sub.requirement_index is not null) as upgrade_requirements,
-                          jsonb_agg(jsonb_build_object(
-                                  'attribute_name', upg_res_sub.attribute_name,
-                                  'attribute_type', upg_res_sub.attribute_type,
-                                  'operator_type', upg_res_sub.operator_type,
-                                  'value_type', upg_res_sub.value_type,
-                                  'value', upg_res_sub.value
-                                    )) FILTER (where upg_res_sub.result_index is not null)      as upgrade_results
+                          upg_req_sub.upgrade_requirements,
+                          upg_res_sub.upgrade_results
                    FROM neftyupgrades_upgrade_specs upg_spec
-                            LEFT JOIN (SELECT upg_req.contract,
-                                              upg_req.upgrade_id,
-                                              upg_req.spec_index,
-                                              upg_req.requirement_index,
-                                              upg_req.requirement_type,
-                                              upg_req.requirement_payload
-                                       FROM neftyupgrades_upgrade_specs_requirements upg_req) AS upg_req_sub ON
-                       upg_req_sub.contract = upg_spec.contract AND
-                       upg_req_sub.upgrade_id = upg_spec.upgrade_id AND
-                       upg_req_sub.spec_index = upg_spec.spec_index
-                            LEFT JOIN (SELECT upg_res.contract,
-                                              upg_res.upgrade_id,
-                                              upg_res.spec_index,
-                                              upg_res.result_index,
-                                              upg_res.attribute_name,
-                                              upg_res.attribute_type,
-                                              upg_res.operator_type,
-                                              upg_res.value_type,
-                                              upg_res.value
-                                       FROM neftyupgrades_upgrade_specs_results upg_res) AS upg_res_sub ON
-                       upg_res_sub.contract = upg_spec.contract AND
-                       upg_res_sub.upgrade_id = upg_spec.upgrade_id AND
-                       upg_res_sub.spec_index = upg_spec.spec_index
-                   GROUP BY upg_spec.contract, upg_spec.upgrade_id, upg_spec.spec_index,
-                            upg_spec.schema_name) as upg_spec_sub ON
+
+                            LEFT JOIN LATERAL (
+                       SELECT jsonb_agg(jsonb_build_object(
+                               'index', upg_req.requirement_index,
+                               'type', upg_req.requirement_type,
+                               'payload', upg_req.requirement_payload
+                                        ) ORDER BY upg_req.requirement_index ASC)
+                              FILTER (where upg_req.requirement_index is not null) as upgrade_requirements
+                       FROM neftyupgrades_upgrade_specs_requirements upg_req
+                       WHERE contract = upg_spec.contract
+                         AND upgrade_id = upg_spec.upgrade_id
+                         AND spec_index = upg_spec.spec_index
+                       ) AS upg_req_sub ON true
+
+                            LEFT JOIN LATERAL (
+                       SELECT jsonb_agg(jsonb_build_object(
+                               'index', upg_res.result_index,
+                               'attribute_name', upg_res.attribute_name,
+                               'attribute_type', upg_res.attribute_type,
+                               'operator_type', upg_res.operator_type,
+                               'value_type', upg_res.value_type,
+                               'value', upg_res.value
+                                        )ORDER BY upg_res.result_index ASC) FILTER (where upg_res.result_index is not null) as upgrade_results
+                       FROM neftyupgrades_upgrade_specs_results upg_res
+                       WHERE contract = upg_spec.contract
+                         AND upgrade_id = upg_spec.upgrade_id
+                         AND spec_index = upg_spec.spec_index
+                       ) AS upg_res_sub ON true) as upg_spec_sub ON
     upg_spec_sub.contract = upgrade.contract AND
     upg_spec_sub.upgrade_id = upgrade.upgrade_id
 GROUP BY upgrade.upgrade_id,
