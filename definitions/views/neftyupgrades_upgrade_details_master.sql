@@ -68,7 +68,7 @@ SELECT upgrade.upgrade_id,
                        )
                    END
                           )) FILTER (where ingredient.ingredient_index is not null) as ingredients,
-       jsonb_agg(jsonb_build_object(
+       jsonb_agg(DISTINCT jsonb_build_object(
                'index', upg_spec_sub.spec_index,
                'schema_name', upg_spec_sub.schema_name,
                'upgrade_requirements', upg_spec_sub.upgrade_requirements,
