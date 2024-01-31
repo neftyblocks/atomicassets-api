@@ -9,6 +9,7 @@ import DataProcessor from '../../processor';
 import {upgradesProcessor, initUpgrades} from './processors/upgrades';
 import {ConfigTableRow} from './types/tables';
 import {configProcessor} from './processors/config';
+import {bulkInsert} from '../../utils';
 
 export const UPGRADES_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 3000;
 
@@ -169,6 +170,14 @@ export default class UpgradesHandler extends ContractHandler {
                         ...config,
                         supported_tokens: config.supported_tokens,
                     };
+
+                    const rows = config.supported_tokens.map(token => ({
+                        contract: this.args.upgrades_account,
+                        token_contract: token.contract,
+                        token_symbol: token.sym.split(',')[1],
+                        token_precision: token.sym.split(',')[0]
+                    }));
+                    await bulkInsert(this.connection.database, 'neftyupgrades_tokens', rows);
                 } else {
                     const tokensQuery = await this.connection.database.query(
                         'SELECT * FROM neftyupgrades_tokens WHERE contract = $1',
