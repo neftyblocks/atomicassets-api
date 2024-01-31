@@ -31,7 +31,7 @@ services:
     image: redis:5-alpine
     restart: on-failure
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:6380:6379"
     volumes:
       - ./docker/redis/data:/data
     networks:

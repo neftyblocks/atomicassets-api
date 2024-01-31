@@ -9,6 +9,7 @@ import { HelpersNamespace } from './helpers';
 import { NeftyQuestNamespace } from './neftyquest';
 import { AvatarsNamespace } from './avatars';
 import { NeftyPacksNamespace } from './neftypacks';
+import { NeftyUpgradesNamespace} from './neftyupgrades';
 
 export const namespaces: (typeof ApiNamespace)[] = [
     AtomicAssetsNamespace,
@@ -21,4 +22,5 @@ export const namespaces: (typeof ApiNamespace)[] = [
     NeftyQuestNamespace,
     AvatarsNamespace,
     NeftyPacksNamespace,
+    NeftyUpgradesNamespace,
 ];
