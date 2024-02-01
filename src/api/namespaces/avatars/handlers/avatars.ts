@@ -247,7 +247,7 @@ async function getFallbackProfilePhoto({photoHash, owner, ctx, width, isStatic, 
             writeStream.on('finish', resolve);
         });
         return {
-            headers: headers || {},
+            headers,
             contentType,
             filePath: photoLocation,
         };
