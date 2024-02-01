@@ -37,11 +37,12 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
     });
 
     const avatarQuery = await ctx.db.query(
-        'SELECT a.asset_id, a.template_id, a.collection_name, a.schema_name, a.owner, a.mutable_data, a.immutable_data, ' +
+        'SELECT a.asset_id, a.template_id, a.collection_name, a.schema_name, a.owner, a.mutable_data, a.immutable_data, t.immutable_data template_data, ' +
         'b.blend_id, b.accessory_specs, b.base_spec, b.lock_schema_name ' +
         'FROM neftyavatars_pfps p ' +
         'INNER JOIN atomicassets_assets a ON a.asset_id = p.asset_id ' +
-        'INNER JOIN neftyavatars_blends b ON (a.template_id = b.base_template_id OR (a.collection_name = b.collection_name AND a.schema_name = b.lock_schema_name))' +
+        'LEFT JOIN atomicassets_templates t ON a.template_id = t.template_id ' +
+        'LEFT JOIN neftyavatars_blends b ON (a.template_id = b.base_template_id OR (a.collection_name = b.collection_name AND a.schema_name = b.lock_schema_name))' +
         'WHERE p.owner = $1 ',
         [ctx.pathParams.account_name]
     );
@@ -64,51 +65,44 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
                 contentType: 'image/svg+xml',
             };
         }
-
         const photoHash = photoQuery.rows[0].photo_hash;
         const owner = photoQuery.rows[0].owner;
-        const layersHash = crypto.createHash('sha256').update(photoHash).digest('hex');
-        const photoDirectory = path.join(ctx.coreArgs.avatars_location, owner);
-        const fileName = fs.existsSync(photoDirectory) ? fs.readdirSync(photoDirectory).find((file) => file.startsWith(`${layersHash}_${args.width}.`)): undefined;
-        let photoLocation = fileName && path.join(photoDirectory, fileName);
-        if (photoLocation && fs.existsSync(photoLocation)) {
-            const contentType = mime.contentType(path.basename(photoLocation));
-            return {
-                headers: {},
-                contentType,
-                filePath: photoLocation,
-            };
-        } else {
-            const exist = fs.existsSync(photoDirectory);
-            if (exist) {
-                fs.rmSync(photoDirectory, {recursive: true, force: true});
-            }
-            fs.mkdirSync(photoDirectory, { recursive: true });
-
-            const file = await fetch(`https://resizer.neftyblocks.com?ipfs=${photoHash}&width=${args.width}&static=false`);
-            if (file.status !== 200) {
-                return null;
-            }
-            const contentType = file.headers.get('content-type');
-            photoLocation = path.join(photoDirectory, `${layersHash}_${args.width}.${mime.extension(contentType)}`);
-            const writeStream = fs.createWriteStream(photoLocation);
-            await new Promise((resolve, reject) => {
-                file.body.pipe(writeStream);
-                file.body.on('error', reject);
-                writeStream.on('finish', resolve);
-            });
-            return {
-                headers: {},
-                contentType,
-                filePath: photoLocation,
-            };
-        }
+        return getFallbackProfilePhoto({
+            photoHash,
+            owner,
+            ctx,
+            width: args.width,
+            isStatic: false,
+        });
     }
 
     const onlyBackground = args.only_background === true;
     const onlyBody = args.only_body === true;
 
     const result = avatarQuery.rows[0];
+
+    if (!result.blend_id) {
+        // Data with lowercase keys
+        const data = {
+            ...result.mutable_data || {},
+            ...result.immutable_data || {},
+            ...result.template_data || {},
+        }.reduce((acc: any, [key, value]: [string, any]) => {
+            acc[key.toLowerCase()] = value;
+            return acc;
+        });
+        const photoHash = data.video || data.img || data.image;
+        return getFallbackProfilePhoto({
+            photoHash,
+            owner: result.owner,
+            ctx,
+            width: args.width,
+            isStatic: !!data.video,
+            headers: {
+                'x-nefty-pfp-asset-id': result.asset_id,
+            }
+        });
+    }
 
     const baseAccessorySpec: any = {
         layer_name: 'Base',
@@ -214,6 +208,50 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
             headers,
             contentType,
             filePath: avatarLocation,
+        };
+    }
+}
+
+async function getFallbackProfilePhoto({photoHash, owner, ctx, width, isStatic, headers = {}}: {photoHash: string; owner: string, width: number, ctx: AvatarsContext, isStatic: boolean, headers?: Record<string, string>}): Promise<{
+    filePath?: string;
+    contentType: string | boolean;
+    headers: Record<string, string>;
+    stream?: ReadableStream;
+}> {
+    const layersHash = crypto.createHash('sha256').update(photoHash).digest('hex');
+    const photoDirectory = path.join(ctx.coreArgs.avatars_location, owner);
+    const fileName = fs.existsSync(photoDirectory) ? fs.readdirSync(photoDirectory).find((file) => file.startsWith(`${layersHash}_${width}.`)): undefined;
+    let photoLocation = fileName && path.join(photoDirectory, fileName);
+    if (photoLocation && fs.existsSync(photoLocation)) {
+        const contentType = mime.contentType(path.basename(photoLocation));
+        return {
+            headers: {},
+            contentType,
+            filePath: photoLocation,
+        };
+    } else {
+        const exist = fs.existsSync(photoDirectory);
+        if (exist) {
+            fs.rmSync(photoDirectory, {recursive: true, force: true});
+        }
+        fs.mkdirSync(photoDirectory, { recursive: true });
+
+        const file = await fetch(`https://resizer.neftyblocks.com?ipfs=${photoHash}&width=${width}&static=${isStatic}`);
+        if (file.status !== 200) {
+            return null;
+        }
+        const contentType = file.headers.get('content-type');
+        photoLocation = path.join(photoDirectory, `${layersHash}_${width}.${mime.extension(contentType)}`);
+        const writeStream = fs.createWriteStream(photoLocation);
+        await new Promise((resolve, reject) => {
+            file.body.pipe(writeStream);
+            file.body.on('error', reject);
+            writeStream.on('finish', resolve);
+        });
+        return {
+            headers: headers || {},
+            contentType,
+            filePath: photoLocation,
         };
     }
 }
