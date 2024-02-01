@@ -83,14 +83,12 @@ export async function getAvatarAction(params: RequestValues, ctx: AvatarsContext
 
     if (!result.blend_id) {
         // Data with lowercase keys
-        const data = {
+        const data = Object.entries({
             ...result.mutable_data || {},
             ...result.immutable_data || {},
             ...result.template_data || {},
-        }.reduce((acc: any, [key, value]: [string, any]) => {
-            acc[key.toLowerCase()] = value;
-            return acc;
-        });
+        }).map(([key, value]) => ({ [key.toLowerCase()]: value.toString() }))
+          .reduce((acc, curr) => ({ ...acc, ...curr }), {});
         const photoHash = data.video || data.img || data.image;
         return getFallbackProfilePhoto({
             photoHash,
