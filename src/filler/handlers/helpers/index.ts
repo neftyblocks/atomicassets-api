@@ -7,6 +7,7 @@ import Filler from '../../filler';
 import { ATOMICASSETS_BASE_PRIORITY } from '../atomicassets';
 import DataProcessor from '../../processor';
 import {collectionsProcessor, initCollections} from './processors/collections';
+import {initPreferences, preferencesProcessor} from './processors/preferences';
 
 export const HELPERS_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 2000;
 
@@ -19,6 +20,7 @@ export type CollectionsListArgs = {
 export enum HelpersUpdatePriority {
     TABLE_FEATURES = HELPERS_BASE_PRIORITY + 10,
     TABLE_COLLECTIONS = HELPERS_BASE_PRIORITY + 10,
+    TABLE_PREFERENCES = HELPERS_BASE_PRIORITY + 10,
 }
 
 export default class HelpersHandler extends ContractHandler {
@@ -64,6 +66,7 @@ export default class HelpersHandler extends ContractHandler {
 
     async init(): Promise<void> {
         await initCollections(this.args, this.connection);
+        await initPreferences(this.args, this.connection);
     }
 
     async deleteDB(client: PoolClient): Promise<void> {
@@ -82,6 +85,7 @@ export default class HelpersHandler extends ContractHandler {
     async register(processor: DataProcessor): Promise<() => any> {
         const destructors: Array<() => any> = [];
         destructors.push(collectionsProcessor(this, processor));
+        destructors.push(preferencesProcessor(this, processor));
         return (): any => destructors.map(fn => fn());
     }
 }

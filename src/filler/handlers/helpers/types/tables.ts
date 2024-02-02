@@ -13,3 +13,9 @@ export type ColThemeData = {
     theme?: string,
     tags?: string[],
 };
+
+export type PreferencesData = {
+    key: string,
+    value: string,
+    values?: string[],
+};

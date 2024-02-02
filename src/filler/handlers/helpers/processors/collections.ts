@@ -6,7 +6,7 @@ import { eosioTimestampToDate } from '../../../../utils/eosio';
 import CollectionsListHandler, {CollectionsListArgs, HelpersUpdatePriority} from '../index';
 import ConnectionManager from '../../../../connections/manager';
 import {AccListTableRow, ColThemeData, FeaturesTableRow} from '../types/tables';
-import {bulkInsert} from '../../../utils';
+import {bulkInsert, getDifference} from '../../../utils';
 import logger from '../../../../utils/winston';
 
 const atomicCollectionListRegex = /^col\..*$/g;
@@ -77,12 +77,6 @@ export async function initCollections(args: CollectionsListArgs, connection: Con
         }
     }
 }
-
-const getDifference = <T>(a: T[], b: T[]): T[] => {
-    return [...new Set<T>(a)].filter((element) => {
-        return !b.includes(element);
-    });
-};
 
 export function collectionsProcessor(core: CollectionsListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];

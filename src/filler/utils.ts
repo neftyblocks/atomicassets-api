@@ -63,3 +63,9 @@ export function bulkInsert(database: PostgresConnection, tableName: string, rows
         );
     }));
 }
+
+export const getDifference = <T>(a: T[], b: T[]): T[] => {
+    return [...new Set<T>(a)].filter((element) => {
+        return !b.includes(element);
+    });
+};
