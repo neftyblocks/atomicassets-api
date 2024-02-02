@@ -94,7 +94,7 @@ export function preferencesProcessor(core: CollectionsListHandler, processor: Da
         neftyContract, 'preferences',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<PreferencesData>): Promise<void> => {
 
-            if (delta.value.value === FAVORITES_LIST) {
+            if (delta.value.key === FAVORITES_LIST) {
                 if (delta.present) {
 
                     const favoritesQuery = await db.query('SELECT collection_name FROM helpers_favorite_collections WHERE owner = $1',
@@ -128,7 +128,7 @@ export function preferencesProcessor(core: CollectionsListHandler, processor: Da
                         values: [delta.scope]
                     });
                 }
-            } else if (delta.value.value === CONTACTS) {
+            } else if (delta.value.key === CONTACTS) {
                 if (delta.present) {
                     const contactsQuery = await db.query('SELECT contact FROM helpers_contacts WHERE owner = $1',
                         [delta.scope]
