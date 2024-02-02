@@ -91,7 +91,7 @@ export function preferencesProcessor(core: CollectionsListHandler, processor: Da
     const neftyContract = core.args.features_account;
 
     destructors.push(processor.onContractRow(
-        neftyContract, 'features',
+        neftyContract, 'preferences',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<PreferencesData>): Promise<void> => {
 
             if (delta.value.value === FAVORITES_LIST) {
