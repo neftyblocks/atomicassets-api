@@ -14,6 +14,7 @@ import {
     getBlendIngredientAssets,
     getBlendCategories, getIngredientOwnershipBlendFilterCount
 } from '../handlers/blends';
+import {greylistFilterParameters} from '../../atomicassets/openapi';
 
 export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, router: express.Router): any {
     const { caching, returnAsJSON } = server.web;
@@ -83,6 +84,7 @@ export function blendsEndpoints(core: NeftyBlendsNamespace, server: HTTPServer, 
                             required: false,
                             schema: {type: 'string'}
                         },
+                        ...greylistFilterParameters,
                         {
                             name: 'ingredient_owner',
                             in: 'query',

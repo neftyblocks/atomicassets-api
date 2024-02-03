@@ -9,7 +9,12 @@ import {
     paginationParameters,
     primaryBoundaryParameters
 } from '../../../docs';
-import { extendedAssetFilterParameters, atomicDataFilter, baseAssetFilterParameters } from '../../atomicassets/openapi';
+import {
+    extendedAssetFilterParameters,
+    atomicDataFilter,
+    baseAssetFilterParameters,
+    greylistFilterParameters
+} from '../../atomicassets/openapi';
 import { listingFilterParameters } from '../openapi';
 import { getAuctionAction, getAuctionLogsAction, getAuctionsAction, getAuctionsCountAction } from '../handlers/auctions';
 
@@ -99,6 +104,7 @@ export function auctionsEndpoints(core: NeftyMarketNamespace, server: HTTPServer
                             required: false,
                             schema: {type: 'number'}
                         },
+                        ...greylistFilterParameters,
                         ...baseAssetFilterParameters,
                         ...extendedAssetFilterParameters,
                         ...primaryBoundaryParameters,
