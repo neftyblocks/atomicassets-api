@@ -40,7 +40,9 @@ CREATE OR REPLACE VIEW atomicmarket_template_buyoffers_master AS
             'notify_accounts', collection.notify_accounts,
             'market_fee', t_buyoffer.collection_fee,
             'created_at_block', collection.created_at_block::text,
-            'created_at_time', collection.created_at_time::text
+            'created_at_time', collection.created_at_time::text,
+            'lists', COALESCE(lists.lists, '[]'::json),
+            'tags', COALESCE(tags.tags, ARRAY[]::text[])
         ) collection,
 
         t_buyoffer.template_id,
@@ -62,6 +64,21 @@ CREATE OR REPLACE VIEW atomicmarket_template_buyoffers_master AS
         t_buyoffer.created_at_block,
         t_buyoffer.created_at_time
     FROM atomicmarket_template_buyoffers t_buyoffer, atomicassets_collections collection, atomicassets_templates "template", atomicmarket_tokens token
+    LEFT JOIN LATERAL (
+        SELECT JSON_AGG(
+                       JSON_BUILD_OBJECT(
+                               'contract', contract,
+                               'list', list
+                       )
+               ) lists
+        from helpers_collection_list
+        WHERE collection_name = collection.collection_name
+        ) as lists ON true
+    LEFT JOIN LATERAL (
+        SELECT ARRAY_AGG(tag) tags
+        from helpers_collection_tags
+        WHERE collection_name = collection.collection_name
+        ) as tags ON true
     WHERE t_buyoffer.market_contract = token.market_contract AND t_buyoffer.token_symbol = token.token_symbol AND
         t_buyoffer.assets_contract = collection.contract AND t_buyoffer.collection_name = collection.collection_name AND
         t_buyoffer.assets_contract = "template".contract AND t_buyoffer.template_id = "template".template_id

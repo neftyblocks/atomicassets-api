@@ -59,7 +59,9 @@ ON (drops_contract, drop_id)
     'authorized_accounts', collection.authorized_accounts,
     'notify_accounts', collection.notify_accounts,
     'created_at_block', collection.created_at_block::text,
-    'created_at_time', collection.created_at_time::text
+    'created_at_time', collection.created_at_time::text,
+    'lists', COALESCE(lists.lists, '[]'::json),
+    'tags', COALESCE(tags.tags, ARRAY[]::text[])
     ) collection,
 
     ndrop.is_deleted is_deleted,
@@ -92,6 +94,21 @@ ON (
     pair.delphi_pair_name = delphi.delphi_pair_name
     ),
     atomicassets_collections collection, neftydrops_tokens token
+LEFT JOIN LATERAL (
+    SELECT JSON_AGG(
+                   JSON_BUILD_OBJECT(
+                           'contract', contract,
+                           'list', list
+                   )
+           ) lists
+    from helpers_collection_list
+    WHERE collection_name = collection.collection_name
+    ) as lists ON true
+LEFT JOIN LATERAL (
+    SELECT ARRAY_AGG(tag) tags
+    from helpers_collection_tags
+    WHERE collection_name = collection.collection_name
+    ) as tags ON true
 WHERE
     collection.contract = ndrop.assets_contract
   AND collection.collection_name = ndrop.collection_name
