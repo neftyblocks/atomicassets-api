@@ -15,11 +15,11 @@ const zneftyCollectionListRegex = /^(z\.whitelist|z\.verified|z\.blacklist|z\.ns
 
 export async function initCollections(args: CollectionsListArgs, connection: ConnectionManager): Promise<void> {
     const featuresQuery = await connection.database.query(
-        'SELECT * FROM helpers_collection_list WHERE assets_contract = $1',
+        'SELECT COUNT(*) FROM helpers_collection_list WHERE assets_contract = $1',
         [args.atomicassets_account]
     );
 
-    if (featuresQuery.rows.length === 0) {
+    if (+featuresQuery.rows[0].count === 0) {
 
         let databaseRows: any[] = [];
 

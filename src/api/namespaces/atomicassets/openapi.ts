@@ -255,6 +255,13 @@ export const greylistFilterParameters = [
         required: false,
         schema: {type: 'boolean'}
     },
+    {
+        name: 'only_favorites',
+        in: 'query',
+        description: 'Show only the provided user(s) favorite collections. Split multiple with ","',
+        required: false,
+        schema: {type: 'string'}
+    },
 ];
 
 export const baseAssetFilterParameters = [
