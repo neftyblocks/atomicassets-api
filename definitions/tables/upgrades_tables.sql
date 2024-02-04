@@ -58,7 +58,7 @@ CREATE TABLE neftyupgrades_upgrade_ingredient_attributes
     ingredient_collection_name character varying(13) NOT NULL,
     ingredient_index           integer               NOT NULL,
     attribute_index            integer               NOT NULL,
-    attribute_name             text                  NOT NULL,
+    attribute_name             character varying(64) NOT NULL,
     comparator                 integer               NOT NULL,
     allowed_values             text[]                NOT NULL,
     CONSTRAINT neftyupgrades_upgrade_ingredient_attributes_pkey PRIMARY KEY (contract, upgrade_id, ingredient_index, attribute_index)
@@ -71,8 +71,8 @@ CREATE TABLE neftyupgrades_upgrade_ingredient_typed_attributes
     ingredient_collection_name character varying(13) NOT NULL,
     ingredient_index           integer               NOT NULL,
     attribute_index            integer               NOT NULL,
-    attribute_name             text                  NOT NULL,
-    attribute_type             text                  NOT NULL,
+    attribute_name             character varying(64) NOT NULL,
+    attribute_type             character varying(50) NOT NULL,
     allowed_values_type        text                  NOT NULL,
     allowed_values             jsonb                 NOT NULL,
 
@@ -106,7 +106,7 @@ CREATE TABLE neftyupgrades_upgrade_specs_results
     upgrade_id     bigint                NOT NULL,
     spec_index     bigint                NOT NULL,
     result_index   bigint                NOT NULL,
-    attribute_name character varying(12) NOT NULL,
+    attribute_name character varying(64) NOT NULL,
     attribute_type character varying(50) NOT NULL,
     operator_type  integer               NOT NULL,
     value_type     character varying(50) NOT NULL,
