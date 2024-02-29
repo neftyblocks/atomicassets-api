@@ -19,6 +19,7 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
 
         collection_whitelist: {type: 'string', min: 1},
         collection_blacklist: {type: 'string', min: 1},
+        only_favorites: { type: 'list[name]' },
         only_whitelisted: {type: 'bool'},
         exclude_blacklisted: {type: 'bool'},
         exclude_nsfw: {type: 'bool'},
@@ -98,6 +99,15 @@ export async function getStatsCollectionsAction(params: RequestValues, ctx: Neft
                 'FROM helpers_collection_list ' +
                 'WHERE list = \'ai\') ';
         }
+    }
+
+    const onlyUserFavorites: string[] = args.only_favorites;
+    if (onlyUserFavorites.length > 0) {
+        queryString += 'AND collection_name IN (' +
+            'SELECT DISTINCT(collection_name) ' +
+            'FROM helpers_favorite_collections ' +
+            'WHERE owner = ANY($' + ++varCounter + '::text[])) ';
+        queryValues.push(onlyUserFavorites);
     }
 
     const sortColumnMapping: { [key: string]: string } = {

@@ -19,6 +19,7 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: Ne
         collection_name: {type: 'string', min: 1},
         collection_whitelist: {type: 'string[]', min: 1},
         collection_blacklist: {type: 'string[]', min: 1},
+        only_favorites: { type: 'list[name]' },
         only_whitelisted: {type: 'bool'},
         exclude_blacklisted: {type: 'bool'},
         exclude_nsfw: {type: 'bool'},
@@ -109,6 +110,15 @@ export async function getAllCollectionStatsAction(params: RequestValues, ctx: Ne
                 'WHERE list = \'ai\')'
             );
         }
+    }
+
+    const onlyUserFavorites: string[] = args.only_favorites;
+    if (onlyUserFavorites.length > 0) {
+        query.addCondition( 'collection.collection_name IN (' +
+            'SELECT DISTINCT(collection_name) ' +
+            'FROM helpers_favorite_collections ' +
+            'WHERE owner = ANY(' + query.addVariable(onlyUserFavorites) + '::text[]))'
+        );
     }
 
     const sortColumnMapping: { [key: string]: string } = {

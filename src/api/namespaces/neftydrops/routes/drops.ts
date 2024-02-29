@@ -16,6 +16,7 @@ import {
     getDropsClaimableAction,
     getDropsByCollection,
 } from '../handlers/drops';
+import {greylistFilterParameters} from '../../atomicassets/openapi';
 
 export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, router: express.Router): any {
     const { caching, returnAsJSON } = server.web;
@@ -46,6 +47,14 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             required: false,
                             schema: {type: 'string'}
                         },
+                        {
+                            name: 'collection_name',
+                            in: 'query',
+                            description: 'Collection name of the drops',
+                            required: false,
+                            schema: {type: 'string'}
+                        },
+                        ...greylistFilterParameters,
                         {
                             name: 'state',
                             in: 'query',

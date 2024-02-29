@@ -255,6 +255,34 @@ export const greylistFilterParameters = [
         required: false,
         schema: {type: 'boolean'}
     },
+    {
+        name: 'exclude_blacklisted',
+        in: 'query',
+        description: 'Exclude blacklisted collections',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'exclude_nsfw',
+        in: 'query',
+        description: 'Exclude nsfw collections',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'exclude_ai',
+        in: 'query',
+        description: 'Exclude ai collections',
+        required: false,
+        schema: {type: 'boolean'}
+    },
+    {
+        name: 'only_favorites',
+        in: 'query',
+        description: 'Show only the provided user(s) favorite collections. Split multiple with ","',
+        required: false,
+        schema: {type: 'string'}
+    },
 ];
 
 export const baseAssetFilterParameters = [

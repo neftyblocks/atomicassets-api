@@ -127,13 +127,13 @@ export async function fillDrops(db: DB, assetContract: string, drops: any[]): Pr
             if (asset.template_id > -1) {
                 result.template = await filler.fillTemplate(asset.template_id);
                 result.template.packs = await packsFiller.fillTemplate(asset.template_id);
+                delete result.template.collection;
             } else if (asset.bank_name) {
                 result.bank_name = asset.bank_name;
             }
             result.tokens_to_back = asset.tokens_to_back;
             return result;
         })));
-        drop.templates = drop.assets.filter((asset: any) => !!asset.template).map((asset: any) => asset.template);
         return drop;
     }));
 }

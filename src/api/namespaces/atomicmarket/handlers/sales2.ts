@@ -271,6 +271,7 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
         collection_name: {type: 'list[name]'},
         collection_blacklist: {type: 'list[name]'},
         collection_whitelist: {type: 'list[name]'},
+        only_favorites: { type: 'list[name]' },
         only_whitelisted: {type: 'bool'},
         exclude_blacklisted: {type: 'bool'},
         exclude_nsfw: {type: 'bool'},
@@ -387,6 +388,15 @@ async function buildMainFilterV2(search: SalesSearchOptions): Promise<void> {
                 'WHERE list = \'ai\')'
             );
         }
+    }
+
+    const onlyUserFavorites: string[] = args.only_favorites;
+    if (onlyUserFavorites.length > 0) {
+        query.addCondition('SUBSTR(listing.filter[1], 2) IN (' +
+            'SELECT DISTINCT(collection_name) ' +
+            'FROM helpers_favorite_collections ' +
+            'WHERE owner = ANY(' + query.addVariable(onlyUserFavorites) + '::text[]))'
+        );
     }
 
     if (args.account.length) {

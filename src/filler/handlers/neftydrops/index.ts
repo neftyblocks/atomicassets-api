@@ -118,6 +118,10 @@ export default class NeftyDropsHandler extends ContractHandler {
             viewsToUpdate = ['neftydrops_stats_master'];
         }
 
+        if (version === '1.3.62') {
+            viewsToUpdate = ['neftydrops_drops_master'];
+        }
+
         for (const view of viewsToUpdate) {
             logger.info(`Refreshing views ${view}`);
             await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));

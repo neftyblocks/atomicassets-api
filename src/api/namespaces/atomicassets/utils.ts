@@ -278,6 +278,7 @@ export async function buildGreylistFilter(values: FilterValues, query: QueryBuil
         collection_blacklist: {type: 'list[name]'},
         collection_whitelist: {type: 'list[name]'},
         account_blacklist: {type: 'list[name]'},
+        only_favorites: { type: 'list[name]' },
         only_whitelisted: {type: 'bool'},
         exclude_blacklisted: {type: 'bool'},
         exclude_nsfw: {type: 'bool'},
@@ -287,50 +288,59 @@ export async function buildGreylistFilter(values: FilterValues, query: QueryBuil
     const collectionBlacklist: string[] = args.collection_blacklist;
     const collectionWhitelist: string[] = args.collection_whitelist;
 
-    if (typeof args.only_whitelisted === 'boolean') {
-        if (args.only_whitelisted) {
+    if (columns.collectionName) {
+        if (typeof args.only_whitelisted === 'boolean') {
+            if (args.only_whitelisted) {
+                query.addCondition(columns.collectionName + ' IN (' +
+                    'SELECT DISTINCT(collection_name) ' +
+                    'FROM helpers_collection_list ' +
+                    'WHERE list = \'whitelist\' OR list = \'verified\' OR list = \'exceptions\')'
+                );
+                query.addCondition(columns.collectionName + ' NOT IN (' +
+                    'SELECT DISTINCT(collection_name) ' +
+                    'FROM helpers_collection_list ' +
+                    'WHERE list = \'blacklist\' OR list = \'scam\')'
+                );
+            }
+        } else if (typeof args.exclude_blacklisted === 'boolean') {
+            if (args.exclude_blacklisted) {
+                query.addCondition(columns.collectionName + ' NOT IN (' +
+                    'SELECT DISTINCT(collection_name) ' +
+                    'FROM helpers_collection_list ' +
+                    'WHERE list = \'blacklist\' OR list = \'scam\')'
+                );
+            }
+        }
+
+        if (typeof args.exclude_nsfw === 'boolean') {
+            if (args.exclude_nsfw) {
+                query.addCondition(columns.collectionName + ' NOT IN (' +
+                    'SELECT DISTINCT(collection_name) ' +
+                    'FROM helpers_collection_list ' +
+                    'WHERE list = \'nsfw\')'
+                );
+            }
+        }
+
+        if (typeof args.exclude_ai === 'boolean') {
+            if (args.exclude_ai) {
+                query.addCondition(columns.collectionName + ' NOT IN (' +
+                    'SELECT DISTINCT(collection_name) ' +
+                    'FROM helpers_collection_list ' +
+                    'WHERE list = \'ai\')'
+                );
+            }
+        }
+
+        const onlyUserFavorites: string[] = args.only_favorites;
+        if (onlyUserFavorites.length > 0) {
             query.addCondition(columns.collectionName + ' IN (' +
                 'SELECT DISTINCT(collection_name) ' +
-                'FROM helpers_collection_list ' +
-                'WHERE list = \'whitelist\' OR list = \'verified\' OR list = \'exceptions\')'
-            );
-            query.addCondition(columns.collectionName + ' NOT IN (' +
-                'SELECT DISTINCT(collection_name) ' +
-                'FROM helpers_collection_list ' +
-                'WHERE list = \'blacklist\' OR list = \'scam\')'
+                'FROM helpers_favorite_collections ' +
+                'WHERE owner = ANY(' + query.addVariable(onlyUserFavorites) + '::text[]))'
             );
         }
-    } else if (typeof args.exclude_blacklisted === 'boolean') {
-        if (args.exclude_blacklisted) {
-            query.addCondition(columns.collectionName + ' NOT IN (' +
-                'SELECT DISTINCT(collection_name) ' +
-                'FROM helpers_collection_list ' +
-                'WHERE list = \'blacklist\' OR list = \'scam\')'
-            );
-        }
-    }
 
-    if (typeof args.exclude_nsfw === 'boolean') {
-        if (args.exclude_nsfw) {
-            query.addCondition(columns.collectionName + ' NOT IN (' +
-                'SELECT DISTINCT(collection_name) ' +
-                'FROM helpers_collection_list ' +
-                'WHERE list = \'nsfw\')'
-            );
-        }
-    }
-
-    if (typeof args.exclude_ai === 'boolean') {
-        if (args.exclude_ai) {
-            query.addCondition(columns.collectionName + ' NOT IN (' +
-                'SELECT DISTINCT(collection_name) ' +
-                'FROM helpers_collection_list ' +
-                'WHERE list = \'ai\')'
-            );
-        }
-    }
-
-    if (columns.collectionName) {
         if (collectionWhitelist.length > 0 && collectionBlacklist.length > 0) {
             query.equalMany(columns.collectionName, collectionWhitelist.filter(row => !collectionBlacklist.includes(row)));
         } else {
