@@ -3,8 +3,9 @@ import * as express from 'express';
 import { ApiNamespace } from '../interfaces';
 import { HTTPServer } from '../../server';
 import { collectionsEndpoints } from './routes/collections';
-import { neftyMarketComponents } from './openapi';
+import { helpersComponents } from './openapi';
 import {ActionHandlerContext} from '../../actionhandler';
+import {favoritesEndpoints} from './routes/favorites';
 
 export type HelpersNamespaceArgs = {
     atomicassets_account: string,
@@ -27,7 +28,7 @@ export class HelpersNamespace extends ApiNamespace {
 
         const router = express.Router();
 
-        server.docs.addSchemas(neftyMarketComponents);
+        server.docs.addSchemas(helpersComponents);
 
         if (server.web.limiter) {
             server.web.express.use(this.path + '/v1', server.web.limiter);
@@ -35,6 +36,7 @@ export class HelpersNamespace extends ApiNamespace {
 
         const endpointsDocs = [];
         endpointsDocs.push(collectionsEndpoints(this, server, router));
+        endpointsDocs.push(favoritesEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {
