@@ -256,7 +256,7 @@ export function buildAssetFillerHook(
 
         // Prices
         if (queries[4]) {
-            for (const row of queries[3].rows) {
+            for (const row of queries[4].rows) {
                 templateData[row.template_id].prices.push({
                     market_contract: row.market_contract,
                     token: {
@@ -277,14 +277,14 @@ export function buildAssetFillerHook(
 
         // Nefty auctions
         if (queries[5]) {
-            for (const row of queries[4].rows) {
+            for (const row of queries[5].rows) {
                 assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
             }
         }
 
         // Packs
         if (queries[6]) {
-            for (const row of queries[5].rows) {
+            for (const row of queries[6].rows) {
                 templateData[row.pack_template_id].packs.push({contract: row.contract, pack_id: row.pack_id});
             }
         }
