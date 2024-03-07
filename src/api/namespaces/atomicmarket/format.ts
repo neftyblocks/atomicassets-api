@@ -150,7 +150,7 @@ export function buildAssetFillerHook(
                 [contract, [...templateIDs]]
             ),
             options.fetchAssetBuyoffers && db.query(
-                'SELECT buyoffer.market_contract, buyoffer.asset_id, buyoffer.token_symbol, MAX(buyoffer.price), token.token_precision, token.token_contract ' +
+                'SELECT buyoffer.market_contract, buyoffer.asset_id, buyoffer.token_symbol, MAX(buyoffer.price) price, token.token_precision, token.token_contract ' +
                 'FROM ( ' +
                 'SELECT o.buyoffer_id, o.market_contract, o.price, o.token_symbol, MAX(oa.asset_id) asset_id, COUNT(oa.asset_id) asset_count ' +
                 'FROM atomicmarket_buyoffers o ' +
