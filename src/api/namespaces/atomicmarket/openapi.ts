@@ -32,7 +32,33 @@ export const atomicmarketComponents = {
                     properties: {
                         market_contract: {type: 'string'},
                         buyoffer_id: {type: 'string'},
-                        token_symbol: {type: 'string'},
+                        price: {type: 'string'},
+                        token: {
+                            type: 'object',
+                            properties: {
+                                token_contract: {type: 'string'},
+                                token_precision: {type: 'integer'},
+                                token_symbol: {type: 'string'}
+                            }
+                        },
+                    }
+                }
+            },
+            buyoffers: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        market_contract: {type: 'string'},
+                        price: {type: 'string'},
+                        token: {
+                            type: 'object',
+                            properties: {
+                                token_contract: {type: 'string'},
+                                token_precision: {type: 'integer'},
+                                token_symbol: {type: 'string'}
+                            }
+                        },
                     }
                 }
             },

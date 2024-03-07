@@ -110,7 +110,7 @@ export function formatListingAsset(row: any): any {
 }
 
 export function buildAssetFillerHook(
-    options: {fetchTemplateBuyoffers?: boolean, fetchAuctions?: boolean, fetchSales?: boolean, fetchPrices?: boolean, fetchNeftyAuctions?: boolean, fetchPacks?: boolean}
+    options: {fetchTemplateBuyoffers?: boolean, fetchAssetBuyoffers?: boolean, fetchAuctions?: boolean, fetchSales?: boolean, fetchPrices?: boolean, fetchNeftyAuctions?: boolean, fetchPacks?: boolean}
 ): FillerHook {
     return async (db: DB, contract: string, rows: any[]): Promise<any[]> => {
         const assetIDs = rows.map(asset => asset.asset_id);
@@ -149,6 +149,23 @@ export function buildAssetFillerHook(
                 'GROUP BY t_buyoffer.market_contract, t_buyoffer.template_id, t_buyoffer.token_symbol, token.token_precision, token.token_contract',
                 [contract, [...templateIDs]]
             ),
+            options.fetchAssetBuyoffers && db.query(
+                'SELECT buyoffer.market_contract, buyoffer.asset_id, buyoffer.token_symbol, MAX(buyoffer.price), token.token_precision, token.token_contract ' +
+                'FROM ( ' +
+                'SELECT o.buyoffer_id, o.market_contract, o.price, o.token_symbol, MAX(oa.asset_id) asset_id, COUNT(oa.asset_id) asset_count ' +
+                'FROM atomicmarket_buyoffers o ' +
+                'INNER JOIN atomicmarket_buyoffers_assets oa ON o.buyoffer_id = oa.buyoffer_id ' +
+                'WHERE o.state = '+ BuyofferState.PENDING.valueOf() + ' AND o.buyoffer_id  ' +
+                'IN ( ' +
+                'SELECT buyoffer_id ' +
+                'FROM atomicmarket_buyoffers_assets ' +
+                'WHERE asset_id = ANY($1) ' +
+                ') ' +
+                'GROUP BY o.buyoffer_id, o.market_contract, o.price, o.token_symbol ' +
+                ') buyoffer, atomicmarket_tokens token ' +
+                'GROUP BY buyoffer.market_contract, buyoffer.asset_id, buyoffer.token_symbol, token.token_precision, token.token_contract',
+                [[...assetIDs]]
+            ),
             options.fetchPrices && db.query(
                 'SELECT DISTINCT ON (price.market_contract, price.collection_name, price.template_id, price.symbol) ' +
                 'price.market_contract, asset.collection_name, asset.template_id, ' +
@@ -177,11 +194,11 @@ export function buildAssetFillerHook(
             ),
         ]);
 
-        const assetData: {[key: string]: {sales: any[], auctions: any[]}} = {};
+        const assetData: {[key: string]: {sales: any[], auctions: any[], buyoffers: any[]}} = {};
         const templateData: {[key: string]: {prices: any[], template_buyoffers: any[], packs: any[]}} = {};
 
         for (const row of rows) {
-            assetData[row.asset_id] = {sales: [], auctions: []};
+            assetData[row.asset_id] = {sales: [], auctions: [], buyoffers: []};
         }
 
         for (const row of rows) {
@@ -222,8 +239,23 @@ export function buildAssetFillerHook(
             }
         }
 
-        // Prices
+        // Asset buy offers
         if (queries[3]) {
+            for (const row of queries[3].rows) {
+                assetData[row.asset_id].buyoffers.push({
+                    market_contract: row.market_contract,
+                    price: row.price,
+                    token: {
+                        token_symbol: row.token_symbol,
+                        token_precision: row.token_precision,
+                        token_contract: row.token_contract,
+                    },
+                });
+            }
+        }
+
+        // Prices
+        if (queries[4]) {
             for (const row of queries[3].rows) {
                 templateData[row.template_id].prices.push({
                     market_contract: row.market_contract,
@@ -244,14 +276,14 @@ export function buildAssetFillerHook(
         }
 
         // Nefty auctions
-        if (queries[4]) {
+        if (queries[5]) {
             for (const row of queries[4].rows) {
                 assetData[row.asset_id].auctions.push({market_contract: row.market_contract, auction_id: row.auction_id});
             }
         }
 
         // Packs
-        if (queries[5]) {
+        if (queries[6]) {
             for (const row of queries[5].rows) {
                 templateData[row.pack_template_id].packs.push({contract: row.contract, pack_id: row.pack_id});
             }

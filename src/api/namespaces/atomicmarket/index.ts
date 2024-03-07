@@ -130,6 +130,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
                 fetchSales: true,
                 fetchAuctions: true,
                 fetchTemplateBuyoffers: true,
+                fetchAssetBuyoffers: true,
                 fetchPrices: true,
                 fetchNeftyAuctions: this.args.include_nefty_auctions,
                 fetchPacks: true
@@ -143,6 +144,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
                 fetchSales: true,
                 fetchAuctions: true,
                 fetchTemplateBuyoffers: true,
+                fetchAssetBuyoffers: true,
                 fetchPrices: true,
                 fetchNeftyAuctions: this.args.include_nefty_auctions,
                 fetchPacks: true
@@ -156,6 +158,7 @@ export class AtomicMarketNamespace extends ApiNamespace {
                 fetchSales: true,
                 fetchAuctions: true,
                 fetchTemplateBuyoffers: true,
+                fetchAssetBuyoffers: true,
                 fetchPrices: true,
                 fetchNeftyAuctions: this.args.include_nefty_auctions,
                 fetchPacks: true

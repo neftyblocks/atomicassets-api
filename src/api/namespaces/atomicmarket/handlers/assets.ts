@@ -41,6 +41,7 @@ export async function getMarketAssetsAction(params: RequestValues, ctx: AtomicMa
             fetchSales: true,
             fetchAuctions: true,
             fetchTemplateBuyoffers: true,
+            fetchAssetBuyoffers: true,
             fetchPrices: true,
             fetchNeftyAuctions: ctx.coreArgs.include_nefty_auctions,
             fetchPacks: args.fetch_packs

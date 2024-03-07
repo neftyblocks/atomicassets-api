@@ -10,7 +10,7 @@ import { buildAssetFilter, buildGreylistFilter, buildHideOffersFilter, hasStrong
 import { ApiError } from '../../../error';
 import { applyActionGreylistFilters, getContractActionLogs } from '../../../utils';
 import { filterQueryArgs, FilterValues } from '../../validation';
-import { TemplateBuyofferState } from '../../../../filler/handlers/atomicmarket';
+import {BuyofferState, TemplateBuyofferState} from '../../../../filler/handlers/atomicmarket';
 
 export async function buildAssetQueryCondition(
     values: FilterValues, query: QueryBuilder,
@@ -24,6 +24,7 @@ export async function buildAssetQueryCondition(
         only_packs: {type: 'bool'},
         has_backed_tokens: {type: 'bool'},
         has_template_buyoffer: {type: 'bool'},
+        has_buyoffer: {type: 'bool'},
 
         template_mint: {type: 'int', min: 1},
 
@@ -101,6 +102,46 @@ export async function buildAssetQueryCondition(
                 'WHERE ' + options.assetTable + '.contract = t_buyoffer.assets_contract ' +
                 'AND ' + options.assetTable + '.template_id = t_buyoffer.template_id ' +
                 'AND t_buyoffer.state = ' + TemplateBuyofferState.LISTED +
+                ')');
+        }
+    }
+
+    if (typeof args.has_buyoffer === 'boolean') {
+        if (args.has_buyoffer) {
+            query.addCondition('EXISTS (' +
+                'SELECT * FROM atomicmarket_template_buyoffers t_buyoffer ' +
+                'WHERE ' + options.assetTable + '.contract = t_buyoffer.assets_contract ' +
+                'AND ' + options.assetTable + '.template_id = t_buyoffer.template_id ' +
+                'AND t_buyoffer.state = ' + TemplateBuyofferState.LISTED +
+                ') OR EXISTS (' +
+                'SELECT * FROM  (' +
+                'SELECT o.buyoffer_id, COUNT(oa.asset_id) asset_count ' +
+                'FROM atomicmarket_buyoffers o ' +
+                'INNER JOIN atomicmarket_buyoffers_assets oa ON o.buyoffer_id = oa.buyoffer_id ' +
+                'WHERE o.state = ' + BuyofferState.PENDING + ' AND o.buyoffer_id IN (' +
+                'SELECT buyoffer_id FROM atomicmarket_buyoffers_assets WHERE asset_id = ' + options.assetTable + '.asset_id ' +
+                ') ' +
+                'GROUP BY o.buyoffer_id' +
+                ') s ' +
+                'WHERE s.asset_count = 1' +
+                ')');
+        } else {
+            query.addCondition('NOT EXISTS (' +
+                'SELECT * FROM atomicmarket_template_buyoffers t_buyoffer ' +
+                'WHERE ' + options.assetTable + '.contract = t_buyoffer.assets_contract ' +
+                'AND ' + options.assetTable + '.template_id = t_buyoffer.template_id ' +
+                'AND t_buyoffer.state = ' + TemplateBuyofferState.LISTED +
+                ') AND NOT EXISTS (' +
+                'SELECT * FROM  (' +
+                'SELECT o.buyoffer_id, COUNT(oa.asset_id) asset_count ' +
+                'FROM atomicmarket_buyoffers o ' +
+                'INNER JOIN atomicmarket_buyoffers_assets oa ON o.buyoffer_id = oa.buyoffer_id ' +
+                'WHERE o.state = ' + BuyofferState.PENDING + ' AND o.buyoffer_id IN (' +
+                'SELECT buyoffer_id FROM atomicmarket_buyoffers_assets WHERE asset_id = ' + options.assetTable + '.asset_id ' +
+                ') ' +
+                'GROUP BY o.buyoffer_id' +
+                ') s ' +
+                'WHERE s.asset_count = 1' +
                 ')');
         }
     }
