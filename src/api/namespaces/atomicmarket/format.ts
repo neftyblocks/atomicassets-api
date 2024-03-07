@@ -162,7 +162,8 @@ export function buildAssetFillerHook(
                 'WHERE asset_id = ANY($1) ' +
                 ') ' +
                 'GROUP BY o.buyoffer_id, o.market_contract, o.price, o.token_symbol ' +
-                ') buyoffer, atomicmarket_tokens token ' +
+                ') buyoffer ' +
+                'INNER JOIN atomicmarket_tokens token ON token.token_symbol = buyoffer.token_symbol ' +
                 'GROUP BY buyoffer.market_contract, buyoffer.asset_id, buyoffer.token_symbol, token.token_precision, token.token_contract',
                 [[...assetIDs]]
             ),
