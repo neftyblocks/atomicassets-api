@@ -90,6 +90,13 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             schema: {type: 'boolean'}
                         },
                         {
+                            name: 'has_credit_card_enabled',
+                            in: 'query',
+                            description: 'Filters by drops with or without credit card payments enabled',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
+                        {
                             name: 'hide_description',
                             in: 'query',
                             description: 'Removed the drop description from the response',
@@ -172,6 +179,13 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                             name: 'has_referrals_enabled',
                             in: 'query',
                             description: 'Filters by drops with or without referrals enabled',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
+                        {
+                            name: 'has_credit_card_enabled',
+                            in: 'query',
+                            description: 'Filters by drops with or without credit card payments enabled',
                             required: false,
                             schema: {type: 'boolean'}
                         },

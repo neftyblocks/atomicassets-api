@@ -88,6 +88,7 @@ export async function buildDropFilter(values: FilterValues, query: QueryBuilder)
         hidden: {type: 'bool', default: false},
         secure: {type: 'bool'},
         has_referrals_enabled: {type: 'bool'},
+        has_credit_card_enabled: {type: 'bool'},
 
         max_assets: {type: 'int', min: 1},
         min_assets: {type: 'int', min: 1},
@@ -175,6 +176,14 @@ export async function buildDropFilter(values: FilterValues, query: QueryBuilder)
             query.addCondition('ndrop.referral_fee > 0');
         } else {
             query.addCondition('ndrop.referral_fee = 0');
+        }
+    }
+
+    if (typeof args.has_credit_card_enabled === 'boolean') {
+        if (args.has_credit_card_enabled) {
+            query.equal('ndrop.allow_credit_card_payments', true);
+        } else {
+            query.equal('ndrop.allow_credit_card_payments', false);
         }
     }
 
