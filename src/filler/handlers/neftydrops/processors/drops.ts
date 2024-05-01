@@ -97,6 +97,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
         if (trace.act.data.alternative_prices && trace.act.data.alternative_prices.length > 0) {
             await db.insert('neftydrops_drops_alternative_prices', trace.act.data.alternative_prices.map((price, index) => ({
               drops_contract: core.args.neftydrops_account,
+              assets_contract: core.args.atomicassets_account,
               drop_id: trace.act.data.drop_id,
               price_index: index,
               price: preventInt64Overflow(price.split(' ')[0].replace('.', '')),
@@ -256,6 +257,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
         if (trace.act.data.alternative_prices && trace.act.data.alternative_prices.length > 0) {
             await db.insert('neftydrops_drops_alternative_prices', trace.act.data.alternative_prices.map((price, index) => ({
                 drops_contract: core.args.neftydrops_account,
+                assets_contract: core.args.atomicassets_account,
                 drop_id: trace.act.data.drop_id,
                 price_index: index,
                 price: preventInt64Overflow(price.split(' ')[0].replace('.', '')),
