@@ -22,6 +22,7 @@ export type LogCreateDropActionData = {
     allow_credit_card_payments?: boolean
     referral_fee?: number
     referral_whitelist_id?: number
+    alternative_prices?: Array<any>
 };
 
 export type SetDropAuthActionData = {
@@ -73,6 +74,7 @@ export type SetDropPriceActionData = {
     drop_id: number,
     listing_price: string,
     settlement_symbol: string
+    alternative_prices?: Array<any>
 };
 
 export type SetDropTimesActionData = {

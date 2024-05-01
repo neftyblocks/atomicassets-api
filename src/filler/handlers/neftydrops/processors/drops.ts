@@ -94,6 +94,16 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           current_claimed: 0,
         }, ['drops_contract', 'drop_id']);
 
+        if (trace.act.data.alternative_prices && trace.act.data.alternative_prices.length > 0) {
+            await db.insert('neftydrops_drops_alternative_prices', trace.act.data.alternative_prices.map((price, index) => ({
+              drops_contract: core.args.neftydrops_account,
+              drop_id: trace.act.data.drop_id,
+              price_index: index,
+              price: preventInt64Overflow(price.split(' ')[0].replace('.', '')),
+              symbol: price.split(' ')[1],
+            })), ['drops_contract', 'drop_id', 'price_index']);
+        }
+
         const result = resultToJson(trace.act.data.result);
         const assetsToMint: Array<any> = [...trace.act.data.assets_to_mint];
         if (result && result.type === 'BANK_RESULT') {
@@ -237,6 +247,22 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           str: 'drops_contract = $1 AND drop_id = $2',
           values: [core.args.neftydrops_account, trace.act.data.drop_id]
         }, ['drops_contract', 'drop_id']);
+
+        await db.delete('neftydrops_drop_alternative_prices', {
+          str: 'drops_contract = $1 AND drop_id = $2',
+          values: [core.args.neftydrops_account, trace.act.data.drop_id]
+        });
+
+        if (trace.act.data.alternative_prices && trace.act.data.alternative_prices.length > 0) {
+            await db.insert('neftydrops_drops_alternative_prices', trace.act.data.alternative_prices.map((price, index) => ({
+                drops_contract: core.args.neftydrops_account,
+                drop_id: trace.act.data.drop_id,
+                price_index: index,
+                price: preventInt64Overflow(price.split(' ')[0].replace('.', '')),
+                symbol: price.split(' ')[1],
+            })), ['drops_contract', 'drop_id', 'price_index']);
+        }
+
       }, NeftyDropsUpdatePriority.ACTION_UPDATE_DROP.valueOf()
   ));
 

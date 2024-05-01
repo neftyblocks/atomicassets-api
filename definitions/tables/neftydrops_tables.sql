@@ -42,6 +42,18 @@ CREATE TABLE neftydrops_drop_assets
     CONSTRAINT neftydrops_drop_assets_pkey PRIMARY KEY (drops_contract, drop_id, index)
 );
 
+CREATE TABLE neftydrops_drops_alternative_prices
+(
+    drops_contract  character varying(12) NOT NULL,
+    assets_contract character varying(12) NOT NULL,
+    drop_id         bigint                NOT NULL,
+    price_index     integer               NOT NULL,
+    price           bigint                NOT NULL,
+    symbol          character varying(12) NOT NULL,
+
+    CONSTRAINT neftydrops_drops_alternative_prices_pkey PRIMARY KEY (drops_contract, drop_id, price_index)
+);
+
 CREATE TABLE neftydrops_claims
 (
     claim_id          bigint                NOT NULL,
@@ -110,68 +122,68 @@ CREATE TABLE neftydrops_config
 
 CREATE TABLE neftydrops_account_stats
 (
-    claimer                character varying(12) NOT NULL,
-    drop_id                bigint                NOT NULL,
-    use_counter            bigint                NOT NULL,
-    last_claim_time        bigint                NOT NULL,
-    used_nonces            bigint[]              NOT NULL,
+    claimer         character varying(12) NOT NULL,
+    drop_id         bigint                NOT NULL,
+    use_counter     bigint                NOT NULL,
+    last_claim_time bigint                NOT NULL,
+    used_nonces     bigint[]              NOT NULL,
 
     CONSTRAINT neftydrops_account_stats_pkey PRIMARY KEY (claimer, drop_id)
 );
 
 CREATE TABLE neftydrops_accounts_whitelist
 (
-    drop_id                bigint                NOT NULL,
-    account                character varying(12) NOT NULL,
-    account_limit          bigint                NOT NULL,
+    drop_id       bigint                NOT NULL,
+    account       character varying(12) NOT NULL,
+    account_limit bigint                NOT NULL,
 
     CONSTRAINT neftydrops_accounts_whitelist_pkey PRIMARY KEY (drop_id, account)
 );
 
 CREATE TABLE neftydrops_authkeys
 (
-    drop_id                bigint                 NOT NULL,
-    public_key             character varying(53) NOT NULL,
-    key_limit              bigint                NOT NULL,
-    key_limit_cooldown     bigint                NOT NULL,
-    use_counter            bigint                NOT NULL,
-    last_claim_time        bigint                NOT NULL,
+    drop_id            bigint                NOT NULL,
+    public_key         character varying(53) NOT NULL,
+    key_limit          bigint                NOT NULL,
+    key_limit_cooldown bigint                NOT NULL,
+    use_counter        bigint                NOT NULL,
+    last_claim_time    bigint                NOT NULL,
 
     CONSTRAINT neftydrops_authkeys_pkey PRIMARY KEY (drop_id, public_key)
 );
 
 CREATE TABLE neftydrops_proof_of_ownership_filters
 (
-    drop_id                bigint                NOT NULL,
-    filter_index           bigint                NOT NULL,
+    drop_id             bigint                NOT NULL,
+    filter_index        bigint                NOT NULL,
 
     -- All rows with the same drop_id must have the same logical_operator and
     -- total_filter_count
-    logical_operator       smallint              NOT NULL,
-    total_filter_count     bigint                NOT NULL,
+    logical_operator    smallint              NOT NULL,
+    total_filter_count  bigint                NOT NULL,
 
     -- Either of four values 'COLLECTION_HOLDINGS', 'TEMPLATE_HOLDINGS',
     -- 'SCHEMA_HOLDINGS', or 'TOKEN_HOLDING'
-    filter_kind            character varying(50) NOT NULL,
+    filter_kind         character varying(50) NOT NULL,
 
     -- Equal to the "..._holdings"->'comparison_operator' that is not null
-    comparison_operator    smallint              NOT NULL,
+    comparison_operator smallint              NOT NULL,
 
     -- NULL if filter_kind == 'TOKEN_HOLDING'.
     -- otherwise it is equal to the "..._holdings"->'amount' that is not null
-    nft_amount             bigint,
+    nft_amount          bigint,
 
     -- NULL if filter_kind != 'COLLECTION_HOLDINGS'
-    collection_holdings    jsonb,
+    collection_holdings jsonb,
 
     -- NULL if filter_kind != 'TEMPLATE_HOLDINGS'
-    template_holdings      jsonb,
+    template_holdings   jsonb,
 
     -- NULL if filter_kind != 'SCHEMA_HOLDINGS'
-    schema_holdings        jsonb,
+    schema_holdings     jsonb,
 
     -- NULL if filter_kind != 'TOKEN_HOLDING'
-    token_holding          jsonb,
+    token_holding       jsonb,
 
     CONSTRAINT neftydrops_proof_of_ownership_filters_pkey PRIMARY KEY (drop_id, filter_index)
 );
@@ -194,6 +206,13 @@ ALTER TABLE ONLY neftydrops_symbol_pairs
 
 ALTER TABLE ONLY neftydrops_drop_assets
     ADD CONSTRAINT neftydrops_drop_assets_drop_fkey FOREIGN KEY (drop_id, drops_contract) REFERENCES neftydrops_drops (drop_id, drops_contract) MATCH SIMPLE ON
+        UPDATE RESTRICT
+        ON
+            DELETE
+            RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+
+ALTER TABLE ONLY neftydrops_drops_alternative_prices
+    ADD CONSTRAINT neftydrops_drops_alternative_prices.drop_fkey FOREIGN KEY (drop_id, drops_contract) REFERENCES neftydrops_drops (drop_id, drops_contract) MATCH SIMPLE ON
         UPDATE RESTRICT
         ON
             DELETE
@@ -253,6 +272,11 @@ CREATE
     INDEX neftydrops_drop_assets_template_id ON neftydrops_drop_assets USING btree (template_id);
 CREATE
     INDEX neftydrops_drop_assets_collection_name ON neftydrops_drop_assets USING btree (collection_name);
+
+CREATE
+    INDEX neftydrops_drops_alternate_prices_price ON neftydrops_drops_alternative_prices USING btree (price);
+CREATE
+    INDEX neftydrops_drops_alternate_prices_symbol ON neftydrops_drops_alternative_prices USING btree (symbol);
 
 CREATE
     INDEX IF NOT EXISTS neftydrops_account_stats_claimer ON neftydrops_account_stats USING btree (claimer);
