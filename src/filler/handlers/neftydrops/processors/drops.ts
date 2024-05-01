@@ -249,7 +249,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           values: [core.args.neftydrops_account, trace.act.data.drop_id]
         }, ['drops_contract', 'drop_id']);
 
-        await db.delete('neftydrops_drop_alternative_prices', {
+        await db.delete('neftydrops_drops_alternative_prices', {
           str: 'drops_contract = $1 AND drop_id = $2',
           values: [core.args.neftydrops_account, trace.act.data.drop_id]
         });
