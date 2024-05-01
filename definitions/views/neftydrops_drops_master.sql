@@ -82,7 +82,8 @@ ON (drops_contract, drop_id)
     ndrop.price_recipient,
     ndrop.allow_credit_card_payments,
     ndrop.referral_fee,
-    ndrop.referral_whitelist_id
+    ndrop.referral_whitelist_id,
+    alternative_prices
 FROM
     neftydrops_drops ndrop LEFT JOIN neftydrops_symbol_pairs pair
 ON (
@@ -109,6 +110,19 @@ LEFT JOIN LATERAL (
     from helpers_collection_tags
     WHERE collection_name = collection.collection_name
     ) as tags ON true
+LEFT JOIN LATERAL (
+    SELECT JSON_AGG(
+                   JSON_BUILD_OBJECT(
+                           'amount', price,
+                           'token_contract', token.token_contract,
+                           'token_symbol', token.token_symbol,
+                           'token_precision', token.token_precision
+
+                       )
+               ) alternative_prices
+    from neftydrops_drops_alternative_prices p, neftydrops_tokens token
+    WHERE p.drop_id = ndrop.drop_id AND p.symbol = token.token_symbol
+    ) as alternative_prices ON true
 WHERE
     collection.contract = ndrop.assets_contract
   AND collection.collection_name = ndrop.collection_name

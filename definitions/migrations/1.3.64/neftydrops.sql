@@ -1,3 +1,5 @@
+DROP VIEW IF EXISTS neftydrops_drops_master;
+
 CREATE TABLE IF NOT EXISTS neftydrops_drops_alternative_prices
 (
     drops_contract  character varying(12) NOT NULL,
