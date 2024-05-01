@@ -212,7 +212,7 @@ ALTER TABLE ONLY neftydrops_drop_assets
             RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY neftydrops_drops_alternative_prices
-    ADD CONSTRAINT neftydrops_drops_alternative_prices.drop_fkey FOREIGN KEY (drop_id, drops_contract) REFERENCES neftydrops_drops (drop_id, drops_contract) MATCH SIMPLE ON
+    ADD CONSTRAINT neftydrops_drops_alternative_prices_drop_fkey FOREIGN KEY (drop_id, drops_contract) REFERENCES neftydrops_drops (drop_id, drops_contract) MATCH SIMPLE ON
         UPDATE RESTRICT
         ON
             DELETE
