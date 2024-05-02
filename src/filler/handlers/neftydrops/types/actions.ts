@@ -98,6 +98,7 @@ export type ClaimDropActionData = {
     country: string
     receipt_id?: string,
     referrer_account?: string,
+    currency?: string
 };
 
 export type LogClaimActionData = {

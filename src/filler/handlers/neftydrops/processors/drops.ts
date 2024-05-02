@@ -383,9 +383,12 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
     }
 
     let finalPrice = null;
+    let {
+        listing_symbol: listingSymbol,
+        settlement_symbol: settlementSymbol,
+    }= drop.rows[0];
+
     const {
-      listing_symbol: listingSymbol,
-      settlement_symbol: settlementSymbol,
       collection_name: collectionName,
       referral_fee: referralFee,
     } = drop.rows[0];
@@ -414,6 +417,27 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       } else {
         finalPrice = Math.floor((parseInt(row.listing_price, 10) / parseInt(trace.act.data.intended_delphi_median, 10)) *
             Math.pow(10, row.median_precision + row.base_precision - row.quote_precision));
+      }
+    }
+
+    if (trace.act.data.currency) {
+      const [, symbol] = trace.act.data.currency.split(',');
+      if (symbol !== settlementSymbol && settleToUSD) {
+          const prices = await db.query(
+              'SELECT pair.invert_delphi_pair, delphi.base_precision, delphi.quote_precision, delphi.median_precision ' +
+              'FROM neftydrops_drops_alternative_prices price ' +
+              'WHERE price.drop_id = $1 AND price.symbol = $2',
+              [trace.act.data.drop_id, symbol]
+          );
+
+          if (prices.rowCount === 0) {
+              throw new Error('NeftyDrops: Drops was purchased but could not find the alternative price');
+          }
+
+          const price = prices.rows[0];
+          finalPrice = price.price;
+          listingSymbol = symbol;
+          settlementSymbol = symbol;
       }
     }
 
