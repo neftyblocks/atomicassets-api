@@ -14,7 +14,7 @@ import {
     getDropsAction,
     getDropsCountAction,
     getDropsClaimableAction,
-    getDropsByCollection,
+    getDropsByCollection, getDropClaimAction,
 } from '../handlers/drops';
 import {greylistFilterParameters} from '../../atomicassets/openapi';
 
@@ -27,6 +27,7 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
     router.all('/v1/drops/:drop_id', caching(), returnAsJSON(getDropAction, core));
     router.all('/v1/drops/:drop_id/claims', caching(), returnAsJSON(getDropClaimsAction, core));
     router.all('/v1/drops/:drop_id/claims/_count', caching(), returnAsJSON(getDropClaimsCountAction, core));
+    router.all('/v1/drops/:drop_id/claims/:claim_id', caching(), returnAsJSON(getDropClaimAction, core));
 
     return {
         tag: {
@@ -331,6 +332,29 @@ export function dropsEndpoints(core: NeftyDropsNamespace, server: HTTPServer, ro
                         }
                     ],
                     responses: getOpenAPI3Responses([200, 500], {type: 'array', items: {'$ref': '#/components/schemas/DropClaim'}})
+                }
+            },
+            '/v1/drops/{drop_id}/claims/{claim_id}': {
+                get: {
+                    tags: ['drops'],
+                    summary: 'Fetch drop claim',
+                    parameters: [
+                        {
+                            name: 'drop_id',
+                            in: 'path',
+                            description: 'ID of drop',
+                            required: true,
+                            schema: {type: 'integer'}
+                        },
+                        {
+                            name: 'claim_id',
+                            in: 'path',
+                            description: 'Claim ID',
+                            required: true,
+                            schema: {type: 'integer'}
+                        },
+                    ],
+                    responses: getOpenAPI3Responses([200, 500], {'$ref': '#/components/schemas/DropClaim'})
                 }
             }
         }

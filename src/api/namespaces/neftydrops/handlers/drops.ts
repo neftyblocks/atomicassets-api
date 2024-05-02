@@ -318,6 +318,19 @@ export async function getDropClaimsCountAction(params: RequestValues, ctx: Nefty
     return getDropClaimsAction({...params, count: 'true'}, ctx);
 }
 
+export async function getDropClaimAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
+    const result = await ctx.db.query(
+        'SELECT * FROM neftydrops_claims_master WHERE drops_contract = $1 AND claim_id = $2',
+        [ctx.coreArgs.neftydrops_account, ctx.pathParams.claim_id]
+    );
+
+    if (result.rowCount === 0) {
+        throw new ApiError('Claim not found', 416);
+    }
+
+    return formatClaim(result.rows[0]);
+}
+
 export async function getDropsClaimableAction(params: RequestValues, ctx: NeftyDropsContext): Promise<any> {
     const args = await filterQueryArgs(params, {
         drops: {type: 'string', default: ''},
