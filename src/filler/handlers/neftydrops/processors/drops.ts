@@ -422,7 +422,7 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
 
     if (trace.act.data.currency) {
       const [, symbol] = trace.act.data.currency.split(',');
-      if (symbol !== settlementSymbol && settleToUSD) {
+      if (symbol !== settlementSymbol && !settleToUSD) {
           const prices = await db.query(
               'SELECT pair.invert_delphi_pair, delphi.base_precision, delphi.quote_precision, delphi.median_precision ' +
               'FROM neftydrops_drops_alternative_prices price ' +
