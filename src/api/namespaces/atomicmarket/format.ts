@@ -150,7 +150,7 @@ export function buildAssetFillerHook(
                 [contract, [...templateIDs]]
             ),
             options.fetchAssetBuyoffers && db.query(
-                'SELECT buyoffer.market_contract, buyoffer.asset_id, buyoffer.token_symbol, MAX(buyoffer.price) price, token.token_precision, token.token_contract ' +
+                'SELECT buyoffer.market_contract, buyoffer.asset_id, buyoffer.token_symbol, MAX(buyoffer.price) price, token.token_precision, token.token_contract, buyoffer.asset_count ' +
                 'FROM ( ' +
                 'SELECT o.buyoffer_id, o.market_contract, o.price, o.token_symbol, MAX(oa.asset_id) asset_id, COUNT(oa.asset_id) asset_count ' +
                 'FROM atomicmarket_buyoffers o ' +
@@ -164,7 +164,7 @@ export function buildAssetFillerHook(
                 'GROUP BY o.buyoffer_id, o.market_contract, o.price, o.token_symbol ' +
                 ') buyoffer ' +
                 'INNER JOIN atomicmarket_tokens token ON token.token_symbol = buyoffer.token_symbol ' +
-                'GROUP BY buyoffer.market_contract, buyoffer.asset_id, buyoffer.token_symbol, token.token_precision, token.token_contract',
+                'GROUP BY buyoffer.market_contract, buyoffer.asset_id, buyoffer.token_symbol, buyoffer.asset_count, token.token_precision, token.token_contract',
                 [[...assetIDs]]
             ),
             options.fetchPrices && db.query(
@@ -243,6 +243,9 @@ export function buildAssetFillerHook(
         // Asset buy offers
         if (queries[3]) {
             for (const row of queries[3].rows) {
+                if (+row.asset_count > 1) {
+                    continue;
+                }
                 assetData[row.asset_id].buyoffers.push({
                     market_contract: row.market_contract,
                     price: row.price,
