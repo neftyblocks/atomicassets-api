@@ -15,6 +15,7 @@ export async function getPacksAction(params: RequestValues, ctx: NeftyPacksConte
         render_markdown: {type: 'bool', default: false},
         hide_description: {type: 'bool', default: false},
         display_pending: {type: 'bool', default: false},
+        hide_completed: {type: 'bool', default: false},
         contract: {type: 'string'},
         sort: {
             type: 'string',
@@ -28,7 +29,7 @@ export async function getPacksAction(params: RequestValues, ctx: NeftyPacksConte
     });
 
 
-    const query = new QueryBuilder('SELECT * FROM neftypacks_packs packs');
+    const query = new QueryBuilder('SELECT * FROM neftypacks_packs packs ');
 
     if (!args.collection_name) {
         await buildGreylistFilter(params, query, {collectionName: 'packs.collection_name'});
@@ -44,6 +45,12 @@ export async function getPacksAction(params: RequestValues, ctx: NeftyPacksConte
 
     if (args.display_pending === false) {
         query.addCondition('packs.pack_template_id >= 0');
+    }
+
+    if (args.hide_completed === true) {
+        query.appendToBase('INNER JOIN atomicassets_templates t ON packs.pack_template_id = t.template_id ' +
+            'LEFT JOIN atomicassets_asset_counts ac ON ac.template_id = packs.pack_template_id');
+        query.addCondition('(packs.use_count = 0 OR t.max_supply = 0 OR COALESCE(ac.burned, 0) < t.max_supply)');
     }
 
     if (args.count) {
