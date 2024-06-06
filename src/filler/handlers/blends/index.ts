@@ -18,6 +18,7 @@ export type BlendsArgs = {
     nefty_blender_account: string,
     tag_blender_account: string,
     blenderizer_account: string,
+    launch_account: string,
     store_config: boolean,
 };
 

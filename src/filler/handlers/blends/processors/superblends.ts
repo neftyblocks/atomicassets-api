@@ -108,6 +108,10 @@ export async function initSuperBlends(args: BlendsArgs, connection: ConnectionMa
     if (args.tag_blender_account) {
         await fillSuperBlends(args, connection, args.tag_blender_account);
     }
+
+    if (args.launch_account) {
+        await fillSuperBlends(args, connection, args.launch_account);
+    }
 }
 
 const superBlendsTableListener = (core: CollectionsListHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<SuperBlendTableRow>): Promise<void> => {
@@ -396,6 +400,7 @@ export function superBlendsProcessor(core: CollectionsListHandler, processor: Da
     const destructors: Array<() => any> = [];
     const neftyContract = core.args.nefty_blender_account;
     const tagContract = core.args.tag_blender_account;
+    const launchContract = core.args.launch_account;
 
     destructors.push(processor.onContractRow(
         neftyContract, 'blends',
@@ -467,6 +472,50 @@ export function superBlendsProcessor(core: CollectionsListHandler, processor: Da
         destructors.push(processor.onActionTrace(
             tagContract, 'logresult',
             logClaimResultListener(core, tagContract),
+            BlendsUpdatePriority.LOG_RESULT.valueOf()
+        ));
+    }
+
+    if (launchContract) {
+        destructors.push(processor.onContractRow(
+            launchContract, 'blends',
+            superBlendsTableListener(core, launchContract),
+            BlendsUpdatePriority.TABLE_BLENDS.valueOf()
+        ));
+
+        destructors.push(processor.onContractRow(
+            launchContract, 'blendlimits',
+            superBlendLimitsTableListener(core, launchContract),
+            BlendsUpdatePriority.TABLE_BLEND_LIMIT.valueOf()
+        ));
+
+        destructors.push(processor.onActionTrace(
+            launchContract, 'setrolls',
+            superBlendsRollsListener(core, launchContract),
+            BlendsUpdatePriority.SET_ROLLS.valueOf()
+        ));
+
+        destructors.push(processor.onActionTrace(
+            launchContract, 'setblendmix',
+            superBlendsMixListener(core, launchContract),
+            BlendsUpdatePriority.SET_MIX.valueOf()
+        ));
+
+        destructors.push(processor.onActionTrace(
+            launchContract, 'setblendroll',
+            superBlendsRollsListener(core, launchContract),
+            BlendsUpdatePriority.SET_ROLLS.valueOf()
+        ));
+
+        destructors.push(processor.onActionTrace(
+            launchContract, 'logclaim',
+            logClaimListener(core, launchContract),
+            BlendsUpdatePriority.LOG_CLAIM.valueOf()
+        ));
+
+        destructors.push(processor.onActionTrace(
+            launchContract, 'logresult',
+            logClaimResultListener(core, launchContract),
             BlendsUpdatePriority.LOG_RESULT.valueOf()
         ));
     }
