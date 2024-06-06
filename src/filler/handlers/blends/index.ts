@@ -151,11 +151,11 @@ export default class BlendsHandler extends ContractHandler {
 
             if (this.args.store_config) {
                 await this.storeContractConfig(client, this.args.nefty_blender_account);
-                await this.storeTokensConfig(client, this.args.atomicassets_account);
+                await this.storeTokensConfig(client, this.args.nefty_blender_account);
 
                 if (this.args.launch_account) {
                     await this.storeContractConfig(client, this.args.launch_account);
-                    await this.storeTokensConfig(client, this.args.atomicassets_account);
+                    await this.storeTokensConfig(client, this.args.launch_account);
                 }
             }
 
