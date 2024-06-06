@@ -8,8 +8,19 @@ import BlendsHandler, { BlendsUpdatePriority } from '../index';
 export function configProcessor(core: BlendsHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
     const contract = core.args.nefty_blender_account;
+    const launchContract = core.args.launch_account;
 
-    destructors.push(processor.onContractRow(
+    destructors.push(getDestructor(core, processor, contract));
+
+    if (launchContract) {
+        destructors.push(getDestructor(core, processor, launchContract));
+    }
+
+    return (): any => destructors.map(fn => fn());
+}
+
+const getDestructor = (core: BlendsHandler, processor: DataProcessor, contract: string ): () => any => {
+    return processor.onContractRow(
         contract, 'config',
         async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<ConfigTableRow>): Promise<void> => {
             if (!delta.present) {
@@ -21,10 +32,10 @@ export function configProcessor(core: BlendsHandler, processor: DataProcessor): 
                 fee_recipient: delta.value.fee_recipient,
             }, {
                 str: 'contract = $1',
-                values: [core.args.nefty_blender_account]
+                values: [contract]
             }, ['contract']);
 
-            const tokens = core.config.supported_tokens.map(row => row.sym.split(',')[1]);
+            const tokens = core.config[contract].supported_tokens.map(row => row.sym.split(',')[1]);
 
             for (const token of delta.value.supported_tokens) {
                 const index = tokens.indexOf(token.sym.split(',')[1]);
@@ -44,9 +55,7 @@ export function configProcessor(core: BlendsHandler, processor: DataProcessor): 
             if (tokens.length > 0) {
                 throw new Error('NeftyBlends: Supported token removed. Should not be possible');
             }
-            core.config = delta.value;
+            core.config[contract] = delta.value;
         }, BlendsUpdatePriority.TABLE_CONFIG.valueOf()
-    ));
-
-    return (): any => destructors.map(fn => fn());
-}
+    );
+};
