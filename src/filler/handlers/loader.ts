@@ -13,6 +13,7 @@ import NeftyMarketHandler from './neftymarket';
 import NeftyAvatarsHandler from './avatars';
 import NeftyPacksHandler from './packs';
 import UpgradesHandler from './upgrades';
+import LaunchesHandler from './launchbagz';
 
 export const handlers: (typeof ContractHandler)[] = [
     AtomicAssetsHandler,
@@ -28,4 +29,5 @@ export const handlers: (typeof ContractHandler)[] = [
     NeftyAvatarsHandler,
     NeftyPacksHandler,
     UpgradesHandler,
+    LaunchesHandler,
 ];
