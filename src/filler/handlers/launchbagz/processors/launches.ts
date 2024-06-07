@@ -65,7 +65,6 @@ const launchesTableListener = (core: LaunchesHandler, contract: string) => async
 export function launchesProcessor(core: UpgradesListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
     const contract = core.args.registry_account;
-    const launchContract = core.args.launch_account;
 
     destructors.push(processor.onActionTrace(
         contract, 'lognewlaunch',
@@ -74,7 +73,7 @@ export function launchesProcessor(core: UpgradesListHandler, processor: DataProc
     ));
 
     destructors.push(processor.onContractRow(
-        launchContract, 'launches',
+        contract, 'launches',
         launchesTableListener(core, contract),
         LaunchesUpdatePriority.TABLE_LAUNCHES.valueOf()
     ));
