@@ -22,13 +22,8 @@ export enum LaunchesUpdatePriority {
     TABLE_LAUNCHES = LAUNCHES_BASE_PRIORITY + 30,
 }
 
-const views = [
-    ''
-];
-
-const functions = [
-    '',
-];
+const views: string[] = [];
+const functions: string[] = [];
 
 export default class LaunchesHandler extends ContractHandler {
     static handlerName = 'launchbagz';
