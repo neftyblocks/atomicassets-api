@@ -5,7 +5,6 @@ CREATE TABLE launchbagz_launches
     token_contract   character varying(12) NOT NULL,
     token_code       character varying(10) NOT NULL,
     token_precision  integer               NOT NULL,
-    launch_time      bigint                NOT NULL,
     display_data     jsonb                 NOT NULL,
     updated_at_block bigint                NOT NULL,
     updated_at_time  bigint                NOT NULL,
@@ -35,8 +34,6 @@ CREATE TABLE launchbagz_tokens
 -- Indexes
 CREATE
     INDEX launchbagz_launches_token_contract_code ON launchbagz_launches USING btree (token_contract, token_code);
-CREATE
-    INDEX launchbagz_launches_launch_time ON launchbagz_launches USING btree (launch_time);
 CREATE
     INDEX launchbagz_launches_created_at_time ON launchbagz_launches USING btree (created_at_time);
 CREATE

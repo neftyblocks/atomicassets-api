@@ -29,9 +29,10 @@ const newLaunchListener = (core: LaunchesHandler, contract: string) => async (db
         token_contract: trace.act.data.amount.contract,
         token_code: tokenCode,
         token_precision: tokenPrecision,
-        launch_time: trace.act.data.launch_date * 1000,
         display_data: encodeDatabaseJson(displayData),
         is_hidden: trace.act.data.is_hidden,
+        blend_contract: core.args.launch_account,
+        blend_id: trace.act.data.blend_id,
         updated_at_block: block.block_num,
         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
         created_at_block: block.block_num,
@@ -48,7 +49,6 @@ const launchesTableListener = (core: LaunchesHandler, contract: string) => async
     } else {
         const displayData = stringToDisplayData(delta.value.display_data, {});
         await db.update('launchbagz_launches', {
-            launch_time: delta.value.launch_date * 1000,
             display_data: encodeDatabaseJson(displayData),
             is_hidden: delta.value.is_hidden,
             blend_contract: core.args.launch_account,
@@ -64,7 +64,7 @@ const launchesTableListener = (core: LaunchesHandler, contract: string) => async
 
 export function launchesProcessor(core: UpgradesListHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
-    const contract = core.args.registry_account;
+    const contract = core.args.launch_account;
 
     destructors.push(processor.onActionTrace(
         contract, 'lognewlaunch',

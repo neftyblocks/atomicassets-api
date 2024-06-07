@@ -8,7 +8,7 @@ export type LogNewLaunchAction = {
     whitelist_collection_name: string;
     whitelist_template_id: number;
     max_claims: number;
-    launch_date: number;
     is_hidden: boolean;
     display_data: string;
+    blend_id: number;
 };
