@@ -15,6 +15,11 @@ export function tokensEndpoints(core: LaunchesNamespace, server: HTTPServer, rou
         caching(),
         returnAsJSON(getTokensAction, core)
     );
+    router.all(
+        '/v1/tokens/:token_contract/:token_code',
+        caching(),
+        returnAsJSON(getTokensAction, core)
+    );
 
     return {
         tag: {
@@ -53,6 +58,29 @@ export function tokensEndpoints(core: LaunchesNamespace, server: HTTPServer, rou
                         type: 'array',
                         items: {'$ref': '#/components/schemas/TokenDetails'}
                     })
+                }
+            },
+            '/v1/launches/{token_contract}/{token_code}': {
+                get: {
+                    tags: ['launchbagz'],
+                    summary: 'Get a specific launch by id',
+                    parameters: [
+                        {
+                            in: 'path',
+                            name: 'token_contract',
+                            description: 'Token contract',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            in: 'path',
+                            name: 'token_code',
+                            description: 'Token code',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                    ],
+                    responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/TokenDetails'})
                 }
             },
         }

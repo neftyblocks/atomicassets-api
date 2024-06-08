@@ -3,6 +3,7 @@ import {LaunchesContext} from '../index';
 import QueryBuilder from '../../../builder';
 import {filterQueryArgs} from '../../validation';
 import {fillBlends} from '../../neftyblends/filler';
+import {ApiError} from '../../../error';
 
 export async function getLaunches(params: RequestValues, ctx: LaunchesContext): Promise<any> {
     const args = await filterQueryArgs(params, {
@@ -83,7 +84,7 @@ export async function getLaunchDetail(params: RequestValues, ctx: LaunchesContex
 
     const launchResult = await ctx.db.query(query.buildString(), query.buildValues());
     if(launchResult.rows.length < 1){
-        return null;
+        throw new ApiError('Launch not found', 416);
     }
 
     const launch = launchResult.rows[0];

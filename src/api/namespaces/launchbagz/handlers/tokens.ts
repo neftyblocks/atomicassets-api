@@ -2,6 +2,7 @@ import {RequestValues} from '../../utils';
 import {LaunchesContext} from '../index';
 import QueryBuilder from '../../../builder';
 import {filterQueryArgs} from '../../validation';
+import {ApiError} from '../../../error';
 
 export async function getTokensAction(params: RequestValues, ctx: LaunchesContext): Promise<any> {
     const args = await filterQueryArgs(params, {
@@ -34,5 +35,21 @@ export async function getTokensAction(params: RequestValues, ctx: LaunchesContex
     query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
+    return result.rows;
+}
+
+export async function getToken(params: RequestValues, ctx: LaunchesContext): Promise<any> {
+    const query = new QueryBuilder(`
+                SELECT contract, token_contract, token_code, image, created_at_time, updated_at_time, created_at_block, updated_at_block
+                FROM launchbagz_tokens as t
+            `);
+
+    query.equal('t.token_contract', ctx.pathParams.token_contract);
+    query.equal('t.token_code', ctx.pathParams.token_code);
+
+    const result = await ctx.db.query(query.buildString(), query.buildValues());
+    if (!result.rows.length) {
+        throw new ApiError('Token not found', 416);
+    }
     return result.rows;
 }
