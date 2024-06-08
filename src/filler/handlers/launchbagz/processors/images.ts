@@ -22,7 +22,7 @@ const imagesTableListener = (core: LaunchesHandler, contract: string) => async (
                 contract,
                 token_contract: delta.scope,
                 token_code: delta.value.code,
-                img: delta.value.img,
+                image: delta.value.img,
                 updated_at_block: block.block_num,
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
                 created_at_block: block.block_num,
@@ -30,6 +30,7 @@ const imagesTableListener = (core: LaunchesHandler, contract: string) => async (
             }, ['contract', 'token_contract', 'token_code']);
         } else {
             await db.update('launchbagz_tokens', {
+                image: delta.value.img,
                 updated_at_block: block.block_num,
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
             }, {
