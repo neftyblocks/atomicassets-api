@@ -7,6 +7,7 @@ import {
     LaunchesUpdatePriority,
 } from '../index';
 import {
+    encodeDatabaseArray,
     encodeDatabaseJson,
 } from '../../../utils';
 import {
@@ -33,6 +34,7 @@ const newLaunchListener = (core: LaunchesHandler, contract: string) => async (db
         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
         created_at_block: block.block_num,
         created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+        authorized_accounts: encodeDatabaseArray([trace.act.data.issuer, trace.act.data.amount.contract]),
     }, ['contract', 'launch_id']);
 };
 

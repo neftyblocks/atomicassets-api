@@ -11,4 +11,5 @@ export type LogNewLaunchAction = {
     is_hidden: boolean;
     display_data: string;
     blend_id: number;
+    issuer: string;
 };
