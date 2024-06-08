@@ -5,7 +5,7 @@ import {
     getOpenAPI3Responses,
     paginationParameters,
 } from '../../../docs';
-import {getTokensAction} from '../handlers/tokens';
+import {getToken, getTokensAction} from '../handlers/tokens';
 import {LaunchesNamespace} from '../index';
 
 export function tokensEndpoints(core: LaunchesNamespace, server: HTTPServer, router: express.Router): any {
@@ -18,7 +18,7 @@ export function tokensEndpoints(core: LaunchesNamespace, server: HTTPServer, rou
     router.all(
         '/v1/tokens/:token_contract/:token_code',
         caching(),
-        returnAsJSON(getTokensAction, core)
+        returnAsJSON(getToken, core)
     );
 
     return {

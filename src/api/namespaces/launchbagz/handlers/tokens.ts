@@ -51,5 +51,5 @@ export async function getToken(params: RequestValues, ctx: LaunchesContext): Pro
     if (!result.rows.length) {
         throw new ApiError('Token not found', 416);
     }
-    return result.rows;
+    return result.rows[0];
 }
