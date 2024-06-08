@@ -7,3 +7,8 @@ export type LaunchTableRow = {
     is_hidden: boolean;
     display_data: string;
 };
+
+export type ImageTableRow = {
+    code: string,
+    img: string;
+};

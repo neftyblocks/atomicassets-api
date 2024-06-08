@@ -21,8 +21,6 @@ CREATE TABLE launchbagz_tokens
     contract         character varying(12) NOT NULL,
     token_contract   character varying(12) NOT NULL,
     token_code       character varying(10) NOT NULL,
-    token_precision  integer               NOT NULL,
-    token_symbol     character varying(12) NOT NULL,
     image            text                  NOT NULL,
     updated_at_block bigint                NOT NULL,
     updated_at_time  bigint                NOT NULL,

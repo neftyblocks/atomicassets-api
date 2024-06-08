@@ -3,7 +3,7 @@ import { ContractDBTransaction } from '../../../database';
 import {EosioActionTrace, EosioContractRow, EosioTransaction} from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import {eosioTimestampToDate, stringToDisplayData} from '../../../../utils/eosio';
-import UpgradesListHandler, {
+import {
     LaunchesUpdatePriority,
 } from '../index';
 import {
@@ -14,10 +14,6 @@ import {
 } from '../types/actions';
 import {LaunchTableRow} from '../types/tables';
 import LaunchesHandler from '../index';
-
-export async function initLaunches(): Promise<void> {
-
-}
 
 const newLaunchListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogNewLaunchAction>): Promise<void> => {
     const [amountString, tokenCode] = trace.act.data.amount.quantity.split(' ');
@@ -62,7 +58,7 @@ const launchesTableListener = (core: LaunchesHandler, contract: string) => async
     }
 };
 
-export function launchesProcessor(core: UpgradesListHandler, processor: DataProcessor): () => any {
+export function launchesProcessor(core: LaunchesHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
     const contract = core.args.launch_account;
 

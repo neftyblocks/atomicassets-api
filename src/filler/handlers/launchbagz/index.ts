@@ -7,6 +7,7 @@ import Filler from '../../filler';
 import { ATOMICASSETS_BASE_PRIORITY } from '../atomicassets';
 import DataProcessor from '../../processor';
 import {launchesProcessor} from './processors/launches';
+import {imagesProcessor} from './processors/images';
 
 export const LAUNCHES_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 3000;
 
@@ -20,6 +21,7 @@ export enum LaunchesUpdatePriority {
     LOG_NEW_LAUNCH = LAUNCHES_BASE_PRIORITY + 10,
     LOG_NEW_BLEND = LAUNCHES_BASE_PRIORITY + 20,
     TABLE_LAUNCHES = LAUNCHES_BASE_PRIORITY + 30,
+    TABLE_IMAGES = LAUNCHES_BASE_PRIORITY + 30,
 }
 
 const views: string[] = [];
@@ -81,8 +83,13 @@ export default class LaunchesHandler extends ContractHandler {
 
     async deleteDB(client: PoolClient): Promise<void> {
         const tables = [
-            '',
+            'launchbagz_tokens',
         ];
+
+        await client.query(
+            'DELETE FROM ' + client.escapeIdentifier('launchbagz_launches') + ' WHERE contract = $1',
+            [this.args.launch_account]
+        );
 
         for (const table of tables) {
             await client.query(
@@ -95,6 +102,7 @@ export default class LaunchesHandler extends ContractHandler {
     async register(processor: DataProcessor): Promise<() => any> {
         const destructors: Array<() => any> = [];
         destructors.push(launchesProcessor(this, processor));
+        destructors.push(imagesProcessor(this, processor));
         return (): any => destructors.map(fn => fn());
     }
 }
