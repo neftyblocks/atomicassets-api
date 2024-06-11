@@ -17,6 +17,7 @@ export function encodeDatabaseJson(obj: any): string {
     } else {
         input = obj;
     }
+    console.log('Input', input);
     return JSON.stringify(input)
         .replace(/\\u0000/g , ' ');
 }
