@@ -16,7 +16,6 @@ export function encodeDatabaseArray(array: any[]): string {
         }
         return x;
     });
-    console.log('data', data);
     return `{${data.join(',')}}`;
 }
 
