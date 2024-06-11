@@ -5,9 +5,20 @@ import {arrayChunk} from '../utils';
 import {GetTableByScopeResultRow} from 'eosjs/dist/eosjs-rpc-interfaces';
 
 export function encodeDatabaseJson(obj: any): string {
-    return JSON.stringify(obj)
-        .replace(/\\u0000/g , ' ')
-        .replace(/\\"/g, '');
+    let input;
+    if (obj.length) {
+        input = obj.map((entry: any) => {
+            if (typeof entry === 'string') {
+                return entry.replace('"', '');
+            }
+
+            return entry;
+        });
+    } else {
+        input = obj;
+    }
+    return JSON.stringify(input)
+        .replace(/\\u0000/g , ' ');
 }
 
 export function encodeDatabaseArray(array: any[]): string {
