@@ -7,7 +7,7 @@ import {GetTableByScopeResultRow} from 'eosjs/dist/eosjs-rpc-interfaces';
 export function encodeDatabaseJson(obj: any): string {
     return JSON.stringify(obj)
         .replace(/\\u0000/g , ' ')
-        .replace(/\\"/g, '""');
+        .replace(/\\"/g, '');
 }
 
 export function encodeDatabaseArray(array: any[]): string {
