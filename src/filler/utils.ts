@@ -5,25 +5,19 @@ import {arrayChunk} from '../utils';
 import {GetTableByScopeResultRow} from 'eosjs/dist/eosjs-rpc-interfaces';
 
 export function encodeDatabaseJson(obj: any): string {
-    let input;
-    if (obj.length) {
-        input = obj.map((entry: any) => {
-            if (typeof entry === 'string') {
-                return entry.replace('"', '');
-            }
-
-            return entry;
-        });
-    } else {
-        input = obj;
-    }
-    console.log('Input', input);
-    return JSON.stringify(input)
+    return JSON.stringify(obj)
         .replace(/\\u0000/g , ' ');
 }
 
 export function encodeDatabaseArray(array: any[]): string {
-    return `{${array.join(',')}}`;
+    const data = array.map(x => {
+        if (typeof x === 'string') {
+            return x.replace(/\\"/g, '""');
+        }
+        return x;
+    });
+    console.log('data', data);
+    return `{${data.join(',')}}`;
 }
 
 export function encodeString(txt: string): string {
