@@ -13,7 +13,7 @@ export function encodeDatabaseArray(array: any[]): string {
     const data = array.map(x => {
         if (typeof x === 'string') {
             console.log('x', x);
-            return x.replace(/"/g, '"""');
+            return x.replace(/"/g, '');
         }
         return x;
     });
