@@ -12,13 +12,12 @@ export function encodeDatabaseJson(obj: any): string {
 export function encodeDatabaseArray(array: any[]): string {
     const data = array.map(x => {
         if (typeof x === 'string') {
-            console.log('x', x);
             return x.replace(/"/g, '');
         }
         return x;
     });
     console.log('data', data);
-    return `{${data.join(',')}}`;
+    return `ARRAY[${data.join(',')}]`;
 }
 
 export function encodeString(txt: string): string {
