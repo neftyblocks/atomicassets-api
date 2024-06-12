@@ -60,7 +60,7 @@ export function tokensEndpoints(core: LaunchesNamespace, server: HTTPServer, rou
                     })
                 }
             },
-            '/v1/launches/{token_contract}/{token_code}': {
+            '/v1/tokens/{token_contract}/{token_code}': {
                 get: {
                     tags: ['launchbagz'],
                     summary: 'Get a specific launch by id',
