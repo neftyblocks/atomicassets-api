@@ -63,15 +63,6 @@ export function launchesEndpoints(core: LaunchesNamespace, server: HTTPServer, r
                                 type: 'boolean',
                             }
                         },
-                        {
-                            name: 'is_hidden',
-                            in: 'query',
-                            description: 'Is hidden',
-                            required: false,
-                            schema: {
-                                type: 'boolean',
-                            }
-                        },
                         ...dateBoundaryParameters,
                         {
                             name: 'sort',

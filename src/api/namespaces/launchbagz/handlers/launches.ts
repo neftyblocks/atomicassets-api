@@ -24,16 +24,16 @@ export async function getLaunches(params: RequestValues, ctx: LaunchesContext): 
         'LEFT JOIN launchbagz_tokens t ON t.token_contract = l.token_contract AND t.token_code = l.token_code'
     );
     if (args.token_contract) {
-        query.equalMany('token_contract', args.token_contract.split(',').map((t: string) => t.trim()));
+        query.equalMany('l.token_contract', args.token_contract.split(',').map((t: string) => t.trim()));
     }
     if (args.token_code) {
-        query.equalMany('token_code', args.token_code.split(',').map((t: string) => t.trim()));
+        query.equalMany('l.token_code', args.token_code.split(',').map((t: string) => t.trim()));
     }
     if (args.authorized_account) {
-        query.addCondition(`authorized_accounts @> ARRAY[${query.addVariable(args.authorized_account)}]`);
+        query.addCondition(`${query.addVariable(args.authorized_account)} = ANY(l.authorized_accounts)`);
     }
-    if (args.is_hidden) {
-        query.equal('is_hidden', Boolean(args.is_hidden));
+    if (args.is_hidden !== undefined) {
+        query.equal('l.is_hidden', Boolean(args.is_hidden));
     }
 
     let dateColumn = 'l.created_at_time';
