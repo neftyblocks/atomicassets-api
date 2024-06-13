@@ -1,5 +1,6 @@
 export type LaunchTableRow = {
     launch_id: number,
+    blend_contract: string,
     blend_id: number,
     contract: string,
     code: string,

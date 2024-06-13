@@ -89,7 +89,7 @@ export async function getLaunchDetail(params: RequestValues, ctx: LaunchesContex
 
     const launch = launchResult.rows[0];
     let blend = null;
-    if (launch.blend_id) {
+    if (launch.blend_id && launch.blend_contract) {
         const blendQuery = new QueryBuilder(`
             SELECT *
             FROM neftyblends_blend_details_master blend_detail

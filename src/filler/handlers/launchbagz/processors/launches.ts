@@ -41,8 +41,6 @@ const newLaunchListener = (core: LaunchesHandler, contract: string) => async (db
         token_code: tokenCode,
         token_precision: tokenPrecision,
         display_data: encodeDatabaseJson(displayData),
-        blend_contract: core.args.launch_account,
-        blend_id: trace.act.data.blend_id,
         updated_at_block: block.block_num,
         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
         created_at_block: block.block_num,
@@ -62,7 +60,7 @@ const launchesTableListener = (core: LaunchesHandler, contract: string) => async
         await db.update('launchbagz_launches', {
             display_data: encodeDatabaseJson(displayData),
             is_hidden: delta.value.is_hidden,
-            blend_contract: core.args.launch_account,
+            blend_contract: delta.value.blend_contract,
             blend_id: delta.value.blend_id,
             updated_at_block: block.block_num,
             updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
