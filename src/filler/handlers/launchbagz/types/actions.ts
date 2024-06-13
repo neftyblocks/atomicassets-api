@@ -1,15 +1,15 @@
 export type LogNewLaunchAction = {
     launch_id: number,
-    amount: {
+    amount?: {
         quantity: string;
         contract: string;
     },
-    price: string;
-    whitelist_collection_name: string;
-    whitelist_template_id: number;
-    max_claims: number;
+    token: {
+        sym: string;
+        contract: string;
+    },
     is_hidden: boolean;
     display_data: string;
-    blend_id: number;
     issuer: string;
+    blend_id: number;
 };

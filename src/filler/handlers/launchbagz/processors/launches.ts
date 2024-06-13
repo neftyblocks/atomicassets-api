@@ -17,24 +17,37 @@ import {LaunchTableRow} from '../types/tables';
 import LaunchesHandler from '../index';
 
 const newLaunchListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogNewLaunchAction>): Promise<void> => {
-    const [amountString, tokenCode] = trace.act.data.amount.quantity.split(' ');
-    const tokenPrecision = +(amountString.split('.')[1]?.length || '0');
+    let tokenCode;
+    let tokenPrecision;
+    let tokenContract;
+    if (trace.act.data.amount) {
+        const [amountString, code] = trace.act.data.amount.quantity.split(' ');
+        tokenPrecision = +(amountString.split('.')[1]?.length || '0');
+        tokenContract = trace.act.data.amount.contract;
+        tokenCode = code;
+    } else {
+        const [precision, code] = trace.act.data.token.sym.split(',');
+        tokenPrecision = +precision;
+        tokenContract = trace.act.data.token.contract;
+        tokenCode = code;
+    }
+
     const displayData = stringToDisplayData(trace.act.data.display_data, {});
     await db.insert('launchbagz_launches', {
         contract,
         launch_id: trace.act.data.launch_id,
-        token_contract: trace.act.data.amount.contract,
+        is_hidden: trace.act.data.is_hidden,
+        token_contract: tokenContract,
         token_code: tokenCode,
         token_precision: tokenPrecision,
         display_data: encodeDatabaseJson(displayData),
-        is_hidden: trace.act.data.is_hidden,
         blend_contract: core.args.launch_account,
         blend_id: trace.act.data.blend_id,
         updated_at_block: block.block_num,
         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
         created_at_block: block.block_num,
         created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-        authorized_accounts: encodeDatabaseArray([trace.act.data.issuer, trace.act.data.amount.contract]),
+        authorized_accounts: encodeDatabaseArray([trace.act.data.issuer, tokenContract]),
     }, ['contract', 'launch_id']);
 };
 
