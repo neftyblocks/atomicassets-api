@@ -30,7 +30,7 @@ const launchBagzConfigTableListener = (core: LaunchesHandler, contract: string) 
             txFee = (delta.value.tx_fees || []).reduce((a: number, b: { bps: number }) => a + b.bps || 0, 0) / 10000.0;
         }
         if (delta.value.code) {
-            logger.warning(`launchbagz: ${contract} token ${delta.value.code} tx fee ${txFee}`);
+            logger.warn(`launchbagz: ${contract} token ${delta.value.code} tx fee ${txFee}`);
             await storeFee(contract, delta.code, delta.value.code, txFee, db, block);
         }
     } catch (e) {
