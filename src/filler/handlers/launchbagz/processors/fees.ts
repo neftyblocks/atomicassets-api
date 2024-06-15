@@ -25,11 +25,11 @@ const storeFee = async (registryContract: string, tokenContract: string, tokenCo
 };
 const launchBagzConfigTableListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<TokenConfigTableRow>): Promise<void> => {
     try {
-        let txFee = 0.0;
-        if (delta.present) {
-            txFee = (delta.value.tx_fees || []).reduce((a: number, b: { bps: number }) => a + b.bps || 0, 0) / 10000.0;
-        }
         if (delta.value.code && delta.value.tx_fees) {
+            let txFee = 0.0;
+            if (delta.present) {
+                txFee = (delta.value.tx_fees || []).reduce((a: number, b: { bps: number }) => a + b.bps || 0, 0) / 10000.0;
+            }
             await storeFee(contract, delta.code, delta.value.code, txFee, db, block);
         }
     } catch (e) {
@@ -39,15 +39,13 @@ const launchBagzConfigTableListener = (core: LaunchesHandler, contract: string) 
 
 const chadConfigTableListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<ChadConfigTableRow>): Promise<void> => {
     try {
-        let txFee = 0.0;
-        if (delta.present) {
-            txFee = (delta.value.fee_receivers || []).reduce((a: number, b: { fee: number }) => a + b.fee || 0, 0);
-        }
-        const [,tokenCode] = delta.value.sym.split(',');
-        if (tokenCode) {
+        if (delta.value.sym) {
+            let txFee = 0.0;
+            if (delta.present) {
+                txFee = (delta.value.fee_receivers || []).reduce((a: number, b: { fee: number }) => a + b.fee || 0, 0);
+            }
+            const [,tokenCode] = delta.value.sym.split(',');
             await storeFee(contract, delta.code, tokenCode, txFee, db, block);
-        } else {
-            logger.warn(`Token config table ${delta.code} is missing 'code' field. This should not happen.`);
         }
     } catch (e) {
         logger.error(e);
