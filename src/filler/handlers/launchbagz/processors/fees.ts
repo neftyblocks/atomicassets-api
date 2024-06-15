@@ -8,6 +8,7 @@ import {
 } from '../index';
 import {ChadConfigTableRow, KeksConfigTableRow, TokenConfigTableRow} from '../types/tables';
 import LaunchesHandler from '../index';
+import logger from '../../../../utils/winston';
 
 const storeFee = async (registryContract: string, tokenContract: string, tokenCode: string, fee: number, db: ContractDBTransaction, block: ShipBlock): Promise<void> => {
     await db.replace('launchbagz_tokens', {
@@ -23,30 +24,45 @@ const storeFee = async (registryContract: string, tokenContract: string, tokenCo
     }, ['contract', 'token_contract', 'token_code'], ['created_at_block', 'created_at_time', 'image']);
 };
 const launchBagzConfigTableListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<TokenConfigTableRow>): Promise<void> => {
-    let txFee = 0.0;
-    if (delta.present) {
-        txFee = (delta.value.tx_fees || []).reduce((a: number, b: { bps: number }) => a + b.bps || 0, 0) / 10000.0;
+    try {
+        let txFee = 0.0;
+        if (delta.present) {
+            txFee = (delta.value.tx_fees || []).reduce((a: number, b: { bps: number }) => a + b.bps || 0, 0) / 10000.0;
+        }
+        if (delta.value.code) {
+            logger.warning(`launchbagz: ${contract} token ${delta.value.code} tx fee ${txFee}`);
+            await storeFee(contract, delta.code, delta.value.code, txFee, db, block);
+        }
+    } catch (e) {
+        logger.error(e);
     }
-    await storeFee(contract, delta.code, delta.value.code, txFee, db, block);
 };
 
 const chadConfigTableListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<ChadConfigTableRow>): Promise<void> => {
-    let txFee = 0.0;
-    if (delta.present) {
-        txFee = (delta.value.fee_receivers || []).reduce((a: number, b: { fee: number }) => a + b.fee || 0, 0);
-    }
-    const [,tokenCode] = delta.value.sym.split(',');
-    if (tokenCode) {
-        await storeFee(contract, delta.code, tokenCode, txFee, db, block);
+    try {
+        let txFee = 0.0;
+        if (delta.present) {
+            txFee = (delta.value.fee_receivers || []).reduce((a: number, b: { fee: number }) => a + b.fee || 0, 0);
+        }
+        const [,tokenCode] = delta.value.sym.split(',');
+        if (tokenCode) {
+            await storeFee(contract, delta.code, tokenCode, txFee, db, block);
+        }
+    } catch (e) {
+        logger.error(e);
     }
 };
 
 const kekConfigTableListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<KeksConfigTableRow>): Promise<void> => {
-    let txFee = 0.0;
-    if (delta.present) {
-        txFee = (delta.value.transaction_fee_percent || 0) / 100.0 + (delta.value.dev_fee_percent || 0) / 100.0;
+    try {
+        let txFee = 0.0;
+        if (delta.present) {
+            txFee = (delta.value.transaction_fee_percent || 0) / 100.0 + (delta.value.dev_fee_percent || 0) / 100.0;
+        }
+        await storeFee(contract, delta.code, 'KEK', txFee, db, block);
+    } catch (e) {
+        logger.error(e);
     }
-    await storeFee(contract, delta.code, 'KEK', txFee, db, block);
 };
 
 export function feesProcessor(core: LaunchesHandler, processor: DataProcessor): () => any {
