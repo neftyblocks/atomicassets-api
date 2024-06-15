@@ -38,6 +38,7 @@ export const launchBagzComponents = {
             token_contract: {type: 'string'},
             token_code: {type: 'string'},
             image: {type: 'string'},
+            tx_fee: {type: 'number'},
             created_at_time: {type: 'string'},
             created_at_block: {type: 'string'},
             updated_at_time: {type: 'string'},

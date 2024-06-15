@@ -15,7 +15,7 @@ export async function getTokensAction(params: RequestValues, ctx: LaunchesContex
     });
 
     const query = new QueryBuilder(`
-                SELECT contract, token_contract, token_code, image, created_at_time, updated_at_time, created_at_block, updated_at_block
+                SELECT contract, token_contract, token_code, image, created_at_time, tx_fee, updated_at_time, created_at_block, updated_at_block
                 FROM launchbagz_tokens as t
             `);
 
@@ -49,7 +49,7 @@ export async function getTokensAction(params: RequestValues, ctx: LaunchesContex
 
 export async function getToken(params: RequestValues, ctx: LaunchesContext): Promise<any> {
     const query = new QueryBuilder(`
-                SELECT contract, token_contract, token_code, image, created_at_time, updated_at_time, created_at_block, updated_at_block
+                SELECT contract, token_contract, token_code, image, tx_fee, created_at_time, updated_at_time, created_at_block, updated_at_block
                 FROM launchbagz_tokens as t
             `);
 
