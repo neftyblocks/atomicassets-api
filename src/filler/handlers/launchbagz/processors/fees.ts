@@ -29,10 +29,8 @@ const launchBagzConfigTableListener = (core: LaunchesHandler, contract: string) 
         if (delta.present) {
             txFee = (delta.value.tx_fees || []).reduce((a: number, b: { bps: number }) => a + b.bps || 0, 0) / 10000.0;
         }
-        if (delta.value.code) {
+        if (delta.value.code && delta.value.tx_fees) {
             await storeFee(contract, delta.code, delta.value.code, txFee, db, block);
-        } else{
-            logger.warn(`Token config table ${delta.code} is missing 'code' field. This should not happen.`);
         }
     } catch (e) {
         logger.error(e);
