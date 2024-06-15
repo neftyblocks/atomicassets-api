@@ -13,3 +13,25 @@ export type ImageTableRow = {
     code: string,
     img: string;
 };
+
+export type TokenConfigTableRow = {
+    code: string,
+    tx_fees: {
+        recipient: string,
+        bps: number
+    }[],
+};
+
+export type ChadConfigTableRow = {
+    sym: string,
+    fee_receivers: {
+        receiver: string,
+        fee: number
+    }[],
+};
+
+export type KeksConfigTableRow = {
+    transaction_fee_percent: number,
+    dev_fee_percent: number,
+    is_active: boolean
+};

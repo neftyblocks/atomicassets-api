@@ -8,6 +8,7 @@ import { ATOMICASSETS_BASE_PRIORITY } from '../atomicassets';
 import DataProcessor from '../../processor';
 import {launchesProcessor} from './processors/launches';
 import {imagesProcessor} from './processors/images';
+import {feesProcessor} from './processors/fees';
 
 export const LAUNCHES_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 3000;
 
@@ -22,6 +23,7 @@ export enum LaunchesUpdatePriority {
     LOG_NEW_BLEND = LAUNCHES_BASE_PRIORITY + 20,
     TABLE_LAUNCHES = LAUNCHES_BASE_PRIORITY + 30,
     TABLE_IMAGES = LAUNCHES_BASE_PRIORITY + 30,
+    TABLE_CONFIGS = LAUNCHES_BASE_PRIORITY + 40,
 }
 
 const views: string[] = [];
@@ -103,6 +105,7 @@ export default class LaunchesHandler extends ContractHandler {
         const destructors: Array<() => any> = [];
         destructors.push(launchesProcessor(this, processor));
         destructors.push(imagesProcessor(this, processor));
+        destructors.push(feesProcessor(this, processor));
         return (): any => destructors.map(fn => fn());
     }
 }
