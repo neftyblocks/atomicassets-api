@@ -30,8 +30,9 @@ const launchBagzConfigTableListener = (core: LaunchesHandler, contract: string) 
             txFee = (delta.value.tx_fees || []).reduce((a: number, b: { bps: number }) => a + b.bps || 0, 0) / 10000.0;
         }
         if (delta.value.code) {
-            logger.warn(`launchbagz: ${contract} token ${delta.value.code} tx fee ${txFee}`);
             await storeFee(contract, delta.code, delta.value.code, txFee, db, block);
+        } else{
+            logger.warn(`Token config table ${delta.code} is missing 'code' field. This should not happen.`);
         }
     } catch (e) {
         logger.error(e);
@@ -47,6 +48,8 @@ const chadConfigTableListener = (core: LaunchesHandler, contract: string) => asy
         const [,tokenCode] = delta.value.sym.split(',');
         if (tokenCode) {
             await storeFee(contract, delta.code, tokenCode, txFee, db, block);
+        } else {
+            logger.warn(`Token config table ${delta.code} is missing 'code' field. This should not happen.`);
         }
     } catch (e) {
         logger.error(e);
