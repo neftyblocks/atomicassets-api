@@ -11,6 +11,7 @@ export async function getTokensAction(params: RequestValues, ctx: LaunchesContex
         sort: {type: 'string', allowedValues: ['token_contract', 'token_code', 'created_at_time', 'updated_at_time'], default: 'token_code'},
         order: {type: 'string', allowedValues: ['asc', 'desc'], default: 'asc'},
         token_contract: {type: 'string', default: ''},
+        has_fees: {type: 'bool'},
     });
 
     const query = new QueryBuilder(`
@@ -19,6 +20,14 @@ export async function getTokensAction(params: RequestValues, ctx: LaunchesContex
             `);
 
     query.equal('t.contract', ctx.coreArgs.registry_account);
+
+    if (args.has_fees !== undefined) {
+        if (args.has_fees) {
+            query.addCondition('t.tx_fee > 0');
+        } else {
+            query.addCondition('t.tx_fee = 0');
+        }
+    }
 
     if (args.token_contract) {
         query.equalMany('t.token_contract', args.token_contract.split(',').map((t: string) => t.trim()));

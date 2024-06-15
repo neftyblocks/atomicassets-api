@@ -45,4 +45,6 @@ CREATE
     INDEX launchbagz_tokens_created_at_time ON launchbagz_tokens USING btree (created_at_time);
 CREATE
     INDEX launchbagz_tokens_updated_at_time ON launchbagz_tokens USING btree (updated_at_time);
+CREATE
+    INDEX launchbagz_tokens_tx_fee ON launchbagz_tokens USING btree (tx_fee);
 

@@ -41,6 +41,13 @@ export function tokensEndpoints(core: LaunchesNamespace, server: HTTPServer, rou
                             required: false,
                             schema: {type: 'string'}
                         },
+                        {
+                            name: 'has_fees',
+                            in: 'query',
+                            description: 'Filter by whether the token has fees',
+                            required: false,
+                            schema: {type: 'boolean'}
+                        },
                         ...paginationParameters,
                         {
                             name: 'sort',
