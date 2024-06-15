@@ -51,7 +51,7 @@ const kekConfigTableListener = (core: LaunchesHandler, contract: string) => asyn
 
 export function feesProcessor(core: LaunchesHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
-    const contract = core.args.launch_account;
+    const contract = core.args.registry_account;
 
     destructors.push(processor.onContractRow(
         'chadtoken.gm', 'txfees',
