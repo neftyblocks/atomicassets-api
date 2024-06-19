@@ -9,6 +9,7 @@ import DataProcessor from '../../processor';
 import {launchesProcessor} from './processors/launches';
 import {imagesProcessor} from './processors/images';
 import {feesProcessor} from './processors/fees';
+import {initVestings, vestingsProcessor} from './processors/vestings';
 
 export const LAUNCHES_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 3000;
 
@@ -16,6 +17,7 @@ export type LaunchesArgs = {
     launch_account: string,
     registry_account: string,
     collection_name: string,
+    vestings_account: string,
 };
 
 export enum LaunchesUpdatePriority {
@@ -24,6 +26,7 @@ export enum LaunchesUpdatePriority {
     TABLE_LAUNCHES = LAUNCHES_BASE_PRIORITY + 30,
     TABLE_IMAGES = LAUNCHES_BASE_PRIORITY + 30,
     TABLE_CONFIGS = LAUNCHES_BASE_PRIORITY + 40,
+    TABLE_VESTINGS = LAUNCHES_BASE_PRIORITY + 40,
 }
 
 const views: string[] = [];
@@ -80,25 +83,24 @@ export default class LaunchesHandler extends ContractHandler {
     }
 
     async init(): Promise<void> {
-
+        await initVestings(this.args, this.connection);
     }
 
     async deleteDB(client: PoolClient): Promise<void> {
-        const tables = [
-            'launchbagz_tokens',
-        ];
-
         await client.query(
             'DELETE FROM ' + client.escapeIdentifier('launchbagz_launches') + ' WHERE contract = $1',
             [this.args.launch_account]
         );
 
-        for (const table of tables) {
-            await client.query(
-                'DELETE FROM ' + client.escapeIdentifier(table) + ' WHERE contract = $1',
-                [this.args.registry_account]
-            );
-        }
+        await client.query(
+            'DELETE FROM ' + client.escapeIdentifier('launchbagz_tokens') + ' WHERE contract = $1',
+            [this.args.registry_account]
+        );
+
+        await client.query(
+            'DELETE FROM ' + client.escapeIdentifier('launchbagz_vestings') + ' WHERE contract = $1',
+            [this.args.vestings_account]
+        );
     }
 
     async register(processor: DataProcessor): Promise<() => any> {
@@ -106,6 +108,7 @@ export default class LaunchesHandler extends ContractHandler {
         destructors.push(launchesProcessor(this, processor));
         destructors.push(imagesProcessor(this, processor));
         destructors.push(feesProcessor(this, processor));
+        destructors.push(vestingsProcessor(this, processor));
         return (): any => destructors.map(fn => fn());
     }
 }

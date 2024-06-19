@@ -35,3 +35,21 @@ export type KeksConfigTableRow = {
     dev_fee_percent: number,
     is_active: boolean
 };
+
+export type VestingTableRow = {
+    vesting_id: string,
+    recipient: string,
+    owner: string,
+    token: {
+        sym: string,
+        contract: string,
+    }
+    start_time: number,
+    last_claim_time: number,
+    total_claimed: string,
+    immediate_unlock: string,
+    total_allocation: string,
+    period_length: number,
+    total_periods: number,
+    description: string,
+};
