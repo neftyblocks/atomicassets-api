@@ -114,3 +114,44 @@ export async function getLaunchDetail(params: RequestValues, ctx: LaunchesContex
     delete launch['blend_contract'];
     return launch;
 }
+
+export async function getLaunchDetailByCode(params: RequestValues, ctx: LaunchesContext): Promise<any> {
+    const query = new QueryBuilder('SELECT l.launch_id, l.blend_id, l.blend_contract, l.is_hidden hide, l.token_contract, l.token_code, COALESCE(l.display_data->>\'image\') image, COALESCE(l.display_data->>\'title\') title, l.display_data, t.image token_image, l.created_at_time, l.updated_at_time, l.created_at_block, l.updated_at_block ' +
+        'FROM launchbagz_launches l ' +
+        'LEFT JOIN launchbagz_tokens t ON t.token_contract = l.token_contract AND t.token_code = l.token_code');
+    query.equal('l.contract', ctx.coreArgs.launch_account);
+    query.equal('l.token_contract', ctx.pathParams.token_contract);
+    query.equal('l.token_code', ctx.pathParams.token_code);
+
+    const launchResult = await ctx.db.query(query.buildString(), query.buildValues());
+    if(launchResult.rows.length < 1){
+        throw new ApiError('Launch not found', 416);
+    }
+
+    const launch = launchResult.rows[0];
+    let blend = null;
+    if (launch.blend_id && launch.blend_contract) {
+        const blendQuery = new QueryBuilder(`
+            SELECT *
+            FROM neftyblends_blend_details_master blend_detail
+        `);
+        blendQuery.equal('blend_detail.blend_id', launch.blend_id);
+        blendQuery.equal('blend_detail.contract', launch.blend_contract);
+
+        const result = await ctx.db.query(blendQuery.buildString(), blendQuery.buildValues());
+        if (result.rows.length > 0) {
+            blend = (await fillBlends(
+                ctx.db,
+                ctx.coreArgs.atomicassets_account,
+                result.rows,
+                true,
+            ))[0];
+        }
+
+        launch.launch_date = blend ? blend.start_time : null;
+        launch.blend = blend;
+    }
+    delete launch['blend_id'];
+    delete launch['blend_contract'];
+    return launch;
+}

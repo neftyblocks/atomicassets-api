@@ -5,7 +5,7 @@ import {
     dateBoundaryParameters,
     getOpenAPI3Responses,
 } from '../../../docs';
-import {getLaunchDetail, getLaunches, getLaunchesCount} from '../handlers/launches';
+import {getLaunchDetail, getLaunchDetailByCode, getLaunches, getLaunchesCount} from '../handlers/launches';
 import {LaunchesNamespace} from '../index';
 
 export function launchesEndpoints(core: LaunchesNamespace, server: HTTPServer, router: express.Router): any {
@@ -13,6 +13,7 @@ export function launchesEndpoints(core: LaunchesNamespace, server: HTTPServer, r
     router.all('/v1/launches', caching(), returnAsJSON(getLaunches, core));
     router.all('/v1/launches/_count', caching(), returnAsJSON(getLaunchesCount, core));
     router.all('/v1/launches/:launch_id', caching(), returnAsJSON(getLaunchDetail, core));
+    router.all('/v1/launches/:token_contract/:token_code', caching(), returnAsJSON(getLaunchDetailByCode, core));
 
     return {
         tag: {
@@ -104,6 +105,29 @@ export function launchesEndpoints(core: LaunchesNamespace, server: HTTPServer, r
                             description: 'Launch Id',
                             required: true,
                             schema: {type: 'integer'}
+                        },
+                    ],
+                    responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/LaunchDetails'})
+                }
+            },
+            '/v1/launches/{token_contract}/{token_code}': {
+                get: {
+                    tags: ['launchbagz'],
+                    summary: 'Get a specific launch by token contract and token code',
+                    parameters: [
+                        {
+                            in: 'path',
+                            name: 'token_contract',
+                            description: 'Token contract',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            in: 'path',
+                            name: 'token_code',
+                            description: 'Token code',
+                            required: true,
+                            schema: {type: 'string'}
                         },
                     ],
                     responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/LaunchDetails'})
