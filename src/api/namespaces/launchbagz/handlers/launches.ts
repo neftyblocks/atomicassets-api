@@ -68,7 +68,10 @@ export async function getLaunches(params: RequestValues, ctx: LaunchesContext): 
     query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
     const result = await ctx.db.query(query.buildString(), query.buildValues());
-    return result.rows;
+    return result.rows.map(row => ({
+        ...row,
+        launch_key: `${row.token_contract}_${row.token_code}`,
+    }));
 }
 
 export async function getLaunchesCount(params: RequestValues, ctx: LaunchesContext): Promise<any> {
@@ -112,6 +115,7 @@ export async function getLaunchDetail(params: RequestValues, ctx: LaunchesContex
     }
     delete launch['blend_id'];
     delete launch['blend_contract'];
+    launch.launch_key = `${launch.token_contract}_${launch.token_code}`;
     return launch;
 }
 
@@ -153,5 +157,6 @@ export async function getLaunchDetailByCode(params: RequestValues, ctx: Launches
     }
     delete launch['blend_id'];
     delete launch['blend_contract'];
+    launch.launch_key = `${launch.token_contract}_${launch.token_code}`;
     return launch;
 }
