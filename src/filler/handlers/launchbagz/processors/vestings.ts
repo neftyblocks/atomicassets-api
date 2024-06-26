@@ -54,7 +54,7 @@ function getVestingDbRow(vesting: VestingTableRow, args: LaunchesArgs, blockNumb
     const [precision, tokenCode] = vesting.token.sym.split(',');
     const tokenContract = vesting.token.contract;
     return {
-        contract: args.launch_account,
+        contract: args.vestings_account,
         vesting_id: vesting.vesting_id,
         recipient: vesting.recipient,
         owner: vesting.owner,
