@@ -149,6 +149,8 @@ const newPartnerFarmListener = (core: LaunchesHandler, contract: string) => asyn
         staking_token_code: trace.act.data.staking_token.sym.split(',')[1],
         staking_token_precision: trace.act.data.staking_token.sym.split(',')[0],
         vesting_time: trace.act.data.vesting_time * 1000,
+        incentive_count: 0,
+        total_staked: 0,
         updated_at_block: block.block_num,
         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
         created_at_block: block.block_num,
