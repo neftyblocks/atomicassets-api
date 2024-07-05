@@ -12,3 +12,13 @@ export type LogNewLaunchAction = {
     display_data: string;
     issuer: string;
 };
+
+export type CreatePartnerFarmAction = {
+    creator: string;
+    farm_name: string;
+    staking_token: {
+        contract: string;
+        sym: string;
+    };
+    vesting_time: number;
+};

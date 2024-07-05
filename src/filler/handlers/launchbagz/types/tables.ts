@@ -53,3 +53,42 @@ export type VestingTableRow = {
     total_periods: number,
     description: string,
 };
+
+export type TokenFarmTableRow = {
+    farm_name: string;
+    creator: string;
+    time_created: number;
+    staking_token: {
+        sym: string,
+        contract: string
+    };
+    incentive_count: number;
+    total_staked: string;
+    vesting_time: number;
+    last_update_time: number;
+};
+
+export type TokenFarmRewardTableRow = {
+
+    id: string;
+    period_start: number;
+    period_finish: number;
+    reward_rate: string;
+    rewards_duration: number;
+    reward_per_token_stored: string;
+    reward_pool: {
+        quantity: string,
+        contract: string
+    };
+    total_rewards_paid_out: string;
+};
+
+export type TokenFarmPartner = {
+    wallet: string,
+    discount_1e6: number,
+};
+
+export type TokenFarmPartnerFarm = {
+    farm_name: string,
+    creator: string,
+};

@@ -10,6 +10,7 @@ import {launchesProcessor} from './processors/launches';
 import {imagesProcessor} from './processors/images';
 import {feesProcessor} from './processors/fees';
 import {initVestings, vestingsProcessor} from './processors/vestings';
+import {farmsProcessor, initFarms} from './processors/farms';
 
 export const LAUNCHES_BASE_PRIORITY = ATOMICASSETS_BASE_PRIORITY + 3000;
 
@@ -18,6 +19,7 @@ export type LaunchesArgs = {
     registry_account: string,
     collection_name: string,
     vestings_account: string,
+    farms_account: string,
 };
 
 export enum LaunchesUpdatePriority {
@@ -27,6 +29,10 @@ export enum LaunchesUpdatePriority {
     TABLE_IMAGES = LAUNCHES_BASE_PRIORITY + 30,
     TABLE_CONFIGS = LAUNCHES_BASE_PRIORITY + 40,
     TABLE_VESTINGS = LAUNCHES_BASE_PRIORITY + 40,
+    TABLE_TOKEN_FARM_PARTNERS = LAUNCHES_BASE_PRIORITY + 50,
+    ACTION_NEW_PARTNER_FARM = LAUNCHES_BASE_PRIORITY + 60,
+    TABLE_TOKEN_FARM = LAUNCHES_BASE_PRIORITY + 70,
+    TABLE_TOKEN_FARM_REWARDS = LAUNCHES_BASE_PRIORITY + 80,
 }
 
 const views: string[] = [];
@@ -84,6 +90,7 @@ export default class LaunchesHandler extends ContractHandler {
 
     async init(): Promise<void> {
         await initVestings(this.args, this.connection);
+        await initFarms(this.args, this.connection);
     }
 
     async deleteDB(client: PoolClient): Promise<void> {
@@ -109,6 +116,7 @@ export default class LaunchesHandler extends ContractHandler {
         destructors.push(imagesProcessor(this, processor));
         destructors.push(feesProcessor(this, processor));
         destructors.push(vestingsProcessor(this, processor));
+        destructors.push(farmsProcessor(this, processor));
         return (): any => destructors.map(fn => fn());
     }
 }
