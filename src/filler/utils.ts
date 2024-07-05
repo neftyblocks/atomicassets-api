@@ -3,6 +3,7 @@ import PostgresConnection from '../connections/postgres';
 import {QueryResult} from 'pg';
 import {arrayChunk} from '../utils';
 import {GetTableByScopeResultRow} from 'eosjs/dist/eosjs-rpc-interfaces';
+import logger from '../utils/winston';
 
 export function encodeDatabaseJson(obj: any): string {
     return JSON.stringify(obj)
@@ -52,6 +53,7 @@ export function bulkInsert(database: PostgresConnection, tableName: string, rows
     if (rows.length === 0) {
         throw new Error('Unable to insert empty rows');
     }
+    logger.info(`Inserting ${rows.length} rows into ${tableName}`);
     const keys = Object.keys(rows[0]);
     const chunks = arrayChunk(rows, batchSize);
     return Promise.all(chunks.map(insertRows => {

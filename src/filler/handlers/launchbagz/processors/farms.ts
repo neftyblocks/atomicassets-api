@@ -20,6 +20,7 @@ import LaunchesHandler from '../index';
 import {preventInt64Overflow} from '../../../../utils/binary';
 import ConnectionManager from '../../../../connections/manager';
 import {bulkInsert, getAllRowsFromTable} from '../../../utils';
+import logger from '../../../../utils/winston';
 
 const fillFarms = async (args: LaunchesArgs, connection: ConnectionManager): Promise<void> => {
     const [farmsCount, partnersCount] = await Promise.all([
@@ -33,58 +34,63 @@ const fillFarms = async (args: LaunchesArgs, connection: ConnectionManager): Pro
         )
     ]);
 
-    if (Number(farmsCount.rows[0].count) === 0 && Number(partnersCount.rows[0].count) === 0) {
-        const partners = await getAllRowsFromTable<TokenFarmPartner>(connection.chain.rpc, {
-            json: true, code: args.farms_account,
-            scope: args.vestings_account, table: 'partners'
+    logger.info(`Farms count: ${farmsCount.rows[0].count}`);
+    logger.info(`Partners count: ${partnersCount.rows[0].count}`);
+
+    if (Number(farmsCount.rows[0].count) > 0 || Number(partnersCount.rows[0].count) > 0) {
+        return;
+    }
+
+    const partners = await getAllRowsFromTable<TokenFarmPartner>(connection.chain.rpc, {
+        json: true, code: args.farms_account,
+        scope: args.vestings_account, table: 'partners'
+    }, 1000);
+
+    const partnerDbRows = [];
+    const farmCreators: Record<string, string> = {};
+    for (const partner of partners) {
+        partnerDbRows.push({
+            contract: args.farms_account,
+            partner: partner.wallet,
+        });
+
+        const partnerFarms = await getAllRowsFromTable<TokenFarmPartnerFarm>(connection.chain.rpc, {
+            json: true, code: partner.wallet,
+            scope: partner.wallet, table: 'farms'
         }, 1000);
 
-        const partnerDbRows = [];
-        const farmCreators: Record<string, string> = {};
-        for (const partner of partners) {
-            partnerDbRows.push({
-                contract: args.farms_account,
-                partner: partner.wallet,
-            });
-
-            const partnerFarms = await getAllRowsFromTable<TokenFarmPartnerFarm>(connection.chain.rpc, {
-                json: true, code: partner.wallet,
-                scope: partner.wallet, table: 'farms'
-            }, 1000);
-
-            for (const farm of partnerFarms) {
-                farmCreators[farm.farm_name] = farm.creator;
-            }
+        for (const farm of partnerFarms) {
+            farmCreators[farm.farm_name] = farm.creator;
         }
+    }
 
-        if (partnerDbRows.length > 0) {
-            await bulkInsert(connection.database, 'launchbagz_farms_partners', partnerDbRows);
-        }
+    if (partnerDbRows.length > 0) {
+        await bulkInsert(connection.database, 'launchbagz_farms_partners', partnerDbRows);
+    }
 
-        const farmsTable = await getAllRowsFromTable<TokenFarmTableRow>(connection.chain.rpc, {
+    const farmsTable = await getAllRowsFromTable<TokenFarmTableRow>(connection.chain.rpc, {
+        json: true, code: args.farms_account,
+        scope: args.farms_account, table: 'farms'
+    }, 1000);
+
+    const farmDbRows = [];
+    const rewardsDBRows = [];
+    for (const farm of farmsTable) {
+        farmDbRows.push(getFarmDBRow(args.farms_account, farm, farmCreators, 0));
+        const rewards = await getAllRowsFromTable<TokenFarmRewardTableRow>(connection.chain.rpc, {
             json: true, code: args.farms_account,
-            scope: args.farms_account, table: 'farms'
+            scope: farm.farm_name, table: 'rewards'
         }, 1000);
+        for (const reward of rewards) {
+            rewardsDBRows.push(getRewardDBRow(args.farms_account, farm.farm_name, reward));
+        }
+    }
 
-        const farmDbRows = [];
-        const rewardsDBRows = [];
-        for (const farm of farmsTable) {
-            farmDbRows.push(getFarmDBRow(args.farms_account, farm, farmCreators, 0));
-            const rewards = await getAllRowsFromTable<TokenFarmRewardTableRow>(connection.chain.rpc, {
-                json: true, code: args.farms_account,
-                scope: farm.farm_name, table: 'rewards'
-            }, 1000);
-            for (const reward of rewards) {
-                rewardsDBRows.push(getRewardDBRow(args.farms_account, farm.farm_name, reward));
-            }
-        }
-
-        if (farmDbRows.length > 0) {
-            await bulkInsert(connection.database, 'launchbagz_farms', farmDbRows);
-        }
-        if (rewardsDBRows.length > 0) {
-            await bulkInsert(connection.database, 'launchbagz_farm_rewards', rewardsDBRows);
-        }
+    if (farmDbRows.length > 0) {
+        await bulkInsert(connection.database, 'launchbagz_farms', farmDbRows);
+    }
+    if (rewardsDBRows.length > 0) {
+        await bulkInsert(connection.database, 'launchbagz_farm_rewards', rewardsDBRows);
     }
 };
 
