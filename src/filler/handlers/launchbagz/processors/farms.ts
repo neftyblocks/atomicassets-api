@@ -34,16 +34,13 @@ const fillFarms = async (args: LaunchesArgs, connection: ConnectionManager): Pro
         )
     ]);
 
-    logger.info(`Farms count: ${farmsCount.rows[0].count}`);
-    logger.info(`Partners count: ${partnersCount.rows[0].count}`);
-
     if (Number(farmsCount.rows[0].count) > 0 || Number(partnersCount.rows[0].count) > 0) {
         return;
     }
 
     const partners = await getAllRowsFromTable<TokenFarmPartner>(connection.chain.rpc, {
         json: true, code: args.farms_account,
-        scope: args.vestings_account, table: 'partners'
+        scope: args.farms_account, table: 'partners'
     }, 1000);
 
     const partnerDbRows = [];
