@@ -141,7 +141,7 @@ const newPartnerFarmListener = (core: LaunchesHandler, contract: string) => asyn
         return;
     }
 
-    await db.insert('launchbagz_farms', {
+    await db.replace('launchbagz_farms', {
         contract,
         farm_name: trace.act.data.farm_name,
         original_creator: trace.act.data.creator,
@@ -155,7 +155,7 @@ const newPartnerFarmListener = (core: LaunchesHandler, contract: string) => asyn
         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
         created_at_block: block.block_num,
         created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-    }, ['contract', 'farm_name']);
+    }, ['contract', 'farm_name'], ['created_at_block', 'created_at_time', 'total_staked', 'incentive_count']);
 };
 
 const farmsTableListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<TokenFarmTableRow>): Promise<void> => {
