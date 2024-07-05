@@ -136,7 +136,7 @@ export async function initFarms(args: LaunchesArgs, connection: ConnectionManage
     }
 }
 const newPartnerFarmListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<CreatePartnerFarmAction>): Promise<void> => {
-    const partnerRows = await db.query('SELECT COUNT(*) FROM launchbagz_farms_partners WHERE contract = $1 AND partner = $2', [contract, trace.act.name]);
+    const partnerRows = await db.query('SELECT COUNT(*) FROM launchbagz_farms_partners WHERE contract = $1 AND partner = $2', [contract, trace.act.account]);
     if (Number(partnerRows.rows[0].count) === 0) {
         return;
     }
