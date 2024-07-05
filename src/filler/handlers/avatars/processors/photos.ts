@@ -16,7 +16,7 @@ const fillPhotos = async (args: AvatarsArgs, connection: ConnectionManager): Pro
     );
 
     if (Number(photosCount.rows[0].count) === 0) {
-        const rows = await getAllRowsFromTable(connection.chain.rpc, {
+        const rows = await getAllRowsFromTable<{account: string, photo_hash: string}>(connection.chain.rpc, {
             code: args.photos_account,
             table: 'photos',
             scope: args.photos_account

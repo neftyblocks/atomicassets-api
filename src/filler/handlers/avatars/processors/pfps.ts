@@ -24,7 +24,7 @@ const fillPfps = async (args: AvatarsArgs, connection: ConnectionManager): Promi
         const pfpRows: any[] = [];
         for (let i = 0; i < scopes.length; i++) {
             const scopeRow = scopes[i];
-            const rows = await getAllRowsFromTable(connection.chain.rpc, {
+            const rows = await getAllRowsFromTable<{key: string, value: string}>(connection.chain.rpc, {
                 code: scopeRow.code,
                 table: scopeRow.table,
                 scope: scopeRow.scope,

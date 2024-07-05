@@ -36,7 +36,7 @@ export async function getAllScopesFromTable(rpc: JsonRpc, options: any, batchSiz
     return rows;
 }
 
-export async function getAllRowsFromTable<T>(rpc: JsonRpc, options: any, batchSize: number): Promise<T[]> {
+export async function getAllRowsFromTable<T = any>(rpc: JsonRpc, options: any, batchSize: number): Promise<T[]> {
     let result = await rpc.get_table_rows({...options, limit: batchSize});
     let { rows } = result;
     while (result.more) {
