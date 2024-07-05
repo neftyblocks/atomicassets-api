@@ -83,7 +83,7 @@ const fillFarms = async (args: LaunchesArgs, connection: ConnectionManager): Pro
             await bulkInsert(connection.database, 'launchbagz_farms', farmDbRows);
         }
         if (rewardsDBRows.length > 0) {
-            await bulkInsert(connection.database, 'launchbagz_farms_rewards', rewardsDBRows);
+            await bulkInsert(connection.database, 'launchbagz_farm_rewards', rewardsDBRows);
         }
     }
 };
