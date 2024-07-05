@@ -143,6 +143,7 @@ const newPartnerFarmListener = (core: LaunchesHandler, contract: string) => asyn
 
     await db.replace('launchbagz_farms', {
         contract,
+        creator: trace.act.account,
         farm_name: trace.act.data.farm_name,
         original_creator: trace.act.data.creator,
         staking_token_contract: trace.act.data.staking_token.contract,
