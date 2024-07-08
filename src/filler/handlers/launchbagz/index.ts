@@ -35,7 +35,9 @@ export enum LaunchesUpdatePriority {
     TABLE_TOKEN_FARM_PARTNERS = LAUNCHES_BASE_PRIORITY + 80,
 }
 
-const views: string[] = [];
+const views: string[] = [
+    'launchbagz_farms_master',
+];
 const functions: string[] = [];
 
 export default class LaunchesHandler extends ContractHandler {
@@ -107,6 +109,21 @@ export default class LaunchesHandler extends ContractHandler {
         await client.query(
             'DELETE FROM ' + client.escapeIdentifier('launchbagz_vestings') + ' WHERE contract = $1',
             [this.args.vestings_account]
+        );
+
+        await client.query(
+            'DELETE FROM ' + client.escapeIdentifier('launchbagz_farm_rewards') + ' WHERE contract = $1',
+            [this.args.farms_account]
+        );
+
+        await client.query(
+            'DELETE FROM ' + client.escapeIdentifier('launchbagz_farms') + ' WHERE contract = $1',
+            [this.args.farms_account]
+        );
+
+        await client.query(
+            'DELETE FROM ' + client.escapeIdentifier('launchbagz_farms_partners') + ' WHERE contract = $1',
+            [this.args.farms_account]
         );
     }
 

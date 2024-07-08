@@ -44,5 +44,11 @@ export const launchBagzComponents = {
             updated_at_time: {type: 'string'},
             updated_at_block: {type: 'string'},
         },
-    }
+    },
+    TokenFarm: {
+        type: 'object',
+        properties: {
+            farm_name: {type: 'string'},
+        },
+    },
 };

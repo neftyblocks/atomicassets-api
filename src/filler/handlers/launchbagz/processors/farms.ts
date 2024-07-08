@@ -20,7 +20,6 @@ import LaunchesHandler from '../index';
 import {preventInt64Overflow} from '../../../../utils/binary';
 import ConnectionManager from '../../../../connections/manager';
 import {bulkInsert, getAllRowsFromTable} from '../../../utils';
-import logger from '../../../../utils/winston';
 
 const fillFarms = async (args: LaunchesArgs, connection: ConnectionManager): Promise<void> => {
     const [farmsCount, partnersCount] = await Promise.all([

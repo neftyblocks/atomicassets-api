@@ -6,11 +6,13 @@ import { tokensEndpoints } from './routes/tokens';
 import { launchBagzComponents } from './openapi';
 import { ActionHandlerContext } from '../../actionhandler';
 import {launchesEndpoints} from './routes/launches';
+import {farmsEndpoints} from './routes/farms';
 
 export type LaunchesNamespaceArgs = {
     atomicassets_account: string,
     launch_account: string,
     registry_account: string,
+    farms_account: string,
 };
 
 export type LaunchesContext = ActionHandlerContext<LaunchesNamespaceArgs>
@@ -35,6 +37,7 @@ export class LaunchesNamespace extends ApiNamespace {
         const endpointsDocs = [];
         endpointsDocs.push(tokensEndpoints(this, server, router));
         endpointsDocs.push(launchesEndpoints(this, server, router));
+        endpointsDocs.push(farmsEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {
