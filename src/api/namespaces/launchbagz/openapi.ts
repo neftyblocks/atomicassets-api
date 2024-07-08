@@ -48,7 +48,82 @@ export const launchBagzComponents = {
     TokenFarm: {
         type: 'object',
         properties: {
-            farm_name: {type: 'string'},
+            contract: { type: 'string' },
+            farm_name: { type: 'string' },
+            creator: { type: 'string' },
+            original_creator: { type: 'string' },
+            staking_token: {
+                type: 'object',
+                properties: {
+                    token_contract: { type: 'string' },
+                    token_symbol: { type: 'string' },
+                    token_precision: {
+                        type: 'integer',
+                        format: 'int32'
+                    }
+                }
+            },
+            total_staked: {
+                'type': 'string'
+            },
+            vesting_time: {
+                'type': 'string'
+            },
+            rewards: {
+                type: 'array',
+                items: {
+                    type: 'object',
+                    properties: {
+                        id: {
+                            type: 'integer',
+                            format: 'int32'
+                        },
+                        period_start: {
+                            type: 'integer',
+                            format: 'int64'
+                        },
+                        period_finish: {
+                            type: 'integer',
+                            format: 'int64'
+                        },
+                        reward_rate: {
+                            type: 'integer',
+                            format: 'int64'
+                        },
+                        reward_duration: {
+                            type: 'integer',
+                            format: 'int32'
+                        },
+                        reward_per_token_stored: {
+                            type: 'integer',
+                            format: 'int64'
+                        },
+                        token: {
+                            type: 'object',
+                            properties: {
+                                token_contract: { type: 'string' },
+                                token_symbol: { type: 'string' },
+                                token_precision: {
+                                    'type': 'integer',
+                                    'format': 'int32'
+                                }
+                            }
+                        },
+                        reward_pool: {
+                            type: 'integer',
+                            format: 'int64'
+                        },
+                        total_rewards_paid_out: {
+                            type: 'integer',
+                            format: 'int64'
+                        }
+                    }
+                }
+            },
+            updated_at_block: { type: 'string'},
+            updated_at_time: { type: 'string' },
+            created_at_block: { type: 'string' },
+            created_at_time: { type: 'string' }
         },
-    },
+    }
 };
