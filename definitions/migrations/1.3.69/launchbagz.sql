@@ -1,7 +1,7 @@
-TRUNCATE TABLE launchbagz_farm_stakers;
-TRUNCATE TABLE launchbagz_farm_rewards;
-TRUNCATE TABLE launchbagz_farms_partners;
-TRUNCATE TABLE launchbagz_farms;
+TRUNCATE TABLE launchbagz_farm_stakers CASCADE;
+TRUNCATE TABLE launchbagz_farm_rewards CASCADE;
+TRUNCATE TABLE launchbagz_farms_partners CASCADE;
+TRUNCATE TABLE launchbagz_farms CASCADE;
 
 ALTER TABLE launchbagz_farm_rewards DROP COLUMN reward_rate;
 ALTER TABLE launchbagz_farm_rewards DROP COLUMN reward_per_token_stored;
