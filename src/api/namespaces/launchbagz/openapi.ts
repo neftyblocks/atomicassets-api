@@ -125,5 +125,35 @@ export const launchBagzComponents = {
             created_at_block: { type: 'string' },
             created_at_time: { type: 'string' }
         },
+    },
+    FarmStaker: {
+        type: 'object',
+        properties: {
+            contract: { type: 'string' },
+            farm_name: { type: 'string' },
+            owner: { type: 'string' },
+            balance: {
+                type: 'object',
+                properties: {
+                    token_contract: { type: 'string' },
+                    token_symbol: { type: 'string' },
+                    token_precision: {
+                        'type': 'integer',
+                        'format': 'int32'
+                    },
+                    amount: {
+                        type: 'integer',
+                        format: 'int64'
+                    }
+                }
+            },
+            share: {
+                type: 'integer',
+                format: 'int32'
+            },
+            vesting_end_time: { type: 'string' },
+            updated_at_block: { type: 'string'},
+            updated_at_time: { type: 'string' },
+        },
     }
 };

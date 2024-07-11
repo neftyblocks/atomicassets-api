@@ -2,8 +2,7 @@ import * as express from 'express';
 
 import { HTTPServer } from '../../../server';
 import {
-    dateBoundaryParameters,
-    getOpenAPI3Responses,
+    getOpenAPI3Responses, paginationParameters,
 } from '../../../docs';
 import {getLaunchDetail, getLaunchDetailByCode, getLaunches, getLaunchesCount} from '../handlers/launches';
 import {LaunchesNamespace} from '../index';
@@ -64,7 +63,7 @@ export function launchesEndpoints(core: LaunchesNamespace, server: HTTPServer, r
                                 type: 'boolean',
                             }
                         },
-                        ...dateBoundaryParameters,
+                        ...paginationParameters,,
                         {
                             name: 'sort',
                             in: 'query',
