@@ -141,7 +141,7 @@ export async function getStakers(params: RequestValues, ctx: LaunchesContext): P
     const sortMapping: {[key: string]: {column: string, nullable: boolean}}  = {
         updated_at_time: {column: 's.updated_at_time', nullable: false},
         owner: {column: 's.owner', nullable: false},
-        share: {column: 'COALESCE(s.balance / NULLIF(f.total_staked, 0), 0)', nullable: false},
+        share: {column: 'COALESCE(s.balance::DECIMAL / NULLIF(f.total_staked::DECIMAL, 0::DECIMAL), 0::DECIMAL)', nullable: false},
     };
 
     query.append(`ORDER BY ${sortMapping[args.sort].column} ${args.order} ${sortMapping[args.sort].nullable ? 'NULLS LAST' : ''}`);
