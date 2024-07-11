@@ -13,13 +13,13 @@ import {
 import {
     TokenFarmPartner,
     TokenFarmPartnerFarm,
-    TokenFarmRewardTableRow,
+    TokenFarmRewardTableRow, TokenFarmStaker,
     TokenFarmTableRow,
 } from '../types/tables';
 import LaunchesHandler from '../index';
 import {preventInt64Overflow} from '../../../../utils/binary';
 import ConnectionManager from '../../../../connections/manager';
-import {bulkInsert, getAllRowsFromTable} from '../../../utils';
+import {bulkInsert, getAllRowsFromTable, getAllScopesFromTable} from '../../../utils';
 
 const fillFarms = async (args: LaunchesArgs, connection: ConnectionManager): Promise<void> => {
     const [farmsCount, partnersCount] = await Promise.all([
@@ -90,6 +90,39 @@ const fillFarms = async (args: LaunchesArgs, connection: ConnectionManager): Pro
     }
 };
 
+const fillStakers = async (args: LaunchesArgs, connection: ConnectionManager): Promise<void> => {
+    const stakersCount = await connection.database.query(
+        'SELECT COUNT(*) FROM launchbagz_farm_stakers WHERE contract = $1',
+        [args.farms_account]
+    );
+
+    if (Number(stakersCount.rows[0].count) > 0) {
+        return;
+    }
+
+    const scopes = await getAllScopesFromTable(connection.chain.rpc, {
+        code: args.farms_account,
+        table: 'stakers'
+    }, 1000);
+
+    const stakersDbRows = [];
+
+    for (const row of scopes) {
+        const stakers = await getAllRowsFromTable<TokenFarmStaker>(connection.chain.rpc, {
+            json: true, code: args.farms_account,
+            scope: row.scope, table: 'stakers'
+        }, 1000);
+
+        for (const staker of stakers) {
+            stakersDbRows.push(getStakerDBRow(args.farms_account, row.scope, staker, 0));
+        }
+    }
+
+    if (stakersDbRows.length > 0) {
+        await bulkInsert(connection.database, 'launchbagz_farm_stakers', stakersDbRows);
+    }
+};
+
 function getFarmDBRow(contract: string, farm: TokenFarmTableRow, farmCreators: Record<string, string>, blockNumber: number): any {
     return {
         contract,
@@ -129,9 +162,27 @@ function getRewardDBRow(contract: string, farmName: string, reward: TokenFarmRew
     };
 }
 
+function getStakerDBRow(contract: string, owner: string, reward: TokenFarmStaker, blockNumber: number): any {
+    return {
+        contract,
+        farm_name: reward.farm_name,
+        owner,
+        balance: preventInt64Overflow(reward.balance.split(' ')[0].replace('.', '')),
+        vesting_end_time: reward.vesting_end_time * 1000,
+        updated_at_block: blockNumber,
+        updated_at_time: reward.last_update * 1000
+    };
+}
+
 export async function initFarms(args: LaunchesArgs, connection: ConnectionManager): Promise<void> {
     if (args.farms_account) {
         await fillFarms(args, connection);
+    }
+}
+
+export async function initStakers(args: LaunchesArgs, connection: ConnectionManager): Promise<void> {
+    if (args.farms_account) {
+        await fillStakers(args, connection);
     }
 }
 const newPartnerFarmListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<CreatePartnerFarmAction>): Promise<void> => {
@@ -194,6 +245,21 @@ const partnersTableListener = (core: LaunchesHandler, contract: string) => async
     }
 };
 
+const stakersTableListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<TokenFarmStaker>): Promise<void> => {
+    if (!delta.present) {
+        await db.delete('launchbagz_farm_stakers', {
+            str: 'contract = $1 AND farm_name = $2 AND owner = $3',
+            values: [contract, delta.value.farm_name, delta.scope],
+        });
+    } else {
+        await db.replace(
+            'launchbagz_farm_stakers',
+            getStakerDBRow(contract, delta.scope, delta.value, block.block_num),
+            ['contract', 'farm_name', 'owner']
+        );
+    }
+};
+
 export function farmsProcessor(core: LaunchesHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
     const contract = core.args.farms_account;
@@ -220,6 +286,12 @@ export function farmsProcessor(core: LaunchesHandler, processor: DataProcessor):
         contract, 'partners',
         partnersTableListener(core, contract),
         LaunchesUpdatePriority.TABLE_TOKEN_FARM_PARTNERS.valueOf()
+    ));
+
+    destructors.push(processor.onContractRow(
+        contract, 'stakers',
+        stakersTableListener(core, contract),
+        LaunchesUpdatePriority.TABLE_TOKEN_FARM_STAKERS.valueOf()
     ));
 
     return (): any => destructors.map(fn => fn());

@@ -65,7 +65,7 @@ CREATE TABLE launchbagz_farms
     staking_token_contract  character varying(12) NOT NULL,
     staking_token_code      character varying(10) NOT NULL,
     staking_token_precision integer               NOT NULL,
-    incentive_count       integer               NOT NULL,
+    incentive_count         integer               NOT NULL,
     total_staked            bigint                NOT NULL,
     vesting_time            bigint                NOT NULL,
     updated_at_block        bigint                NOT NULL,
@@ -93,6 +93,18 @@ CREATE TABLE launchbagz_farm_rewards
     CONSTRAINT launchbagz_farm_rewards_pkey PRIMARY KEY (contract, farm_name, id)
 );
 
+CREATE TABLE launchbagz_farm_stakers
+(
+    contract               character varying(13) NOT NULL,
+    farm_name              character varying(13) NOT NULL,
+    owner                  character varying(13) NOT NULL,
+    balance                bigint                NOT NULL,
+    vesting_end_time       bigint                NOT NULL,
+    updated_at_time        bigint                NOT NULL,
+    updated_at_block       bigint                NOT NULL,
+    CONSTRAINT launchbagz_farm_stakers_pkey PRIMARY KEY (contract, farm_name, owner)
+);
+
 CREATE TABLE launchbagz_farms_partners
 (
     contract character varying(13) NOT NULL,
@@ -102,6 +114,13 @@ CREATE TABLE launchbagz_farms_partners
 
 ALTER TABLE ONLY launchbagz_farm_rewards
     ADD CONSTRAINT launchbagz_farm_rewards_farm_fkey FOREIGN KEY (contract, farm_name) REFERENCES launchbagz_farms (contract, farm_name) MATCH SIMPLE ON
+        UPDATE RESTRICT
+        ON
+            DELETE
+            RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
+
+ALTER TABLE ONLY launchbagz_farm_stakers
+    ADD CONSTRAINT launchbagz_farm_stakers_farm_fkey FOREIGN KEY (contract, farm_name) REFERENCES launchbagz_farms (contract, farm_name) MATCH SIMPLE ON
         UPDATE RESTRICT
         ON
             DELETE
@@ -146,3 +165,10 @@ CREATE
 
 CREATE
     INDEX launchbagz_farm_rewards_staking_token_contract_code ON launchbagz_farm_rewards USING btree (reward_token_contract, reward_token_code);
+
+CREATE
+    INDEX launchbagz_farm_stakers_owner ON launchbagz_farm_stakers USING btree (owner);
+CREATE
+    INDEX launchbagz_farm_stakers_updated_at_time ON launchbagz_farm_stakers USING btree (updated_at_time);
+CREATE
+    INDEX launchbagz_farm_stakers_vesting_end_time ON launchbagz_farm_stakers USING btree (vesting_end_time);

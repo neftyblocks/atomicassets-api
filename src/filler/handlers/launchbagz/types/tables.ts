@@ -92,3 +92,10 @@ export type TokenFarmPartnerFarm = {
     farm_name: string,
     creator: string,
 };
+
+export type TokenFarmStaker = {
+    farm_name: string,
+    balance: string,
+    last_update: number,
+    vesting_end_time: number,
+};
