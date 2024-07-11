@@ -1,4 +1,4 @@
-TRUNCATE TABLE launchbagz_stakers;
+TRUNCATE TABLE launchbagz_farm_stakers;
 TRUNCATE TABLE launchbagz_farm_rewards;
 TRUNCATE TABLE launchbagz_farms_partners;
 TRUNCATE TABLE launchbagz_farms;
