@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS launchbagz_farms
     staking_token_contract  character varying(12) NOT NULL,
     staking_token_code      character varying(10) NOT NULL,
     staking_token_precision integer               NOT NULL,
-    incentive_count       integer               NOT NULL,
+    incentive_count         integer               NOT NULL,
     total_staked            bigint                NOT NULL,
     vesting_time            bigint                NOT NULL,
     updated_at_block        bigint                NOT NULL,
@@ -17,16 +17,16 @@ CREATE TABLE IF NOT EXISTS launchbagz_farms
     CONSTRAINT launchbagz_farms_pkey PRIMARY KEY (contract, farm_name)
 );
 
-CREATE TABLE IF NOT EXISTS  launchbagz_farm_rewards
+CREATE TABLE IF NOT EXISTS launchbagz_farm_rewards
 (
     contract                character varying(13) NOT NULL,
     farm_name               character varying(13) NOT NULL,
     id                      bigint                NOT NULL,
     period_start            bigint                NOT NULL,
     period_finish           bigint                NOT NULL,
-    reward_rate             bigint                NOT NULL,
+    reward_rate             character varying(39) NOT NULL,
     rewards_duration        bigint                NOT NULL,
-    reward_per_token_stored bigint                NOT NULL,
+    reward_per_token_stored character varying(39) NOT NULL,
     reward_token_contract   character varying(12) NOT NULL,
     reward_token_code       character varying(10) NOT NULL,
     reward_token_precision  integer               NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS  launchbagz_farm_rewards
     CONSTRAINT launchbagz_farm_rewards_pkey PRIMARY KEY (contract, farm_name, id)
 );
 
-CREATE TABLE IF NOT EXISTS  launchbagz_farms_partners
+CREATE TABLE IF NOT EXISTS launchbagz_farms_partners
 (
     contract character varying(13) NOT NULL,
     partner  character varying(13) NOT NULL,
@@ -53,7 +53,7 @@ ALTER TABLE ONLY launchbagz_farm_rewards
             RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 CREATE
-    INDEX IF NOT EXISTS  launchbagz_farms_staking_token_contract_code ON launchbagz_farms USING btree (staking_token_contract, staking_token_code);
+    INDEX IF NOT EXISTS launchbagz_farms_staking_token_contract_code ON launchbagz_farms USING btree (staking_token_contract, staking_token_code);
 CREATE
     INDEX IF NOT EXISTS launchbagz_farms_created_at_time ON launchbagz_farms USING btree (created_at_time);
 CREATE
