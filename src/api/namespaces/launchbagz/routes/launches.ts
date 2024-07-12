@@ -63,7 +63,7 @@ export function launchesEndpoints(core: LaunchesNamespace, server: HTTPServer, r
                                 type: 'boolean',
                             }
                         },
-                        ...paginationParameters,,
+                        ...paginationParameters,
                         {
                             name: 'sort',
                             in: 'query',

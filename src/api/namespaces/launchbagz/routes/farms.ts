@@ -41,7 +41,7 @@ export function farmsEndpoints(core: LaunchesNamespace, server: HTTPServer, rout
                         {
                             name: 'staked_token',
                             in: 'query',
-                            description: 'Staked token in the format [symbol_code]@[contract]',
+                            description: 'Staked token in the format [symbol_code]@[contract]. Comma separated list.',
                             required: false,
                             schema: {
                                 type: 'string',
@@ -50,7 +50,16 @@ export function farmsEndpoints(core: LaunchesNamespace, server: HTTPServer, rout
                         {
                             name: 'reward_token',
                             in: 'query',
-                            description: 'Token contract in the format [symbol_code]@[contract]',
+                            description: 'Token contract in the format [symbol_code]@[contract]. Comma separated list.',
+                            required: false,
+                            schema: {
+                                type: 'string',
+                            }
+                        },
+                        {
+                            name: 'staker',
+                            in: 'query',
+                            description: 'If provided fetch the staked balance of the account',
                             required: false,
                             schema: {
                                 type: 'string',

@@ -120,6 +120,10 @@ export const launchBagzComponents = {
                     }
                 }
             },
+            staker_balance: {
+                type: 'integer',
+                format: 'int64'
+            },
             updated_at_block: { type: 'string'},
             updated_at_time: { type: 'string' },
             created_at_block: { type: 'string' },

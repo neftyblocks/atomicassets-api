@@ -15,9 +15,14 @@ export async function getFarms(params: RequestValues, ctx: LaunchesContext): Pro
         reward_token: {type: 'string', default: ''},
         creator: {type: 'string', default: ''},
         original_creator: {type: 'string', default: false},
+        staker: {type: 'string', default: ''},
     });
 
-    const query = new QueryBuilder('SELECT * FROM launchbagz_farms f ');
+    let fetch = 'f.*';
+    if (args.staker) {
+        fetch += ', s.balance';
+    }
+    const query = new QueryBuilder(`SELECT ${fetch} FROM launchbagz_farms f `);
 
     if (args.reward_token) {
         const codes: string[] = [];
@@ -29,8 +34,8 @@ export async function getFarms(params: RequestValues, ctx: LaunchesContext): Pro
         });
         query.addCondition(
             `EXISTS (
-                SELECT * FROM launchbagz_farm_rewards fr 
-                INNER JOIN (SELECT unnest(${query.addVariable(contracts)}::text[]) contract, unnest(${query.addVariable(codes)}::text[]) code) ids 
+                SELECT * FROM launchbagz_farm_rewards fr
+                INNER JOIN (SELECT unnest(${query.addVariable(contracts)}::text[]) contract, unnest(${query.addVariable(codes)}::text[]) code) ids
                 ON (fr.reward_token_contract = ids.contract AND fr.reward_token_code = ids.code)
                 WHERE fr.farm_name = f.farm_name AND fr.contract = f.contract
             )`
@@ -38,8 +43,17 @@ export async function getFarms(params: RequestValues, ctx: LaunchesContext): Pro
     }
 
     if (args.staked_token) {
-        const [symbolCode, contract] = args.staked_token.trim().split('@');
-        query.addCondition(`f.staking_token_code = ${query.addVariable(symbolCode)} AND f.staking_token_contract = ${query.addVariable(contract)}`);
+        const codes: string[] = [];
+        const contracts: string[] = [];
+        args.staked_token.trim().split(',').forEach((token: string) => {
+            const [symbolCode, contract] = token.trim().split('@');
+            codes.push(symbolCode);
+            contracts.push(contract);
+        });
+        query.appendToBase(`
+            INNER JOIN (SELECT unnest(${query.addVariable(contracts)}::text[]) contract, unnest(${query.addVariable(codes)}::text[]) code) ids 
+            ON (f.staking_token_contract = ids.contract AND f.staking_token_code = ids.code)
+        `);
     }
 
     if (args.creator) {
@@ -68,6 +82,10 @@ export async function getFarms(params: RequestValues, ctx: LaunchesContext): Pro
         return countQuery.rows[0].counter;
     }
 
+    if (args.staker) {
+        query.appendToBase('LEFT JOIN launchbagz_farm_stakers s ON s.contract = f.contract AND s.farm_name = f.farm_name AND s.owner = ' + query.addVariable(args.staker));
+    }
+
     const sortMapping: {[key: string]: {column: string, nullable: boolean}}  = {
         created_at_time: {column: 'f.created_at_time', nullable: false},
         updated_at_time: {column: 'f.updated_at_time', nullable: false},
@@ -77,14 +95,29 @@ export async function getFarms(params: RequestValues, ctx: LaunchesContext): Pro
     query.append('LIMIT ' + query.addVariable(args.limit) + ' OFFSET ' + query.addVariable((args.page - 1) * args.limit));
 
     const farmsQuery = await ctx.db.query(query.buildString(), query.buildValues());
+
+    const farmStakers: Record<string, { staker_balance: number }> = {};
+    const farmNames: string[] = [];
+    for (const farm of farmsQuery.rows) {
+        farmNames.push(farm.farm_name);
+        if (args.staker) {
+            farmStakers[farm.farm_name] = {
+                staker_balance: farm.balance || '0',
+            };
+        }
+    }
+
     const result = await ctx.db.query(
         'SELECT * FROM launchbagz_farms_master WHERE contract = $1 AND farm_name = ANY ($2)',
-        [ctx.coreArgs.farms_account, farmsQuery.rows.map(row => row.farm_name)]
+        [ctx.coreArgs.farms_account, farmNames]
     );
 
     const farmLookup: {[key: string]: any} = {};
     result.rows.reduce((prev, current) => {
-        prev[String(current.farm_name)] = current;
+        prev[String(current.farm_name)] = {
+            ...current,
+            ...(farmStakers[current.farm_name] || {}),
+        };
         return prev;
     }, farmLookup);
     return farmsQuery.rows.map((row) => farmLookup[String(row.farm_name)]);
