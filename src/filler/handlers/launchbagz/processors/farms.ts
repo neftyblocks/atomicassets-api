@@ -238,7 +238,11 @@ const partnersTableListener = (core: LaunchesHandler, contract: string) => async
             values: [contract, delta.value.wallet],
         });
     } else {
-        await db.replace('launchbagz_farms_partners', {
+        const partner = await db.query('SELECT COUNT(*) FROM launchbagz_farms_partners WHERE contract = $1 AND partner = $2', [contract, delta.value.wallet]);
+        if (Number(partner.rows[0].count) > 0) {
+            return;
+        }
+        await db.insert('launchbagz_farms_partners', {
             contract,
             partner: delta.value.wallet,
         }, ['contract', 'partner']);
