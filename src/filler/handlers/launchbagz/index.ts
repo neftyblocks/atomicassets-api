@@ -77,7 +77,7 @@ export default class LaunchesHandler extends ContractHandler {
     }
 
     static async upgrade(client: PoolClient, version: string): Promise<void> {
-        if (version === '1.3.67') {
+        if (version === '1.3.67' || version === '1.3.69') {
             await client.query(fs.readFileSync('./definitions/views/launchbagz_farms_master.sql', { encoding: 'utf8' }));
         }
     }

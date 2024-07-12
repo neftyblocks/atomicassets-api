@@ -1,3 +1,4 @@
+DROP VIEW launchbagz_farms_master;
 TRUNCATE TABLE launchbagz_farm_stakers CASCADE;
 TRUNCATE TABLE launchbagz_farm_rewards CASCADE;
 TRUNCATE TABLE launchbagz_farms_partners CASCADE;
