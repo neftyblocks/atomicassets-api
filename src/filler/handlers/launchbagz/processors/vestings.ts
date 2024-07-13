@@ -135,7 +135,7 @@ export function vestingsProcessor(core: LaunchesHandler, processor: DataProcesso
         ));
 
         destructors.push(processor.onActionTrace(
-            contract, 'logsplit',
+            contract, 'lognewsplit',
             logSplitListener(core),
             LaunchesUpdatePriority.LOG_SPLIT.valueOf()
         ));
