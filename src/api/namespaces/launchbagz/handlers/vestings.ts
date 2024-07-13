@@ -42,11 +42,6 @@ export async function getVestings(params: RequestValues, ctx: LaunchesContext): 
         query.addCondition(`v.recipient = ${query.addVariable(args.recipient)}`);
     }
 
-    if (args.ids) {
-        const ids = args.ids.trim().split(',').map((x: string) => x.trim());
-        query.addCondition(`v.vesting_id IN (${query.addVariable(ids)})`);
-    }
-
     if (typeof args.is_active === 'boolean') {
         if (args.is_active) {
             query.addCondition('v.total_claimed != v.total_allocation');
