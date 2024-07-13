@@ -66,7 +66,7 @@ const vestingsTableListener = (core: LaunchesHandler) => async (db: ContractDBTr
     const is_active = delta.present;
     if (!is_active) {
         const { rows } = await db.query('SELECT is_active FROM launchbagz_vestings WHERE contract = $1 AND vesting_id = $2', [core.args.vestings_account, delta.value.vesting_id]);
-        if (rows.length > 0 && !rows[0].is_active) {
+        if (rows.length > 0 && rows[0].is_active) {
             await db.update('launchbagz_vestings', {
                 is_active,
             }, {
