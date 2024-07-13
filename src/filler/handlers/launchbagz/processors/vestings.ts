@@ -63,12 +63,14 @@ const claimVestingListener = (core: LaunchesHandler) => async (db: ContractDBTra
 
 const logSplitListener = (core: LaunchesHandler) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogSplitAction>): Promise<void> => {
     const [,tokenCode] = trace.act.data.token.sym.split(',');
-    await db.update('launchbagz_tokens', {
+    await db.replace('launchbagz_tokens', {
+        contract: core.args.registry_account,
+        token_contract: trace.act.data.token.contract,
+        token_code: tokenCode,
         split_vestings: encodeDatabaseArray(trace.act.data.vesting_ids),
-    }, {
-        str: 'contract = $1 AND token_contract = $2 AND token_code = $3',
-        values: [core.args.registry_account, trace.act.data.token.contract, tokenCode]
-    }, ['contract', 'token_contract', 'token_code']);
+        updated_at_block: block.block_num,
+        updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
+    }, ['contract', 'token_contract', 'token_code'], ['image', 'created_at_block', 'created_at_time', 'tx_fee']);
 };
 
 function getVestingDbRow(vesting: VestingTableRow, args: LaunchesArgs, blockNumber: number, blockTimeStamp: string): any {
