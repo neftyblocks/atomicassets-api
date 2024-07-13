@@ -42,7 +42,11 @@ export async function getVestings(params: RequestValues, ctx: LaunchesContext): 
     }
 
     if (typeof args.is_active === 'boolean') {
-        query.addCondition(`v.is_active = ${query.addVariable(args.is_active)}`);
+        if (args.is_active) {
+            query.addCondition('v.total_claimed != v.total_allocation');
+        } else {
+            query.addCondition('v.total_claimed = v.total_allocation');
+        }
     }
 
     let dateColumn = 'v.created_at_time';

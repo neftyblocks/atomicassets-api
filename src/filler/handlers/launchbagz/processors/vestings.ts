@@ -1,6 +1,6 @@
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import {EosioActionTrace, EosioContractRow, EosioTransaction} from '../../../../types/eosio';
+import {EosioActionTrace, EosioTransaction} from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import {eosioTimestampToDate} from '../../../../utils/eosio';
 import {
@@ -54,7 +54,6 @@ const newVestingListener = (core: LaunchesHandler) => async (db: ContractDBTrans
 const claimVestingListener = (core: LaunchesHandler) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogClaimAction>): Promise<void> => {
     await db.update('launchbagz_vestings', {
         total_claimed: trace.act.data.new_total_claimed,
-        is_active: trace.act.data.new_total_claimed !== trace.act.data.total_allocation,
         last_claim_time: eosioTimestampToDate(block.timestamp).getTime(),
     }, {
         str: 'contract = $1 AND vesting_id = $2',
@@ -70,18 +69,6 @@ const logSplitListener = (core: LaunchesHandler) => async (db: ContractDBTransac
         str: 'contract = $1 AND token_contract = $2 AND token_code = $3',
         values: [core.args.registry_account, trace.act.data.token.contract, tokenCode]
     }, ['contract', 'token_contract', 'token_code']);
-};
-
-const vestingsTableListener = (core: LaunchesHandler) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<VestingTableRow>): Promise<void> => {
-    const is_active = delta.present;
-    if (!is_active) {
-        await db.update('launchbagz_vestings', {
-            is_active,
-        }, {
-            str: 'contract = $1 AND vesting_id = $2',
-            values: [core.args.vestings_account, delta.value.vesting_id]
-        }, ['contract', 'vesting_id']);
-    }
 };
 
 function getVestingDbRow(vesting: VestingTableRow, args: LaunchesArgs, blockNumber: number, blockTimeStamp: string): any {
@@ -103,7 +90,6 @@ function getVestingDbRow(vesting: VestingTableRow, args: LaunchesArgs, blockNumb
         period_length: vesting.period_length * 1000,
         total_periods: vesting.total_periods,
         description: vesting.description,
-        is_active: true,
         updated_at_block: blockNumber || 0,
         updated_at_time: blockTimeStamp ? eosioTimestampToDate(blockTimeStamp).getTime() : 0,
         created_at_block: blockNumber || 0,
@@ -116,12 +102,6 @@ export function vestingsProcessor(core: LaunchesHandler, processor: DataProcesso
     const contract = core.args.vestings_account;
 
     if (contract) {
-        destructors.push(processor.onContractRow(
-            contract, 'vestings',
-            vestingsTableListener(core),
-            LaunchesUpdatePriority.TABLE_VESTINGS.valueOf()
-        ));
-
         destructors.push(processor.onActionTrace(
             contract, 'lognewvesting',
             newVestingListener(core),

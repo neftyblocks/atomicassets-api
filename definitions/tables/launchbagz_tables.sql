@@ -49,7 +49,6 @@ CREATE TABLE launchbagz_vestings
     period_length    bigint                NOT NULL,
     total_periods    bigint                NOT NULL,
     description      text                  NOT NULL,
-    is_active        boolean               NOT NULL DEFAULT TRUE,
     updated_at_block bigint                NOT NULL,
     updated_at_time  bigint                NOT NULL,
     created_at_block bigint                NOT NULL,
@@ -150,8 +149,6 @@ CREATE
     INDEX launchbagz_vestings_recipient ON launchbagz_vestings USING btree (recipient);
 CREATE
     INDEX launchbagz_vestings_owner ON launchbagz_vestings USING btree (owner);
-CREATE
-    INDEX launchbagz_vestings_active ON launchbagz_vestings USING btree (is_active);
 CREATE
     INDEX launchbagz_vestings_created_at_time ON launchbagz_vestings USING btree (created_at_time);
 CREATE
