@@ -15,6 +15,7 @@ export async function getVestings(params: RequestValues, ctx: LaunchesContext): 
         token: {type: 'string', default: ''},
         owner: {type: 'string', default: ''},
         recipient: {type: 'string', default: ''},
+        ids: {type: 'string', default: ''},
         is_active: { type: 'bool'},
     });
 
@@ -39,6 +40,11 @@ export async function getVestings(params: RequestValues, ctx: LaunchesContext): 
 
     if (args.recipient) {
         query.addCondition(`v.recipient = ${query.addVariable(args.recipient)}`);
+    }
+
+    if (args.ids) {
+        const ids = args.ids.trim().split(',').map((x: string) => x.trim());
+        query.addCondition(`v.vesting_id IN (${query.addVariable(ids)})`);
     }
 
     if (typeof args.is_active === 'boolean') {
@@ -86,4 +92,13 @@ export async function getVestings(params: RequestValues, ctx: LaunchesContext): 
 
 export async function getVestingsCount(params: RequestValues, ctx: LaunchesContext): Promise<any> {
     return getVestings({...params, count: 'true'}, ctx);
+}
+
+export async function getTokenSplits(params: RequestValues, ctx: LaunchesContext): Promise<any> {
+    const idsQuery = await ctx.db.query('SELECT split_vestings FROM launchbagz_tokens WHERE token_contract = $1 AND token_code = $2', [ctx.pathParams.token_contract, ctx.pathParams.token_code]);
+    const ids = idsQuery.rows[0]?.split_vestings || [];
+    if (!ids.length) {
+        return [];
+    }
+    return getVestings({...params, ids: ids.join(',')}, ctx);
 }

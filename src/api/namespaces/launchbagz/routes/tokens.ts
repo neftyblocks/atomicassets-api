@@ -7,6 +7,7 @@ import {
 } from '../../../docs';
 import {getToken, getTokensAction} from '../handlers/tokens';
 import {LaunchesNamespace} from '../index';
+import {getTokenSplits} from '../handlers/vestings';
 
 export function tokensEndpoints(core: LaunchesNamespace, server: HTTPServer, router: express.Router): any {
     const { caching, returnAsJSON } = server.web;
@@ -19,6 +20,11 @@ export function tokensEndpoints(core: LaunchesNamespace, server: HTTPServer, rou
         '/v1/tokens/:token_contract/:token_code',
         caching(),
         returnAsJSON(getToken, core)
+    );
+    router.all(
+        '/v1/tokens/:token_contract/:token_code/splits',
+        caching(),
+        returnAsJSON(getTokenSplits, core)
     );
 
     return {
@@ -88,6 +94,29 @@ export function tokensEndpoints(core: LaunchesNamespace, server: HTTPServer, rou
                         },
                     ],
                     responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/TokenDetails'})
+                }
+            },
+            '/v1/tokens/{token_contract}/{token_code}/splits': {
+                get: {
+                    tags: ['launchbagz'],
+                    summary: 'Get the split vestings for a specific token',
+                    parameters: [
+                        {
+                            in: 'path',
+                            name: 'token_contract',
+                            description: 'Token contract',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                        {
+                            in: 'path',
+                            name: 'token_code',
+                            description: 'Token code',
+                            required: true,
+                            schema: {type: 'string'}
+                        },
+                    ],
+                    responses: getOpenAPI3Responses([200, 416, 500], {'$ref': '#/components/schemas/VestingDetails'})
                 }
             },
         }
