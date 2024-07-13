@@ -65,15 +65,12 @@ const claimVestingListener = (core: LaunchesHandler) => async (db: ContractDBTra
 const vestingsTableListener = (core: LaunchesHandler) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<VestingTableRow>): Promise<void> => {
     const is_active = delta.present;
     if (!is_active) {
-        const { rows } = await db.query('SELECT is_active FROM launchbagz_vestings WHERE contract = $1 AND vesting_id = $2', [core.args.vestings_account, delta.value.vesting_id]);
-        if (rows.length > 0 && rows[0].is_active) {
-            await db.update('launchbagz_vestings', {
-                is_active,
-            }, {
-                str: 'contract = $1 AND vesting_id = $2',
-                values: [core.args.vestings_account, delta.value.vesting_id]
-            }, ['contract', 'vesting_id']);
-        }
+        await db.update('launchbagz_vestings', {
+            is_active,
+        }, {
+            str: 'contract = $1 AND vesting_id = $2',
+            values: [core.args.vestings_account, delta.value.vesting_id]
+        }, ['contract', 'vesting_id']);
     }
 };
 
