@@ -45,3 +45,11 @@ export type LogClaimAction = {
     new_total_claimed: string,
     total_allocation: string,
 };
+
+export type LogSplitAction = {
+    token: {
+        sym: string,
+        contract: string,
+    }
+    vesting_ids: string[],
+};

@@ -8,13 +8,13 @@ import {
     LaunchesUpdatePriority,
 } from '../index';
 import {
-    bulkInsert,
+    bulkInsert, encodeDatabaseArray,
     getAllRowsFromTable,
 } from '../../../utils';
 import {VestingTableRow} from '../types/tables';
 import LaunchesHandler from '../index';
 import ConnectionManager from '../../../../connections/manager';
-import {LogClaimAction, LogNewLaunchAction, LogNewVestingAction} from '../types/actions';
+import {LogClaimAction, LogNewVestingAction, LogSplitAction} from '../types/actions';
 
 const fillVestings = async (args: LaunchesArgs, connection: ConnectionManager): Promise<void> => {
     const vestingsCount = await connection.database.query(
@@ -60,6 +60,16 @@ const claimVestingListener = (core: LaunchesHandler) => async (db: ContractDBTra
         str: 'contract = $1 AND vesting_id = $2',
         values: [core.args.vestings_account, trace.act.data.vesting_id]
     }, ['contract', 'vesting_id']);
+};
+
+const logSplitListener = (core: LaunchesHandler) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogSplitAction>): Promise<void> => {
+    const [,tokenCode] = trace.act.data.token.sym.split(',');
+    await db.update('launchbagz_tokens', {
+        split_vestings: encodeDatabaseArray(trace.act.data.vesting_ids),
+    }, {
+        str: 'contract = $1 AND token_contract = $2 AND token_code = $3',
+        values: [core.args.registry_account, trace.act.data.token.contract, tokenCode]
+    }, ['contract', 'token_contract', 'token_code']);
 };
 
 const vestingsTableListener = (core: LaunchesHandler) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<VestingTableRow>): Promise<void> => {
@@ -122,6 +132,12 @@ export function vestingsProcessor(core: LaunchesHandler, processor: DataProcesso
             contract, 'logclaim',
             claimVestingListener(core),
             LaunchesUpdatePriority.LOG_CLAIM_VESTING.valueOf()
+        ));
+
+        destructors.push(processor.onActionTrace(
+            contract, 'logsplit',
+            logSplitListener(core),
+            LaunchesUpdatePriority.LOG_SPLIT.valueOf()
         ));
     }
 
