@@ -68,7 +68,7 @@ const logSplitListener = (core: LaunchesHandler) => async (db: ContractDBTransac
         token_contract: trace.act.data.token.contract,
         token_code: tokenCode,
         image: '',
-        tx_fees: 0,
+        tx_fee: 0,
         split_vestings: encodeDatabaseArray(trace.act.data.vesting_ids),
         created_at_block: block.block_num,
         created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
