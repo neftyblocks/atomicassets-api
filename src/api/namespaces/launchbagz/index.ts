@@ -7,6 +7,7 @@ import { launchBagzComponents } from './openapi';
 import { ActionHandlerContext } from '../../actionhandler';
 import {launchesEndpoints} from './routes/launches';
 import {farmsEndpoints} from './routes/farms';
+import {vestingsEndpoints} from './routes/vestings';
 
 export type LaunchesNamespaceArgs = {
     atomicassets_account: string,
@@ -38,6 +39,7 @@ export class LaunchesNamespace extends ApiNamespace {
         endpointsDocs.push(tokensEndpoints(this, server, router));
         endpointsDocs.push(launchesEndpoints(this, server, router));
         endpointsDocs.push(farmsEndpoints(this, server, router));
+        endpointsDocs.push(vestingsEndpoints(this, server, router));
 
         for (const doc of endpointsDocs) {
             if (doc.tag) {

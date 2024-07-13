@@ -1,4 +1,3 @@
-
 export const launchBagzComponents = {
     LaunchMinimal: {
         type: 'object',
@@ -48,15 +47,15 @@ export const launchBagzComponents = {
     TokenFarm: {
         type: 'object',
         properties: {
-            contract: { type: 'string' },
-            farm_name: { type: 'string' },
-            creator: { type: 'string' },
-            original_creator: { type: 'string' },
+            contract: {type: 'string'},
+            farm_name: {type: 'string'},
+            creator: {type: 'string'},
+            original_creator: {type: 'string'},
             staking_token: {
                 type: 'object',
                 properties: {
-                    token_contract: { type: 'string' },
-                    token_symbol: { type: 'string' },
+                    token_contract: {type: 'string'},
+                    token_symbol: {type: 'string'},
                     token_precision: {
                         type: 'integer',
                         format: 'int32'
@@ -101,8 +100,8 @@ export const launchBagzComponents = {
                         token: {
                             type: 'object',
                             properties: {
-                                token_contract: { type: 'string' },
-                                token_symbol: { type: 'string' },
+                                token_contract: {type: 'string'},
+                                token_symbol: {type: 'string'},
                                 token_precision: {
                                     'type': 'integer',
                                     'format': 'int32'
@@ -124,23 +123,23 @@ export const launchBagzComponents = {
                 type: 'integer',
                 format: 'int64'
             },
-            updated_at_block: { type: 'string'},
-            updated_at_time: { type: 'string' },
-            created_at_block: { type: 'string' },
-            created_at_time: { type: 'string' }
+            updated_at_block: {type: 'string'},
+            updated_at_time: {type: 'string'},
+            created_at_block: {type: 'string'},
+            created_at_time: {type: 'string'}
         },
     },
     FarmStaker: {
         type: 'object',
         properties: {
-            contract: { type: 'string' },
-            farm_name: { type: 'string' },
-            owner: { type: 'string' },
+            contract: {type: 'string'},
+            farm_name: {type: 'string'},
+            owner: {type: 'string'},
             balance: {
                 type: 'object',
                 properties: {
-                    token_contract: { type: 'string' },
-                    token_symbol: { type: 'string' },
+                    token_contract: {type: 'string'},
+                    token_symbol: {type: 'string'},
                     token_precision: {
                         'type': 'integer',
                         'format': 'int32'
@@ -155,9 +154,31 @@ export const launchBagzComponents = {
                 type: 'integer',
                 format: 'int32'
             },
-            vesting_end_time: { type: 'string' },
-            updated_at_block: { type: 'string'},
-            updated_at_time: { type: 'string' },
+            vesting_end_time: {type: 'string'},
+            updated_at_block: {type: 'string'},
+            updated_at_time: {type: 'string'},
         },
+    },
+    VestingDetails: {
+        contract: {type: 'string'},
+        vesting_id: {type: 'string'},
+        recipient: {type: 'string'},
+        owner: {type: 'string'},
+        token_contract: {type: 'string'},
+        token_code: {type: 'string'},
+        token_precision: {type: 'integer', format: 'int32'},
+        start_time: {type: 'string'},
+        last_claim_time: {type: 'string'},
+        total_claimed: {type: 'string'},
+        immediate_unlock: {type: 'string'},
+        total_allocation: {type: 'string'},
+        period_length: {type: 'string'},
+        total_periods: {type: 'string'},
+        description: {type: 'string'},
+        is_active: {type: 'boolean'},
+        updated_at_block: {type: 'string'},
+        updated_at_time: {type: 'string'},
+        created_at_block: {type: 'string'},
+        created_at_time: {type: 'string'}
     }
 };

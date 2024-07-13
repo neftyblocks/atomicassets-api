@@ -151,6 +151,14 @@ CREATE
     INDEX launchbagz_vestings_owner ON launchbagz_vestings USING btree (owner);
 CREATE
     INDEX launchbagz_vestings_active ON launchbagz_vestings USING btree (is_active);
+CREATE
+    INDEX launchbagz_vestings_created_at_time ON launchbagz_vestings USING btree (created_at_time);
+CREATE
+    INDEX launchbagz_vestings_updated_at_time ON launchbagz_vestings USING btree (updated_at_time);
+CREATE
+    INDEX launchbagz_vestings_start_time ON launchbagz_vestings USING btree (start_time);
+CREATE
+    INDEX launchbagz_vestings_total_allocation ON launchbagz_vestings USING btree (total_allocation);
 
 CREATE
     INDEX launchbagz_farms_staking_token_contract_code ON launchbagz_farms USING btree (staking_token_contract, staking_token_code);
