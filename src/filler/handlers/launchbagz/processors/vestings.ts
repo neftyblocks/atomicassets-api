@@ -1,6 +1,6 @@
 import DataProcessor from '../../../processor';
 import { ContractDBTransaction } from '../../../database';
-import {EosioContractRow} from '../../../../types/eosio';
+import {EosioActionTrace, EosioContractRow, EosioTransaction} from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import {eosioTimestampToDate} from '../../../../utils/eosio';
 import {
@@ -14,6 +14,7 @@ import {
 import {VestingTableRow} from '../types/tables';
 import LaunchesHandler from '../index';
 import ConnectionManager from '../../../../connections/manager';
+import {LogClaimAction, LogNewLaunchAction, LogNewVestingAction} from '../types/actions';
 
 const fillVestings = async (args: LaunchesArgs, connection: ConnectionManager): Promise<void> => {
     const vestingsCount = await connection.database.query(
@@ -41,17 +42,34 @@ export async function initVestings(args: LaunchesArgs, connection: ConnectionMan
     }
 }
 
+const newVestingListener = (core: LaunchesHandler) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogNewVestingAction>): Promise<void> => {
+    const row = getVestingDbRow({
+        ...trace.act.data,
+        last_claim_time: 0,
+        total_claimed: '0',
+    }, core.args, block.block_num, block.timestamp);
+    await db.insert('launchbagz_vestings', row, ['contract', 'vesting_id']);
+};
+
+const claimVestingListener = (core: LaunchesHandler) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogClaimAction>): Promise<void> => {
+    await db.update('launchbagz_vestings', {
+        total_claimed: trace.act.data.new_total_claimed,
+        is_active: trace.act.data.new_total_claimed !== trace.act.data.total_allocation,
+        last_claim_time: eosioTimestampToDate(block.timestamp).getTime(),
+    }, {
+        str: 'contract = $1 AND vesting_id = $2',
+        values: [core.args.vestings_account, trace.act.data.vesting_id]
+    }, ['contract', 'vesting_id']);
+};
+
 const vestingsTableListener = (core: LaunchesHandler) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<VestingTableRow>): Promise<void> => {
     const is_active = delta.present;
-    const row = getVestingDbRow(delta.value, core.args, block.block_num, block.timestamp);
-    if (!is_active && row.total_claimed !== row.total_allocation) {
-        row.total_claimed = row.total_allocation;
-        row.last_claim_time = row.updated_at_time;
-    }
-    await db.replace('launchbagz_vestings', {
-        ...row,
+    await db.update('launchbagz_vestings', {
         is_active,
-    }, ['contract', 'vesting_id'], ['created_at_block', 'created_at_time']);
+    }, {
+        str: 'contract = $1 AND vesting_id = $2',
+        values: [core.args.vestings_account, delta.value.vesting_id]
+    }, ['contract', 'vesting_id']);
 };
 
 function getVestingDbRow(vesting: VestingTableRow, args: LaunchesArgs, blockNumber: number, blockTimeStamp: string): any {
@@ -90,6 +108,18 @@ export function vestingsProcessor(core: LaunchesHandler, processor: DataProcesso
             contract, 'vestings',
             vestingsTableListener(core),
             LaunchesUpdatePriority.TABLE_VESTINGS.valueOf()
+        ));
+
+        destructors.push(processor.onActionTrace(
+            contract, 'lognewvesting',
+            newVestingListener(core),
+            LaunchesUpdatePriority.LOG_NEW_VESTING.valueOf()
+        ));
+
+        destructors.push(processor.onActionTrace(
+            contract, 'logclaim',
+            claimVestingListener(core),
+            LaunchesUpdatePriority.LOG_CLAIM_VESTING.valueOf()
         ));
     }
 
