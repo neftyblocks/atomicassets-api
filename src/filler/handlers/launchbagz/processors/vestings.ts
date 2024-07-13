@@ -44,6 +44,10 @@ export async function initVestings(args: LaunchesArgs, connection: ConnectionMan
 const vestingsTableListener = (core: LaunchesHandler) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<VestingTableRow>): Promise<void> => {
     const is_active = delta.present;
     const row = getVestingDbRow(delta.value, core.args, block.block_num, block.timestamp);
+    if (!is_active && row.total_claimed !== row.total_allocation) {
+        row.total_claimed = row.total_allocation;
+        row.last_claim_time = row.updated_at_time;
+    }
     await db.replace('launchbagz_vestings', {
         ...row,
         is_active,
