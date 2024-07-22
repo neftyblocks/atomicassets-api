@@ -977,6 +977,23 @@ function getSuperBlendIngredients(ingredients: any[], blend_collection: string):
                 effect,
                 index,
             };
+        } else if (type === BlendIngredientType.COOLDOWN_INGREDIENT) {
+            return {
+                type,
+                collection_name: blend_collection,
+                schema_name: payload.schema_name,
+                ft_ingredient_quantity_price: null,
+                ft_ingredient_quantity_symbol: null,
+                balance_ingredient_attribute_name: payload.attribute_name || '',
+                balance_ingredient_cost: payload.wait_time || 0,
+                template_id: payload.template_id,
+                attributes: [],
+                typed_attributes: [],
+                display_data: payload.display_data,
+                amount: 1,
+                effect,
+                index,
+            };
         } else if (type === BlendIngredientType.TYPED_ATTRIBUTE_INGREDIENT) {
             return {
                 type,

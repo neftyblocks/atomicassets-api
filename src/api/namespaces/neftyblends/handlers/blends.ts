@@ -453,6 +453,26 @@ export async function getBlendIngredientAssets(params: RequestValues, ctx: Nefty
         query.equal('asset.template_id', ingredient.template.template_id);
         query.addCondition(`(asset.mutable_data->>${balanceNameVar})::BIGINT >= ${costVar}::BIGINT`);
         requiresTransferable = false;
+    } else if (ingredient.type === BlendIngredientType.COOLDOWN_INGREDIENT) {
+        const attributes = ingredient.requirements;
+        balanceNameVar = query.addVariable(ingredient.template.attribute_name);
+        query.equal('asset.template_id', ingredient.template.template_id);
+        const conditions: Record<string, any> = {};
+        for (const attribute of attributes.attributes) {
+            const attributeNameVar = query.addVariable(attribute.name);
+            const attributeValueVar = query.addVariable(attribute.allowed_values);
+            query.addCondition('((' +
+                '(asset.mutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+') OR asset.immutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+')) ' +
+                'AND ' +
+                '(asset.mutable_data || asset.immutable_data) != \'{}\' ' +
+                ') ' +
+                'OR ' +
+                '"template".immutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+') ' +
+                ')');
+            conditions[attribute.name] = attribute.allowed_values;
+        }
+
+        requiresTransferable = false;
     }
 
     if (requiresTransferable) {
