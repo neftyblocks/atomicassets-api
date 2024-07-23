@@ -987,7 +987,7 @@ function getSuperBlendIngredients(ingredients: any[], blend_collection: string):
                 balance_ingredient_attribute_name: payload.attribute_name || '',
                 balance_ingredient_cost: payload.wait_time || 0,
                 template_id: payload.template_id,
-                attributes: [],
+                attributes: payload.requirements || [],
                 typed_attributes: [],
                 display_data: payload.display_data,
                 amount: 1,

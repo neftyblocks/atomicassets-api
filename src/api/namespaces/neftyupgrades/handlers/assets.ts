@@ -10,6 +10,7 @@ import {
 import {hasAssetFilter, hasDataFilters} from '../../atomicassets/utils';
 import {fillAssets} from '../../atomicassets/filler';
 import {formatAsset} from '../../atomicassets/format';
+import {BlendIngredientType} from '../../../../filler/handlers/blends';
 export async function getUpgradeIngredientAssets(params: RequestValues, ctx: NeftyUpgradesContext): Promise<any> {
     const args = await filterQueryArgs(params, {
         page: {type: 'int', min: 1, default: 1},
@@ -105,6 +106,26 @@ export async function getUpgradeIngredientAssets(params: RequestValues, ctx: Nef
         const costVar = query.addVariable(ingredient.template.cost);
         query.equal('asset.template_id', ingredient.template.template_id);
         query.addCondition(`(asset.mutable_data->>${balanceNameVar})::BIGINT >= ${costVar}::BIGINT`);
+        requiresTransferable = false;
+    } else if (ingredient.type === UpgradeIngredientType.COOLDOWN_INGREDIENT) {
+        const attributes = ingredient.requirements;
+        balanceNameVar = query.addVariable(ingredient.template.attribute_name);
+        query.equal('asset.template_id', ingredient.template.template_id);
+        const conditions: Record<string, any> = {};
+        for (const attribute of attributes.attributes) {
+            const attributeNameVar = query.addVariable(attribute.name);
+            const attributeValueVar = query.addVariable(attribute.allowed_values);
+            query.addCondition('((' +
+                '(asset.mutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+') OR asset.immutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+')) ' +
+                'AND ' +
+                '(asset.mutable_data || asset.immutable_data) != \'{}\' ' +
+                ') ' +
+                'OR ' +
+                '"template".immutable_data->>'+attributeNameVar+' = ANY('+attributeValueVar+') ' +
+                ')');
+            conditions[attribute.name] = attribute.allowed_values;
+        }
+
         requiresTransferable = false;
     }
 

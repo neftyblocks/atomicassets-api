@@ -127,6 +127,13 @@ export default class BlendsHandler extends ContractHandler {
                 await client.query(fs.readFileSync('./definitions/functions/' + fn + '.sql', {encoding: 'utf8'}));
             }
         }
+
+        if (version === '1.3.72') {
+            for (const view of views) {
+                logger.info(`Refreshing views ${view}`);
+                await client.query(fs.readFileSync('./definitions/views/' + view + '.sql', {encoding: 'utf8'}));
+            }
+        }
     }
 
     constructor(filler: Filler, args: {[key: string]: any}) {

@@ -26,6 +26,7 @@ SELECT
             WHEN ingredient.ingredient_type = 'COLLECTION_INGREDIENT' THEN 'collection'
             WHEN ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' THEN 'attributes'
             WHEN ingredient.ingredient_type = 'BALANCE_INGREDIENT' THEN 'template'
+            WHEN ingredient.ingredient_type = 'COOLDOWN_INGREDIENT' THEN 'template'
             WHEN ingredient.ingredient_type = 'TYPED_ATTRIBUTE_INGREDIENT' THEN 'typed_attributes'
             WHEN ingredient.ingredient_type = 'FT_INGREDIENT' THEN 'ft_amount'
         END,
@@ -55,6 +56,14 @@ SELECT
                     'schema_name', ingredient.schema_name,
                     'attribute_name', ingredient.balance_ingredient_attribute_name,
                     'cost', ingredient.balance_ingredient_cost
+                )
+            WHEN ingredient.ingredient_type = 'COOLDOWN_INGREDIENT' THEN
+                jsonb_build_object(
+                    'template_id', ingredient.template_id,
+                    'schema_name', ingredient.schema_name,
+                    'attribute_name', ingredient.balance_ingredient_attribute_name,
+                    'wait_time', ingredient.balance_ingredient_cost,
+                    'requirements', attribute_ing_sub.attributes
                 )
             WHEN ingredient.ingredient_type = 'TYPED_ATTRIBUTE_INGREDIENT' THEN
                 jsonb_build_object(

@@ -22,6 +22,7 @@ import {
 } from '../types/actions';
 import { preventInt64Overflow } from '../../../../utils/binary';
 import UpgradesHandler from '../index';
+import {BlendIngredientType} from '../../blends';
 
 const fillUpgrades = async (args: UpgradesArgs, connection: ConnectionManager, contract: string): Promise<void> => {
     const upgradesCount = await connection.database.query(
@@ -592,6 +593,23 @@ function getUpgradeIngredients(ingredients: any[], upgrade_collection: string): 
                 balance_ingredient_cost: payload.cost || 0,
                 template_id: payload.template_id,
                 attributes: [],
+                typed_attributes: [],
+                display_data: payload.display_data,
+                amount: 1,
+                effect,
+                index,
+            };
+        } else if (type === UpgradeIngredientType.COOLDOWN_INGREDIENT) {
+            return {
+                type,
+                collection_name: upgrade_collection,
+                schema_name: payload.schema_name,
+                ft_ingredient_quantity_price: null,
+                ft_ingredient_quantity_symbol: null,
+                balance_ingredient_attribute_name: payload.attribute_name || '',
+                balance_ingredient_cost: payload.wait_time || 0,
+                template_id: payload.template_id,
+                attributes: payload.requirements || [],
                 typed_attributes: [],
                 display_data: payload.display_data,
                 amount: 1,

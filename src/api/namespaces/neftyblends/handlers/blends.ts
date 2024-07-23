@@ -158,7 +158,13 @@ export async function getIngredientOwnershipBlendFilter(params: RequestValues, c
                             (
                                 (a.mutable_data->>i.balance_ingredient_attribute_name)::numeric >= i.balance_ingredient_cost
                             )
-                        )) AND a.owner = ${'$' + (++queryVarCounter)} WHERE`
+                        ) OR 
+                        (
+                             i.ingredient_type = 'COOLDOWN_INGREDIENT' AND
+                             a.template_id = i.template_id AND 
+                             is_ingredient_attribute_match(a.template_id, b.blend_id, i.ingredient_index, i.total_attributes)
+                        )
+                        ) AND a.owner = ${'$' + (++queryVarCounter)} WHERE`
             ;
 
         // add `WHERE` conditions in filter subquery:
