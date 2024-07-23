@@ -108,11 +108,11 @@ export async function getUpgradeIngredientAssets(params: RequestValues, ctx: Nef
         query.addCondition(`(asset.mutable_data->>${balanceNameVar})::BIGINT >= ${costVar}::BIGINT`);
         requiresTransferable = false;
     } else if (ingredient.type === UpgradeIngredientType.COOLDOWN_INGREDIENT) {
-        const attributes = ingredient.requirements;
+        const requirements = ingredient.template.requirements || [];
         balanceNameVar = query.addVariable(ingredient.template.attribute_name);
         query.equal('asset.template_id', ingredient.template.template_id);
         const conditions: Record<string, any> = {};
-        for (const attribute of attributes.attributes) {
+        for (const attribute of requirements) {
             const attributeNameVar = query.addVariable(attribute.name);
             const attributeValueVar = query.addVariable(attribute.allowed_values);
             query.addCondition('((' +

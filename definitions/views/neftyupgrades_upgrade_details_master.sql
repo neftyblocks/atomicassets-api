@@ -101,7 +101,7 @@ FROM neftyupgrades_upgrades upgrade
                    FROM neftyupgrades_upgrade_ingredient_attributes ing_attribute
                    GROUP BY ing_attribute.contract, ing_attribute.upgrade_id,
                             ing_attribute.ingredient_index) as attribute_ing_sub ON
-    ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' AND
+    (ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' OR ingredient.ingredient_type = 'COOLDOWN_INGREDIENT') AND
     attribute_ing_sub.contract = ingredient.contract AND
     attribute_ing_sub.upgrade_id = ingredient.upgrade_id AND
     attribute_ing_sub.ingredient_index = ingredient.ingredient_index

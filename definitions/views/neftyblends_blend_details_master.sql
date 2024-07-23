@@ -114,7 +114,7 @@ FROM
         GROUP BY
             ing_attribute.contract, ing_attribute.blend_id, ing_attribute.ingredient_index
     ) as attribute_ing_sub ON
-        ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' AND
+        (ingredient.ingredient_type = 'ATTRIBUTE_INGREDIENT' OR ingredient.ingredient_type = 'COOLDOWN_INGREDIENT') AND
         attribute_ing_sub.contract = ingredient.contract AND
         attribute_ing_sub.blend_id = ingredient.blend_id AND
         attribute_ing_sub.ingredient_index = ingredient.ingredient_index
