@@ -461,7 +461,6 @@ export async function getBlendIngredientAssets(params: RequestValues, ctx: Nefty
         requiresTransferable = false;
     } else if (ingredient.type === BlendIngredientType.COOLDOWN_INGREDIENT) {
         const requirements = ingredient.template.requirements || [];
-        balanceNameVar = query.addVariable(ingredient.template.attribute_name);
         query.equal('asset.template_id', ingredient.template.template_id);
         const conditions: Record<string, any> = {};
         for (const attribute of requirements) {
