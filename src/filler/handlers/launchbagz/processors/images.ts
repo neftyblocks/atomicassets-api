@@ -9,7 +9,7 @@ import {
 import {ImageTableRow} from '../types/tables';
 import LaunchesHandler from '../index';
 
-const imagesTableListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<ImageTableRow>): Promise<void> => {
+const imagesTableListener = () => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<ImageTableRow>): Promise<void> => {
     if (!delta.present) {
         await db.delete('launchbagz_tokens', {
             str: 'token_contract = $1 AND token_code = $2',
@@ -35,7 +35,7 @@ const imagesTableListener = (core: LaunchesHandler, contract: string) => async (
                 updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
             }, {
                 str: 'token_contract = $1 AND token_code = $2',
-                values: [contract, delta.scope, delta.value.code]
+                values: [delta.scope, delta.value.code]
             }, ['token_contract', 'token_code']);
         }
     }
@@ -47,7 +47,7 @@ export function imagesProcessor(core: LaunchesHandler, processor: DataProcessor)
 
     destructors.push(processor.onContractRow(
         contract, 'images',
-        imagesTableListener(core, contract),
+        imagesTableListener(),
         LaunchesUpdatePriority.TABLE_IMAGES.valueOf()
     ));
 
