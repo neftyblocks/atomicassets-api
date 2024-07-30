@@ -110,8 +110,8 @@ export default class LaunchesHandler extends ContractHandler {
         );
 
         await client.query(
-            'DELETE FROM ' + client.escapeIdentifier('launchbagz_tokens') + ' WHERE contract = $1',
-            [this.args.registry_account]
+            'DELETE FROM ' + client.escapeIdentifier('launchbagz_tokens'),
+            []
         );
 
         await client.query(

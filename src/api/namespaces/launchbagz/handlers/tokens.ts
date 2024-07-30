@@ -19,8 +19,6 @@ export async function getTokensAction(params: RequestValues, ctx: LaunchesContex
                 FROM launchbagz_tokens as t
             `);
 
-    query.equal('t.contract', ctx.coreArgs.registry_account);
-
     if (args.has_fees !== undefined) {
         if (args.has_fees) {
             query.addCondition('t.tx_fee > 0');

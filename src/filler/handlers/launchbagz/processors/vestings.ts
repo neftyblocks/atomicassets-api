@@ -61,10 +61,10 @@ const claimVestingListener = (core: LaunchesHandler) => async (db: ContractDBTra
     }, ['contract', 'vesting_id']);
 };
 
-const logSplitListener = (core: LaunchesHandler) => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogSplitAction>): Promise<void> => {
+const logSplitListener = () => async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogSplitAction>): Promise<void> => {
     const [,tokenCode] = trace.act.data.token.sym.split(',');
     await db.replace('launchbagz_tokens', {
-        contract: core.args.registry_account,
+        contract: trace.act.data.token.contract,
         token_contract: trace.act.data.token.contract,
         token_code: tokenCode,
         image: '',
@@ -74,7 +74,7 @@ const logSplitListener = (core: LaunchesHandler) => async (db: ContractDBTransac
         created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
         updated_at_block: block.block_num,
         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-    }, ['contract', 'token_contract', 'token_code'], ['image', 'created_at_block', 'created_at_time', 'tx_fee']);
+    }, ['token_contract', 'token_code'], ['contract', 'image', 'created_at_block', 'created_at_time', 'tx_fee']);
 };
 
 function getVestingDbRow(vesting: VestingTableRow, args: LaunchesArgs, blockNumber: number, blockTimeStamp: string): any {
@@ -122,7 +122,7 @@ export function vestingsProcessor(core: LaunchesHandler, processor: DataProcesso
 
         destructors.push(processor.onActionTrace(
             contract, 'lognewsplit',
-            logSplitListener(core),
+            logSplitListener(),
             LaunchesUpdatePriority.LOG_SPLIT.valueOf()
         ));
     }

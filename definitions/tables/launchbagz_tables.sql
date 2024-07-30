@@ -29,7 +29,7 @@ CREATE TABLE launchbagz_tokens
     updated_at_time  bigint                NOT NULL,
     created_at_block bigint                NOT NULL,
     created_at_time  bigint                NOT NULL,
-    CONSTRAINT launchbagz_tokens_pkey PRIMARY KEY (contract, token_contract, token_code)
+    CONSTRAINT launchbagz_tokens_pkey PRIMARY KEY (token_contract, token_code)
 );
 
 CREATE TABLE launchbagz_vestings
@@ -134,8 +134,6 @@ CREATE
 CREATE
     INDEX launchbagz_launches_updated_at_time ON launchbagz_launches USING btree (updated_at_time);
 
-CREATE
-    INDEX launchbagz_tokens_token_contract_code ON launchbagz_tokens USING btree (token_contract, token_code);
 CREATE
     INDEX launchbagz_tokens_created_at_time ON launchbagz_tokens USING btree (created_at_time);
 CREATE

@@ -21,7 +21,7 @@ const storeFee = async (registryContract: string, tokenContract: string, tokenCo
         created_at_time: eosioTimestampToDate(block.timestamp).getTime(),
         updated_at_block: block.block_num,
         updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-    }, ['contract', 'token_contract', 'token_code'], ['created_at_block', 'created_at_time', 'image']);
+    }, ['token_contract', 'token_code'], ['created_at_block', 'created_at_time', 'image']);
 };
 const launchBagzConfigTableListener = (core: LaunchesHandler, contract: string) => async (db: ContractDBTransaction, block: ShipBlock, delta: EosioContractRow<TokenConfigTableRow>): Promise<void> => {
     try {
@@ -70,13 +70,13 @@ export function feesProcessor(core: LaunchesHandler, processor: DataProcessor): 
 
     destructors.push(processor.onContractRow(
         'chadtoken.gm', 'txfees',
-        chadConfigTableListener(core, contract),
+        chadConfigTableListener(core, 'chadtoken.gm'),
         LaunchesUpdatePriority.TABLE_CONFIGS.valueOf()
     ));
 
     destructors.push(processor.onContractRow(
         'waxpepetoken', 'txfeecfg',
-        kekConfigTableListener(core, contract),
+        kekConfigTableListener(core, 'waxpepetoken'),
         LaunchesUpdatePriority.TABLE_CONFIGS.valueOf()
     ));
 
