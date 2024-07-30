@@ -8,4 +8,3 @@ UPDATE launchbagz_tokens SET contract = 'chadtoken.gm' WHERE token_contract = 'c
 UPDATE launchbagz_tokens SET contract = 'waxpepetoken' WHERE token_contract = 'waxpepetoken';
 UPDATE launchbagz_tokens SET contract = 'supergrinch1' WHERE token_contract = 'supergrinch1';
 UPDATE launchbagz_tokens SET contract = 'guda.guda' WHERE token_contract = 'guda.guda';
-UPDATE launchbagz_tokens SET contract = 'newstokenwax' WHERE token_contract = 'newstokenwax';
