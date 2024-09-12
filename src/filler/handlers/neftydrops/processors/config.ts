@@ -33,8 +33,8 @@ export function configProcessor(core: NeftyDropsHandler, processor: DataProcesso
                 }, ['drops_contract']);
             }
 
-            const newTokens = delta.value.supported_tokens.filter(token => core.config.supported_tokens.find(t => t.token_symbol === token.token_symbol && t.token_contract !== token.token_contract));
-            const deletedTokens = core.config.supported_tokens.filter(token => delta.value.supported_tokens.find(t => t.token_symbol === token.token_symbol && t.token_contract !== token.token_contract));
+            const newTokens = delta.value.supported_tokens.filter(token => core.config.supported_tokens.find(t => t.token_symbol !== token.token_symbol || t.token_contract !== token.token_contract));
+            const deletedTokens = core.config.supported_tokens.filter(token => delta.value.supported_tokens.find(t => t.token_symbol !== token.token_symbol || t.token_contract !== token.token_contract));
 
             for (const token of deletedTokens) {
                 await db.delete('neftydrops_tokens', {
