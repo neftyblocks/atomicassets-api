@@ -36,10 +36,12 @@ export function configProcessor(core: NeftyDropsHandler, processor: DataProcesso
             const newTokens = delta.value.supported_tokens.filter(token => core.config.supported_tokens.find(t => t.token_symbol === token.token_symbol && t.token_contract !== token.token_contract));
             const deletedTokens = core.config.supported_tokens.filter(token => delta.value.supported_tokens.find(t => t.token_symbol === token.token_symbol && t.token_contract !== token.token_contract));
 
-            logger.info(`Current tokens: ${JSON.stringify(core.config.supported_tokens)}`);
-            logger.info(`Delta tokens: ${JSON.stringify(delta.value.supported_tokens)}`);
-            logger.info(`New tokens: ${JSON.stringify(newTokens)}`);
-            logger.info(`Deleted tokens: ${JSON.stringify(deletedTokens)}`);
+            for (const token of deletedTokens) {
+                await db.delete('neftydrops_tokens', {
+                    str: 'drops_contract = $1 AND token_symbol = $2',
+                    values: [core.args.neftydrops_account, token.token_symbol.split(',')[1]]
+                });
+            }
 
             for (const token of newTokens) {
                 await db.insert('neftydrops_tokens', {
@@ -48,13 +50,6 @@ export function configProcessor(core: NeftyDropsHandler, processor: DataProcesso
                     token_symbol: token.token_symbol.split(',')[1],
                     token_precision: token.token_symbol.split(',')[0]
                 }, ['drops_contract', 'token_symbol']);
-            }
-
-            for (const token of deletedTokens) {
-                await db.delete('neftydrops_tokens', {
-                    str: 'drops_contract = $1 AND token_symbol = $2',
-                    values: [core.args.neftydrops_account, token.token_symbol.split(',')[1]]
-                });
             }
 
             if (core.config.supported_symbol_pairs.length !== delta.value.supported_symbol_pairs.length) {
