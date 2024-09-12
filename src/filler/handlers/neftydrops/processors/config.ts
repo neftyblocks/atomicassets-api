@@ -32,27 +32,24 @@ export function configProcessor(core: NeftyDropsHandler, processor: DataProcesso
                 }, ['drops_contract']);
             }
 
-            if (core.config.supported_tokens.length !== delta.value.supported_tokens.length) {
-                const tokens = core.config.supported_tokens.map(row => row.token_symbol.split(',')[1]);
+            const tokens = core.config.supported_tokens.map(row => row.token_symbol.split(',')[1]);
+            const newTokens = delta.value.supported_tokens.filter(token => tokens.indexOf(token.token_symbol.split(',')[1]) === -1);
+            const deletedTokens = core.config.supported_tokens.filter(token => delta.value.supported_tokens.indexOf(token) === -1);
 
-                for (const token of delta.value.supported_tokens) {
-                    const index = tokens.indexOf(token.token_symbol.split(',')[1]);
+            for (const token of newTokens) {
+                await db.insert('neftydrops_tokens', {
+                    drops_contract: core.args.neftydrops_account,
+                    token_contract: token.token_contract,
+                    token_symbol: token.token_symbol.split(',')[1],
+                    token_precision: token.token_symbol.split(',')[0]
+                }, ['drops_contract', 'token_symbol']);
+            }
 
-                    if (index === -1) {
-                        await db.insert('neftydrops_tokens', {
-                            drops_contract: core.args.neftydrops_account,
-                            token_contract: token.token_contract,
-                            token_symbol: token.token_symbol.split(',')[1],
-                            token_precision: token.token_symbol.split(',')[0]
-                        }, ['drops_contract', 'token_symbol']);
-                    } else {
-                        tokens.splice(index, 1);
-                    }
-                }
-
-                if (tokens.length > 0) {
-                    throw new Error('NeftyDrops: Supported token removed. Should not be possible');
-                }
+            for (const token of deletedTokens) {
+                await db.delete('neftydrops_tokens', {
+                    str: 'drops_contract = $1 AND token_symbol = $2',
+                    values: [core.args.neftydrops_account, token.token_symbol.split(',')[1]]
+                });
             }
 
             if (core.config.supported_symbol_pairs.length !== delta.value.supported_symbol_pairs.length) {
