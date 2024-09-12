@@ -33,9 +33,8 @@ export function configProcessor(core: NeftyDropsHandler, processor: DataProcesso
                 }, ['drops_contract']);
             }
 
-            const tokens = core.config.supported_tokens.map(row => row.token_symbol.split(',')[1]);
-            const newTokens = delta.value.supported_tokens.filter(token => tokens.indexOf(token.token_symbol.split(',')[1]) === -1);
-            const deletedTokens = core.config.supported_tokens.filter(token => !delta.value.supported_tokens.find(t => t.token_symbol === token.token_symbol));
+            const newTokens = delta.value.supported_tokens.filter(token => core.config.supported_tokens.find(t => t.token_symbol === token.token_symbol && t.token_contract !== token.token_contract));
+            const deletedTokens = core.config.supported_tokens.filter(token => delta.value.supported_tokens.find(t => t.token_symbol === token.token_symbol && t.token_contract !== token.token_contract));
 
             logger.info(`Current tokens: ${JSON.stringify(core.config.supported_tokens)}`);
             logger.info(`Delta tokens: ${JSON.stringify(delta.value.supported_tokens)}`);
