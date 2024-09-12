@@ -423,6 +423,8 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
     if (trace.act.data.currency) {
         logger.info(`NeftyDrops: Claiming with currency: ${trace.act.data.currency}`);
       const [, symbol] = trace.act.data.currency.split(',');
+      logger.info(`NeftyDrops: Claiming with symbol: ${symbol}`);
+        logger.info(`NeftyDrops: Settlement symbol: ${settlementSymbol}`);
       if (symbol !== settlementSymbol && !settleToUSD) {
           const prices = await db.query(
               'SELECT price FROM neftydrops_drops_alternative_prices p ' +
