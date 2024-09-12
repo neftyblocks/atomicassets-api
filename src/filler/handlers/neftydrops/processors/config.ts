@@ -4,6 +4,7 @@ import { EosioContractRow } from '../../../../types/eosio';
 import { ShipBlock } from '../../../../types/ship';
 import { ConfigTableRow } from '../types/tables';
 import NeftyDropsHandler, {NeftyDropsUpdatePriority} from '../index';
+import logger from '../../../../utils/winston';
 
 export function configProcessor(core: NeftyDropsHandler, processor: DataProcessor): () => any {
     const destructors: Array<() => any> = [];
@@ -34,7 +35,12 @@ export function configProcessor(core: NeftyDropsHandler, processor: DataProcesso
 
             const tokens = core.config.supported_tokens.map(row => row.token_symbol.split(',')[1]);
             const newTokens = delta.value.supported_tokens.filter(token => tokens.indexOf(token.token_symbol.split(',')[1]) === -1);
-            const deletedTokens = core.config.supported_tokens.filter(token => delta.value.supported_tokens.find(t => t.token_symbol === token.token_symbol) === undefined);
+            const deletedTokens = core.config.supported_tokens.filter(token => !delta.value.supported_tokens.find(t => t.token_symbol === token.token_symbol));
+
+            logger.info(`Current tokens: ${core.config.supported_tokens}`);
+            logger.info(`Delta tokens: ${delta.value.supported_tokens}`);
+            logger.info(`New tokens: ${newTokens}`);
+            logger.info(`Deleted tokens: ${deletedTokens}`);
 
             for (const token of newTokens) {
                 await db.insert('neftydrops_tokens', {
