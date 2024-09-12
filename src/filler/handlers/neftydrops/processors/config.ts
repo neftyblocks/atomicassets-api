@@ -37,10 +37,10 @@ export function configProcessor(core: NeftyDropsHandler, processor: DataProcesso
             const newTokens = delta.value.supported_tokens.filter(token => tokens.indexOf(token.token_symbol.split(',')[1]) === -1);
             const deletedTokens = core.config.supported_tokens.filter(token => !delta.value.supported_tokens.find(t => t.token_symbol === token.token_symbol));
 
-            logger.info(`Current tokens: ${core.config.supported_tokens}`);
-            logger.info(`Delta tokens: ${delta.value.supported_tokens}`);
-            logger.info(`New tokens: ${newTokens}`);
-            logger.info(`Deleted tokens: ${deletedTokens}`);
+            logger.info(`Current tokens: ${JSON.stringify(core.config.supported_tokens)}`);
+            logger.info(`Delta tokens: ${JSON.stringify(delta.value.supported_tokens)}`);
+            logger.info(`New tokens: ${JSON.stringify(newTokens)}`);
+            logger.info(`Deleted tokens: ${JSON.stringify(deletedTokens)}`);
 
             for (const token of newTokens) {
                 await db.insert('neftydrops_tokens', {
