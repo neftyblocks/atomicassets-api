@@ -1,0 +1,1 @@
+ALTER TABLE neftydrops_balances DROP CONSTRAINT IF EXISTS neftydrops_balances_symbols_fkey;

@@ -188,14 +188,6 @@ CREATE TABLE neftydrops_proof_of_ownership_filters
     CONSTRAINT neftydrops_proof_of_ownership_filters_pkey PRIMARY KEY (drop_id, filter_index)
 );
 
-ALTER TABLE ONLY neftydrops_balances
-    ADD CONSTRAINT neftydrops_balances_symbols_fkey FOREIGN KEY (token_symbol, drops_contract)
-        REFERENCES neftydrops_tokens (token_symbol, drops_contract) MATCH SIMPLE ON
-            UPDATE RESTRICT
-        ON
-            DELETE
-            RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
-
 ALTER TABLE ONLY neftydrops_symbol_pairs
     ADD CONSTRAINT neftydrops_symbol_pairs_delphi_fkey FOREIGN KEY (delphi_contract, delphi_pair_name)
         REFERENCES delphioracle_pairs (contract, delphi_pair_name) MATCH SIMPLE ON

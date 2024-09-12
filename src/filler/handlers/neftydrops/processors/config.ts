@@ -34,7 +34,7 @@ export function configProcessor(core: NeftyDropsHandler, processor: DataProcesso
 
             const tokens = core.config.supported_tokens.map(row => row.token_symbol.split(',')[1]);
             const newTokens = delta.value.supported_tokens.filter(token => tokens.indexOf(token.token_symbol.split(',')[1]) === -1);
-            const deletedTokens = core.config.supported_tokens.filter(token => delta.value.supported_tokens.indexOf(token) === -1);
+            const deletedTokens = core.config.supported_tokens.filter(token => delta.value.supported_tokens.find(t => t.token_symbol === token.token_symbol) === undefined);
 
             for (const token of newTokens) {
                 await db.insert('neftydrops_tokens', {
