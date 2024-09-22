@@ -35,26 +35,25 @@ const getDestructor = (core: BlendsHandler, processor: DataProcessor, contract: 
                 values: [contract]
             }, ['contract']);
 
-            const tokens = core.config[contract].supported_tokens.map(row => row.sym.split(',')[1]);
+            const newTokens = delta.value.supported_tokens.filter(token => core.config[contract].supported_tokens.find(t => t.sym !== token.sym || t.contract !== token.contract));
+            const deletedTokens = core.config[contract].supported_tokens.filter(token => delta.value.supported_tokens.find(t => t.sym !== token.sym || t.contract !== token.contract));
 
-            for (const token of delta.value.supported_tokens) {
-                const index = tokens.indexOf(token.sym.split(',')[1]);
-
-                if (index === -1) {
-                    await db.insert('neftyblends_tokens', {
-                        contract: core.args.nefty_blender_account,
-                        token_contract: token.contract,
-                        token_symbol: token.sym.split(',')[1],
-                        token_precision: token.sym.split(',')[0]
-                    }, ['contract', 'token_symbol']);
-                } else {
-                    tokens.splice(index, 1);
-                }
+            for (const token of deletedTokens) {
+                await db.delete('neftyblends_tokens', {
+                    str: 'contract = $1 AND token_symbol = $2',
+                    values: [contract, token.sym.split(',')[1]]
+                });
             }
 
-            if (tokens.length > 0) {
-                throw new Error('NeftyBlends: Supported token removed. Should not be possible');
+            for (const token of newTokens) {
+                await db.insert('neftyblends_tokens', {
+                    contract: contract,
+                    token_contract: token.contract,
+                    token_symbol: token.sym.split(',')[1],
+                    token_precision: token.sym.split(',')[0]
+                }, ['contract', 'token_symbol']);
             }
+
             core.config[contract] = delta.value;
         }, BlendsUpdatePriority.TABLE_CONFIG.valueOf()
     );
