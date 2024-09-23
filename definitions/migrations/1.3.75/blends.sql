@@ -1,0 +1,1 @@
+ALTER TABLE neftyblends_blend_ingredients DROP CONSTRAINT IF EXISTS neftyblends_blend_ingredients_token_symbol_fkey;

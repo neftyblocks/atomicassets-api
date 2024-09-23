@@ -19,7 +19,3 @@ CREATE TABLE IF NOT EXISTS neftyblends_tokens
     token_precision integer               NOT NULL,
     CONSTRAINT neftyblends_tokens_pkey PRIMARY KEY (contract, token_symbol)
 );
-
-ALTER TABLE ONLY neftyblends_blend_ingredients
-    ADD CONSTRAINT neftyblends_blend_ingredients_token_symbol_fkey FOREIGN KEY (contract, ft_ingredient_quantity_symbol)
-        REFERENCES neftyblends_tokens (contract, token_symbol) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
