@@ -89,7 +89,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
         contract, 'logbackasset',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogBackAssetActionData>): Promise<void> => {
             const token = splitEosioToken(trace.act.data.backed_token);
-            const { contract: token_contract } = core.config.supported_tokens.find(t => t.sym === token.token_symbol);
+            const { contract: token_contract } = core.config.supported_tokens.find(t => t.sym === `${token.token_precision},${token.token_symbol}`);
             const backedToken = await db.query(
                 'SELECT amount FROM atomicassets_assets_backed_tokens ' +
                 'WHERE contract = $1 AND asset_id = $2 AND token_symbol = $3 AND token_contract = $4 AND custodian_contract = $5',
