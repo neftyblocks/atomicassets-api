@@ -51,14 +51,15 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         ARRAY(
             SELECT DISTINCT ON (inner_backed.contract, inner_backed.asset_id, inner_backed.token_symbol, inner_backed.token_contract)
                 json_build_object(
-                    'token_contract', inner_backed.token_contract,
-                    'token_symbol', inner_backed.token_symbol,
-                    'token_precision', inner_backed.token_precision,
-                    'amount', inner_backed.amount
-                )
+                        'token_contract', inner_backed.token_contract,
+                        'token_symbol', inner_backed.token_symbol,
+                        'token_precision', inner_backed.token_precision,
+                        'amount', SUM(inner_backed.amount)
+                    )
             FROM atomicassets_assets_backed_tokens inner_backed
             WHERE
-                inner_backed.contract = asset.contract AND inner_backed.asset_id = asset.asset_id
+                    inner_backed.contract = asset.contract AND inner_backed.asset_id = asset.asset_id
+            GROUP BY inner_backed.contract, inner_backed.asset_id, inner_backed.token_symbol, inner_backed.token_contract, inner_backed.token_precision
         ) backed_tokens,
 
         asset.burned_by_account, asset.burned_at_block, asset.burned_at_time,
