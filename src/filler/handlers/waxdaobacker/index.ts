@@ -50,9 +50,9 @@ export default class WaxDaoBackerHandler extends ContractHandler {
 
     }
 
-    async register(processor: DataProcessor, notifier: ApiNotificationSender): Promise<() => any> {
+    async register(processor: DataProcessor): Promise<() => any> {
         const destructors: Array<() => any> = [];
-        destructors.push(assetProcessor(this, processor, notifier));
+        destructors.push(assetProcessor(this, processor));
         return (): any => destructors.map(fn => fn());
     }
 }
