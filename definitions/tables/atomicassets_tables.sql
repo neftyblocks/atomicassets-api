@@ -25,10 +25,12 @@ CREATE TABLE atomicassets_assets_backed_tokens (
     contract character varying(12) NOT NULL,
     asset_id bigint NOT NULL,
     token_symbol character varying(12) NOT NULL,
+    token_contract character varying(12) NOT NULL,
+    token_precision integer NOT NULL,
     amount bigint NOT NULL,
     updated_at_block bigint NOT NULL,
     updated_at_time bigint NOT NULL,
-    CONSTRAINT atomicassets_assets_backed_tokens_pkey PRIMARY KEY (contract, asset_id, token_symbol)
+    CONSTRAINT atomicassets_assets_backed_tokens_pkey PRIMARY KEY (contract, asset_id, token_symbol, token_contract)
 );
 
 CREATE TABLE atomicassets_mints (
@@ -150,9 +152,6 @@ CREATE TABLE atomicassets_transfers_assets (
 -- FOREIGN KEYS --
 ALTER TABLE ONLY atomicassets_assets_backed_tokens
     ADD CONSTRAINT atomicassets_assets_backed_tokens_assets_fkey FOREIGN KEY (asset_id, contract) REFERENCES atomicassets_assets(asset_id, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
-
-ALTER TABLE ONLY atomicassets_assets_backed_tokens
-    ADD CONSTRAINT atomicassets_assets_backed_tokens_symbol_fkey FOREIGN KEY (token_symbol, contract) REFERENCES atomicassets_tokens(token_symbol, contract) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;
 
 ALTER TABLE ONLY atomicassets_assets
     ADD CONSTRAINT atomicassets_assets_collections_fkey FOREIGN KEY (contract, collection_name) REFERENCES atomicassets_collections(contract, collection_name) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED NOT VALID;

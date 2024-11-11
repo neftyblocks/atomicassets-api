@@ -145,7 +145,7 @@ export async function getUpgradeIngredientAssets(params: RequestValues, ctx: Nef
         if (args.has_backed_tokens) {
             query.addCondition('EXISTS (' +
                 'SELECT * FROM atomicassets_assets_backed_tokens token ' +
-                'WHERE asset.contract = token.contract AND asset..asset_id = token.asset_id' +
+                'WHERE asset.contract = token.contract AND asset.asset_id = token.asset_id' +
                 ')');
         } else {
             query.addCondition('NOT EXISTS (' +
@@ -274,7 +274,7 @@ export async function getUpgradeableAssets(params: RequestValues, ctx: NeftyUpgr
         if (args.has_backed_tokens) {
             query.addCondition('EXISTS (' +
                 'SELECT * FROM atomicassets_assets_backed_tokens token ' +
-                'WHERE asset.contract = token.contract AND asset..asset_id = token.asset_id' +
+                'WHERE asset.contract = token.contract AND asset.asset_id = token.asset_id' +
                 ')');
         } else {
             query.addCondition('NOT EXISTS (' +

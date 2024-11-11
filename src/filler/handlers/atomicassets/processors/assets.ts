@@ -89,9 +89,11 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
         contract, 'logbackasset',
         async (db: ContractDBTransaction, block: ShipBlock, tx: EosioTransaction, trace: EosioActionTrace<LogBackAssetActionData>): Promise<void> => {
             const token = splitEosioToken(trace.act.data.backed_token);
+            const { contract: token_contract } = core.config.supported_tokens.find(t => t.sym === token.token_symbol);
             const backedToken = await db.query(
-                'SELECT amount FROM atomicassets_assets_backed_tokens WHERE contract = $1 AND asset_id = $2 AND token_symbol = $3',
-                [contract, trace.act.data.asset_id, token.token_symbol]
+                'SELECT amount FROM atomicassets_assets_backed_tokens ' +
+                'WHERE contract = $1 AND asset_id = $2 AND token_symbol = $3 AND token_contract = $4 AND custodian_contract = $5',
+                [contract, trace.act.data.asset_id, token.token_symbol, token_contract, contract]
             );
 
             if (backedToken.rowCount > 0) {
@@ -100,18 +102,20 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                     updated_at_block: block.block_num,
                     updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
                 }, {
-                    str: 'contract = $1 AND asset_id = $2 AND token_symbol = $3',
-                    values: [contract, trace.act.data.asset_id, token.token_symbol]
-                }, ['contract', 'asset_id', 'token_symbol']);
+                    str: 'contract = $1 AND asset_id = $2 AND token_symbol = $3 AND token_contract = $4',
+                    values: [contract, trace.act.data.asset_id, token.token_symbol, token_contract]
+                }, ['contract', 'asset_id', 'token_symbol', 'token_contract', 'custodian_contract']);
             } else {
                 await db.insert('atomicassets_assets_backed_tokens', {
                     contract: contract,
                     asset_id: trace.act.data.asset_id,
                     token_symbol: token.token_symbol,
+                    token_precision: token.token_precision,
+                    token_contract: token_contract,
                     amount: token.amount,
                     updated_at_block: block.block_num,
                     updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
-                }, ['contract', 'asset_id', 'token_symbol']);
+                }, ['contract', 'asset_id', 'token_symbol', 'token_contract', 'custodian_contract']);
             }
 
             notifier.sendActionTrace('assets', block, tx, trace);

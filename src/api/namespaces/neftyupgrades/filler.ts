@@ -2,7 +2,7 @@ import {DB} from '../../server';
 import {AssetFiller, FillerHook} from '../atomicassets/filler';
 import {formatTemplate, formatSchema, formatCollection, formatAsset} from '../atomicassets/format';
 import {renderMarkdownToHtml} from '../utils';
-import {ResultValueType, UpgradeImmediateType, UpgradeRequirementType} from '../../../filler/handlers/upgrades';
+import {UpgradeRequirementType} from '../../../filler/handlers/upgrades';
 
 export class TemplateFiller {
     private templates: Promise<{[key: string]: any}> | null;

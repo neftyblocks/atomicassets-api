@@ -49,16 +49,15 @@ CREATE OR REPLACE VIEW atomicassets_assets_master AS
         COALESCE(asset.template_mint, 0)::bigint template_mint,
 
         ARRAY(
-            SELECT DISTINCT ON (inner_backed.contract, inner_backed.asset_id, inner_backed.token_symbol)
+            SELECT DISTINCT ON (inner_backed.contract, inner_backed.asset_id, inner_backed.token_symbol, inner_backed.token_contract)
                 json_build_object(
-                    'token_contract', inner_symbol.token_contract,
-                    'token_symbol', inner_symbol.token_symbol,
-                    'token_precision', inner_symbol.token_precision,
+                    'token_contract', inner_backed.token_contract,
+                    'token_symbol', inner_backed.token_symbol,
+                    'token_precision', inner_backed.token_precision,
                     'amount', inner_backed.amount
                 )
-            FROM atomicassets_assets_backed_tokens inner_backed, atomicassets_tokens inner_symbol
+            FROM atomicassets_assets_backed_tokens inner_backed
             WHERE
-                inner_backed.contract = inner_symbol.contract AND inner_backed.token_symbol = inner_symbol.token_symbol AND
                 inner_backed.contract = asset.contract AND inner_backed.asset_id = asset.asset_id
         ) backed_tokens,
 
