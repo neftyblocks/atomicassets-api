@@ -102,8 +102,8 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                     updated_at_block: block.block_num,
                     updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),
                 }, {
-                    str: 'contract = $1 AND asset_id = $2 AND token_symbol = $3 AND token_contract = $4',
-                    values: [contract, trace.act.data.asset_id, token.token_symbol, token_contract]
+                    str: 'contract = $1 AND asset_id = $2 AND token_symbol = $3 AND token_contract = $4 AND custodian_contract = $5',
+                    values: [contract, trace.act.data.asset_id, token.token_symbol, token_contract, contract]
                 }, ['contract', 'asset_id', 'token_symbol', 'token_contract', 'custodian_contract']);
             } else {
                 await db.insert('atomicassets_assets_backed_tokens', {
@@ -112,6 +112,7 @@ export function assetProcessor(core: AtomicAssetsHandler, processor: DataProcess
                     token_symbol: token.token_symbol,
                     token_precision: token.token_precision,
                     token_contract: token_contract,
+                    custodian_contract: contract,
                     amount: token.amount,
                     updated_at_block: block.block_num,
                     updated_at_time: eosioTimestampToDate(block.timestamp).getTime(),

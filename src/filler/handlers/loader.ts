@@ -14,6 +14,7 @@ import NeftyAvatarsHandler from './avatars';
 import NeftyPacksHandler from './packs';
 import UpgradesHandler from './upgrades';
 import LaunchesHandler from './launchbagz';
+import WaxDaoBackerHandler from './waxdaobacker';
 
 export const handlers: (typeof ContractHandler)[] = [
     AtomicAssetsHandler,
@@ -30,4 +31,5 @@ export const handlers: (typeof ContractHandler)[] = [
     NeftyPacksHandler,
     UpgradesHandler,
     LaunchesHandler,
+    WaxDaoBackerHandler,
 ];

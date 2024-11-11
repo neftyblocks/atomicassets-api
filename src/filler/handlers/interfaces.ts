@@ -5,8 +5,6 @@ import DataProcessor from '../processor';
 import ApiNotificationSender from '../notifier';
 import Filler from '../filler';
 
-export type ContractHandlerScope = {[key: string]: Array<{ filter: string, deserialize: boolean }>};
-
 export abstract class ContractHandler {
     static handlerName = '';
 
