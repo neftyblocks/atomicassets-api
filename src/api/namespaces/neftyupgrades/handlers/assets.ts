@@ -242,6 +242,8 @@ export async function getUpgradeableAssets(params: RequestValues, ctx: NeftyUpgr
     for (const requirement of requirements) {
         if (requirement.type === UpgradeRequirementType.TEMPLATE_REQUIREMENT) {
             query.equal('asset.template_id', requirement.payload.template_id);
+        } else if (requirement.type === UpgradeRequirementType.TEMPLATES_REQUIREMENT) {
+            query.addCondition(`asset.template_id = ANY (${query.addVariable(requirement.payload.template_ids)})`, );
         } else if (requirement.type === UpgradeRequirementType.TYPED_ATTRIBUTE_REQUIREMENT) {
             query.equal('asset.collection_name', upgrade.collection_name);
             query.equal('asset.schema_name', schemaName);
