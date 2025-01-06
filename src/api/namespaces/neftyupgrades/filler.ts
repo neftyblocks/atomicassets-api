@@ -197,9 +197,9 @@ export async function fillUpgrades(db: DB, assetContract: string, upgrades: any[
                             templateIds.push(templateId);
                         }
                     } else if (requirements.type === UpgradeRequirementType.TEMPLATES_REQUIREMENT) {
-                        const templateIds = requirements.payload?.template_ids;
-                        if (templateIds) {
-                            templateIds.push(...templateIds);
+                        const ids = requirements.payload?.template_ids || [];
+                        if (ids.length) {
+                            templateIds.push(...ids);
                         }
                     }
                 }
@@ -273,7 +273,10 @@ export async function fillUpgrades(db: DB, assetContract: string, upgrades: any[
                     }  else if (requirement.type === UpgradeRequirementType.TEMPLATES_REQUIREMENT) {
                         const templateIds = requirement.payload?.template_ids;
                         if (templateIds) {
-                            const templates = await Promise.all(templateIds.map((id: string) => templateFiller.fill(id)));
+                            const templates = [];
+                            for (let i = 0; i < templateIds.length; i++) {
+                                templates.push(await templateFiller.fill(templateIds[i]));
+                            }
                             requirement.templates = templates;
                         }
                         delete requirement.payload;
