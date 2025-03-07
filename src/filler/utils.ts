@@ -13,7 +13,7 @@ export function encodeDatabaseJson(obj: any): string {
 export function encodeDatabaseArray(array: any[]): string {
     const data = array.map(x => {
         if (typeof x === 'string') {
-            return x.replace(/"/g, '\\"');
+            return x.replace(/"/g, '\\"').replace(/{/g, '\\{');
         }
         return x;
     });
