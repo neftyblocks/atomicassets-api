@@ -15,7 +15,7 @@ export function encodeDatabaseArray(array: any[]): string {
         if (typeof x === 'string') {
             return x.replace(/"/g, '\\"')
                     .replace(/{/g, '\\{')
-                    .replace(/\\./g, '\\\\.');
+                    .replace(/,/g, '\\,');
         }
         return x;
     });
