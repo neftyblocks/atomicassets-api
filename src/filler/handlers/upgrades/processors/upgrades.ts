@@ -412,9 +412,11 @@ function getIngredientsDbRows(upgradeId: number, ingredients: Ingredient[], args
                 upgrade_id: upgradeId,
                 ingredient_collection_name: ingredient.collection_name,
                 ingredient_index: ingredient.index,
+                typed_attribute_index: attributeIndex,
                 attribute_index: attributeIndex,
                 attribute_name: attribute.attribute_name,
                 comparator: 0,
+                allowed_values_type: 'string',
                 allowed_values: encodeDatabaseArray(attribute.allowed_values),
             });
             attributeIndex++;
