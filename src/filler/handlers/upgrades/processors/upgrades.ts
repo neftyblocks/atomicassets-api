@@ -430,7 +430,7 @@ function getIngredientsDbRows(upgradeId: number, ingredients: Ingredient[], args
                 ingredient_collection_name: ingredient.collection_name,
                 ingredient_index: ingredient.index,
                 typed_attribute_index: typedAttributeIndex,
-
+                attribute_index: typedAttributeIndex,
                 attribute_name: typedAttribute.attribute_name,
                 attribute_type: typedAttribute.attribute_type,
                 comparator: typedAttribute.comparator,
