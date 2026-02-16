@@ -430,6 +430,11 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
           );
 
           if (prices.rowCount === 0) {
+              logger.error('NeftyDrops: Drops was purchased but could not find the alternative price', {
+                  drop_id: trace.act.data.drop_id,
+                  symbol,
+                  currency: trace.act.data.currency,
+              });
               throw new Error('NeftyDrops: Drops was purchased but could not find the alternative price');
           }
 
