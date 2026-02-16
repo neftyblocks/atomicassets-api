@@ -420,7 +420,8 @@ export function dropsProcessor(core: NeftyDropsHandler, processor: DataProcessor
       }
     }
 
-    if (trace.act.data.currency) {
+    //if (trace.act.data.currency) {
+    if (trace.act.data.currency && settlementSymbol !== 'NULL') {
       const [, symbol] = trace.act.data.currency.split(',');
       if (symbol !== settlementSymbol && !settleToUSD) {
           const prices = await db.query(
